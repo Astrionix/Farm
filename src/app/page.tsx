@@ -1,0 +1,171 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Sidebar from '../components/Sidebar';
+import LoginPage from '../components/LoginPage';
+import OwnerDashboard from '../components/OwnerDashboard';
+import UnitDashboard from '../components/UnitDashboard';
+import DailyEntry from '../components/DailyEntry';
+import InventoryModule from '../components/InventoryModule';
+import AIChatPanel from '../components/AIChatPanel';
+import ReportsPanel from '../components/ReportsPanel';
+import { dbService } from '../services/db';
+
+export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [userRole, setUserRole] = useState<'Owner' | 'Supervisor'>('Owner');
+  const [assignedUnit, setAssignedUnit] = useState<number>(1);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [dbReady, setDbReady] = useState<boolean>(false);
+
+  // Initialize DB & Local state on first mount
+  useEffect(() => {
+    dbService.init();
+    setUserRole(dbService.getUserRole());
+    setAssignedUnit(dbService.getAssignedUnit());
+    
+    // Check if user session is active from localStorage
+    const authActive = localStorage.getItem('smp_auth_active') === 'true';
+    setIsAuthenticated(authActive);
+
+    // Sync tab when mounting/role updates
+    const initialRole = dbService.getUserRole();
+    if (initialRole === 'Supervisor') {
+      setCurrentTab('unit-dashboard');
+    } else {
+      setCurrentTab('dashboard');
+    }
+    setDbReady(true);
+  }, []);
+
+  // Listen for storage updates
+  useEffect(() => {
+    const handleRoleChange = () => {
+      setUserRole(dbService.getUserRole());
+      setAssignedUnit(dbService.getAssignedUnit());
+    };
+    window.addEventListener('storage-role-change', handleRoleChange);
+    return () => window.removeEventListener('storage-role-change', handleRoleChange);
+  }, []);
+
+  const handleRoleToggle = (role: 'Owner' | 'Supervisor') => {
+    dbService.setUserRole(role);
+    setUserRole(role);
+  };
+
+  const handleUnitSelect = (unitId: number) => {
+    dbService.setAssignedUnit(unitId);
+    setAssignedUnit(unitId);
+  };
+
+  // Toggle Dark Mode
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  const handleNavigateToUnit = (unitId: number) => {
+    if (userRole === 'Supervisor' && assignedUnit !== unitId) return; // Prevent supervisor routing leak
+    handleUnitSelect(unitId);
+    setCurrentTab('unit-dashboard');
+  };
+
+  const handleLoginSuccess = (role: 'Owner' | 'Supervisor', unit: number) => {
+    localStorage.setItem('smp_auth_active', 'true');
+    dbService.setUserRole(role);
+    dbService.setAssignedUnit(unit);
+    
+    setUserRole(role);
+    setAssignedUnit(unit);
+    setIsAuthenticated(true);
+    
+    if (role === 'Supervisor') {
+      setCurrentTab('unit-dashboard');
+    } else {
+      setCurrentTab('dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('smp_auth_active');
+    setIsAuthenticated(false);
+  };
+
+  if (!dbReady) {
+    return (
+      <div className="flex-1 min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-200">
+            Initializing Sri Mahalakshmi Poultry AI ERP...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Login screen if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return (
+    <div className="flex w-full min-h-screen bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
+      <Sidebar
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        userRole={userRole}
+        setUserRole={handleRoleToggle}
+        assignedUnit={assignedUnit}
+        setAssignedUnit={handleUnitSelect}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onLogout={handleLogout}
+      />
+      
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900">
+        {currentTab === 'dashboard' && userRole === 'Owner' && (
+          <OwnerDashboard 
+            darkMode={darkMode} 
+            onNavigateToUnit={handleNavigateToUnit}
+          />
+        )}
+        
+        {currentTab === 'unit-dashboard' && (
+          <UnitDashboard
+            userRole={userRole}
+            assignedUnit={assignedUnit}
+          />
+        )}
+        
+        {currentTab === 'daily-entry' && (
+          <DailyEntry
+            userRole={userRole}
+            assignedUnit={assignedUnit}
+          />
+        )}
+        
+        {currentTab === 'inventory' && userRole === 'Owner' && (
+          <InventoryModule />
+        )}
+        
+        {currentTab === 'ai-chat' && userRole === 'Owner' && (
+          <AIChatPanel />
+        )}
+        
+        {currentTab === 'reports' && (
+          <ReportsPanel
+            userRole={userRole}
+            assignedUnit={assignedUnit}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
