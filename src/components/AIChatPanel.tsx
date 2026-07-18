@@ -101,9 +101,12 @@ You can ask me questions like:
       } else {
         setMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I encountered an issue accessing the AI engine. Please try again.' }]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Chat error:', err);
-      setMessages(prev => [...prev, { sender: 'bot', text: 'Error connecting to the chat service.' }]);
+      setMessages(prev => [...prev, { 
+        sender: 'bot', 
+        text: `Error connecting to the chat service. Details: ${err?.message || String(err)}` 
+      }]);
     } finally {
       setChatLoading(false);
     }
