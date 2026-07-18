@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     androidScheme: 'https',
-    hostname: 'farm-lac-theta.vercel.app'
+    hostname: 'flockmind.app'
   }
 };
 
