@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.mahalakshmi.poultryerp',
-  appName: 'SMP Poultry ERP',
+  appName: 'FlockMind AI',
   webDir: 'out'
 };
 
