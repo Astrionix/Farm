@@ -30,9 +30,9 @@ export default function Home() {
     setUserRole(dbService.getUserRole());
     setAssignedUnit(dbService.getAssignedUnit());
     
-    // Check if user session is active from localStorage
-    const authActive = localStorage.getItem('smp_auth_active') === 'true';
-    setIsAuthenticated(authActive);
+    // Always require fresh login on application startup
+    localStorage.removeItem('smp_auth_active');
+    setIsAuthenticated(false);
 
     // Sync tab when mounting/role updates
     const initialRole = dbService.getUserRole();
