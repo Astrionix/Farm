@@ -132,7 +132,8 @@ export default function Home() {
         onLogout={handleLogout}
       />
       
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900">
+      {/* Main content: on mobile add top padding for header + bottom padding for bottom nav */}
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900 pt-[56px] pb-[68px] md:pt-0 md:pb-0">
         {currentTab === 'dashboard' && userRole === 'Owner' && (
           <OwnerDashboard 
             darkMode={darkMode} 
