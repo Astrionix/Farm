@@ -55,7 +55,7 @@ You can ask me questions like:
       const today = new Date().toISOString().split('T')[0];
       const summary = await dbService.getAggregatedScores(today);
       
-      const response = await fetch('/api/ai/analyze', {
+      const response = await fetch('https://farm-lac-theta.vercel.app/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dataSummary: summary })
@@ -85,7 +85,7 @@ You can ask me questions like:
       const today = new Date().toISOString().split('T')[0];
       const summary = await dbService.getAggregatedScores(today);
 
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch('https://farm-lac-theta.vercel.app/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
