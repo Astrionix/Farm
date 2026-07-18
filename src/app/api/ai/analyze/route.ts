@@ -105,12 +105,34 @@ The JSON must strictly match this structure:
     }
 
     const resJson = await response.json();
-    const botRaw = resJson.choices[0]?.message?.content || '{}';
-    const structuredResult = JSON.parse(botRaw);
+    let botRaw = resJson.choices[0]?.message?.content || '{}';
+    
+    // Clean up markdown code blocks if the model wrapped the JSON
+    if (botRaw.includes('```')) {
+      const match = botRaw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match && match[1]) {
+        botRaw = match[1];
+      }
+    }
+
+    let structuredResult;
+    try {
+      structuredResult = JSON.parse(botRaw.trim());
+    } catch (parseError) {
+      console.warn('Failed parsing Groq response JSON, falling back to local analysis:', parseError, botRaw);
+      structuredResult = generateFallbackAnalysis(dataSummary);
+    }
 
     return NextResponse.json(structuredResult);
   } catch (error: any) {
-    console.error('Analysis endpoint failure:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.warn('Analysis endpoint exception, triggering fallback:', error);
+    try {
+      const body = await request.clone().json().catch(() => ({}));
+      const fallback = generateFallbackAnalysis(body.dataSummary || {});
+      return NextResponse.json(fallback);
+    } catch (fallbackError) {
+      console.error('Offline analysis fallback failed:', fallbackError);
+      return NextResponse.json({ error: 'Offline analysis not available' }, { status: 500 });
+    }
   }
 }

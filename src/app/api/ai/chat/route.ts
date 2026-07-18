@@ -163,7 +163,15 @@ Rules:
 
     return NextResponse.json({ response: botResponse });
   } catch (error: any) {
-    console.error('AI chat endpoint exception:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.warn('AI chat endpoint exception, triggering fallback:', error);
+    try {
+      // Read request cloned stream in case it wasn't parsed fully
+      const body = await request.clone().json().catch(() => ({}));
+      const fallback = generateFallbackChatResponse(body.message || '', body.dataSummary || {});
+      return NextResponse.json({ response: fallback, warning: 'Offline fallback activated.' });
+    } catch (fallbackError) {
+      console.error('Offline fallback failed:', fallbackError);
+      return NextResponse.json({ response: 'FlockMind AI Consultant is currently offline. Please check your network connection.' });
+    }
   }
 }
