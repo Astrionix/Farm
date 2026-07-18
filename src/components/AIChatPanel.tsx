@@ -21,6 +21,7 @@ export default function AIChatPanel() {
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [insights, setInsights] = useState<any>(null);
+  const [activeMobileSubTab, setActiveMobileSubTab] = useState<'insights' | 'chat'>('insights');
   
   // Chat state
   const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string }>>([
@@ -109,9 +110,35 @@ You can ask me questions like:
   };
 
   return (
-    <div className="flex-1 p-6 flex flex-col lg:flex-row gap-6 max-h-screen overflow-hidden">
+    <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 lg:flex-row lg:gap-6 max-h-screen overflow-hidden">
+      {/* Mobile Sub-Tab Selector */}
+      <div className="lg:hidden flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <button
+          onClick={() => setActiveMobileSubTab('insights')}
+          className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
+            activeMobileSubTab === 'insights'
+              ? 'bg-primary text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+          }`}
+        >
+          AI Insights
+        </button>
+        <button
+          onClick={() => setActiveMobileSubTab('chat')}
+          className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
+            activeMobileSubTab === 'chat'
+              ? 'bg-primary text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+          }`}
+        >
+          Chat Consultant
+        </button>
+      </div>
+
       {/* LEFT PANEL: Executive AI Advisory Board */}
-      <div className="w-full lg:w-1/2 flex flex-col gap-5 overflow-y-auto pr-1">
+      <div className={`w-full lg:w-1/2 flex-col gap-5 overflow-y-auto pr-1 ${
+        activeMobileSubTab === 'insights' ? 'flex' : 'hidden lg:flex'
+      }`}>
         {/* Title */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
@@ -230,7 +257,9 @@ You can ask me questions like:
       </div>
 
       {/* RIGHT PANEL: Interactive Chat Assistant */}
-      <div className="w-full lg:w-1/2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex flex-col h-full overflow-hidden">
+      <div className={`w-full lg:w-1/2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex-col h-full overflow-hidden ${
+        activeMobileSubTab === 'chat' ? 'flex' : 'hidden lg:flex'
+      }`}>
         {/* Header */}
         <div className="bg-primary text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

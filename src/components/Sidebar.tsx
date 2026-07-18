@@ -263,7 +263,7 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           MOBILE TOP HEADER BAR
       ═══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white flex items-center justify-between px-4 py-3 shadow-lg border-b border-primary-dark/30">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
         <LogoBlock />
         <button
           onClick={() => setMobileDrawerOpen(true)}
@@ -384,16 +384,6 @@ export default function Sidebar({
             </button>
           );
         })}
-        {/* Settings icon opens drawer */}
-        <button
-          onClick={() => setMobileDrawerOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-slate-400 dark:text-slate-500 hover:text-primary transition active:scale-95"
-        >
-          <div className="p-1.5 rounded-xl">
-            <Settings className="w-5 h-5" />
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-wide">More</span>
-        </button>
       </div>
 
       {/* ─── Database Reset Warning Modal ─── */}
