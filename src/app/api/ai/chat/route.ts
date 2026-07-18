@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 // Fallback rule-based analysis generator when Groq is not available
 function generateFallbackChatResponse(message: string, summary: any): string {
   const query = message.toLowerCase();
@@ -58,6 +64,13 @@ You can ask me to:
 * **Provide feed and FCR optimization recommendations**`;
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: CORS_HEADERS,
+  });
+}
+
 export async function POST(request: Request) {
   let message = '';
   let dataSummary: any = {};
@@ -72,13 +85,13 @@ export async function POST(request: Request) {
 
   try {
     if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Message is required' }, { status: 400, headers: CORS_HEADERS });
     }
 
     // Fallback if no Groq Key
     if (!GROQ_API_KEY) {
       const responseText = generateFallbackChatResponse(message, dataSummary);
-      return NextResponse.json({ response: responseText });
+      return NextResponse.json({ response: responseText }, { headers: CORS_HEADERS });
     }
 
     // Call Groq Llama 3 API
@@ -120,21 +133,21 @@ Rules:
       const errText = await response.text();
       console.error('Groq API Error:', errText);
       const fallback = generateFallbackChatResponse(message, dataSummary);
-      return NextResponse.json({ response: fallback, warning: 'Groq API error. Used analytical fallback engine.' });
+      return NextResponse.json({ response: fallback, warning: 'Groq API error. Used analytical fallback engine.' }, { headers: CORS_HEADERS });
     }
 
     const resJson = await response.json();
     const botResponse = resJson.choices[0]?.message?.content || '';
 
-    return NextResponse.json({ response: botResponse });
+    return NextResponse.json({ response: botResponse }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.warn('AI chat endpoint exception, triggering fallback:', error);
     try {
       const fallback = generateFallbackChatResponse(message, dataSummary);
-      return NextResponse.json({ response: fallback, warning: 'Offline fallback activated.' });
+      return NextResponse.json({ response: fallback, warning: 'Offline fallback activated.' }, { headers: CORS_HEADERS });
     } catch (fallbackError) {
       console.error('Offline fallback failed:', fallbackError);
-      return NextResponse.json({ response: 'FlockMind AI Consultant is currently offline. Please check your network connection.' });
+      return NextResponse.json({ response: 'FlockMind AI Consultant is currently offline. Please check your network connection.' }, { headers: CORS_HEADERS });
     }
   }
 }

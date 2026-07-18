@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 function generateFallbackAnalysis(summary: any) {
   const worstShedUnit = summary.worstShed?.unitId || 3;
   const worstShedNum = summary.worstShed?.shedNumber || 2;
@@ -38,6 +44,13 @@ function generateFallbackAnalysis(summary: any) {
   };
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: CORS_HEADERS,
+  });
+}
+
 export async function POST(request: Request) {
   let dataSummary: any = {};
   
@@ -51,7 +64,7 @@ export async function POST(request: Request) {
   try {
     if (!GROQ_API_KEY) {
       const fallback = generateFallbackAnalysis(dataSummary);
-      return NextResponse.json(fallback);
+      return NextResponse.json(fallback, { headers: CORS_HEADERS });
     }
 
     // Call Groq Llama 3 API for automated structured analysis JSON
@@ -108,7 +121,7 @@ The JSON must strictly match this structure:
       const errText = await response.text();
       console.error('Groq Analysis API Error:', errText);
       const fallback = generateFallbackAnalysis(dataSummary);
-      return NextResponse.json(fallback);
+      return NextResponse.json(fallback, { headers: CORS_HEADERS });
     }
 
     const resJson = await response.json();
@@ -130,15 +143,15 @@ The JSON must strictly match this structure:
       structuredResult = generateFallbackAnalysis(dataSummary);
     }
 
-    return NextResponse.json(structuredResult);
+    return NextResponse.json(structuredResult, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.warn('Analysis endpoint exception, triggering fallback:', error);
     try {
       const fallback = generateFallbackAnalysis(dataSummary);
-      return NextResponse.json(fallback);
+      return NextResponse.json(fallback, { headers: CORS_HEADERS });
     } catch (fallbackError) {
       console.error('Offline analysis fallback failed:', fallbackError);
-      return NextResponse.json({ error: 'Offline analysis not available' }, { status: 500 });
+      return NextResponse.json({ error: 'Offline analysis not available' }, { status: 500, headers: CORS_HEADERS });
     }
   }
 }
