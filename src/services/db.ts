@@ -92,6 +92,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'smp_notifications',
   USER_ROLE: 'smp_user_role',
   ASSIGNED_UNIT: 'smp_assigned_unit',
+  DB_MODE: 'smp_db_mode',
 };
 
 // Seeding 30 Days of high fidelity historical data
@@ -350,6 +351,7 @@ function generateHistoricalMockData() {
           eggsCracked,
           uniformity,
           bodyWeight,
+          birdAgeWeeks: 18 + s * 2,
         };
 
         const calculated = calculateShedMetrics(inputMetrics);
@@ -501,7 +503,72 @@ export const dbService = {
       // Default configurations
       localStorage.setItem(STORAGE_KEYS.USER_ROLE, 'Owner');
       localStorage.setItem(STORAGE_KEYS.ASSIGNED_UNIT, '1');
+      localStorage.setItem(STORAGE_KEYS.DB_MODE, 'Demo');
     }
+  },
+
+  // DB Mode Access
+  getDbMode: (): 'Demo' | 'Live' => {
+    if (typeof window === 'undefined') return 'Demo';
+    dbService.init();
+    return (localStorage.getItem(STORAGE_KEYS.DB_MODE) as 'Demo' | 'Live') || 'Demo';
+  },
+
+  clearAllData: async (mode: 'Demo' | 'Live'): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    dbService.init();
+
+    localStorage.setItem(STORAGE_KEYS.DB_MODE, mode);
+
+    if (mode === 'Demo') {
+      const seed = generateHistoricalMockData();
+      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(seed.units));
+      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(seed.sheds));
+      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify(seed.dailyEntries));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(seed.inventory));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify(seed.inventoryTransactions));
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(seed.notifications));
+    } else {
+      // Live / Clean slate
+      const units = [
+        { id: 1, name: 'Unit 1', status: 'Active' as const },
+        { id: 2, name: 'Unit 2', status: 'Active' as const },
+        { id: 3, name: 'Unit 3', status: 'Active' as const },
+        { id: 4, name: 'Unit 4', status: 'Active' as const },
+      ];
+
+      const sheds = [];
+      for (let u = 1; u <= 4; u++) {
+        for (let s = 1; s <= 12; s++) {
+          let status: 'Active' | 'Not In Use' = 'Active';
+          if (u === 1 && s > 10) status = 'Not In Use';
+          else if (u === 2 && s > 8) status = 'Not In Use';
+          else if (u === 3 && s > 10) status = 'Not In Use';
+          else if (u === 4 && s > 2) status = 'Not In Use';
+          sheds.push({ unitId: u, shedNumber: s, status });
+        }
+      }
+
+      const inventory = [
+        { id: 'inv-feed-1', category: 'Feed' as const, itemName: 'Layer Feed MaxPlus', stockLevel: 0, reorderLevel: 2000, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
+        { id: 'inv-feed-2', category: 'Feed' as const, itemName: 'Pre-Lay Starter Crumble', stockLevel: 0, reorderLevel: 500, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
+        { id: 'inv-med-1', category: 'Medicines' as const, itemName: 'Amprolium Dewormer 9.6%', stockLevel: 0, reorderLevel: 8.0, uom: 'liters', supplier: 'VetCare India Labs', expiryDate: '2027-04-18' },
+        { id: 'inv-vac-1', category: 'Vaccines' as const, itemName: 'Newcastle ND LaSota (1000 doses)', stockLevel: 0, reorderLevel: 4, uom: 'vials', supplier: 'Indovax Bio', expiryDate: '2026-11-20' },
+        { id: 'inv-tray-1', category: 'Egg Trays' as const, itemName: 'Premium Molded Fiber Paper Trays', stockLevel: 0, reorderLevel: 1500, uom: 'units', supplier: 'Sri Lakshmi Paper Products', expiryDate: null },
+        { id: 'inv-pack-1', category: 'Packaging' as const, itemName: 'Recycled Egg Cartons (12 Eggs Size)', stockLevel: 0, reorderLevel: 400, uom: 'units', supplier: 'Carton Works Co.', expiryDate: null },
+        { id: 'inv-chem-1', category: 'Chemicals' as const, itemName: 'Virkon S Bio-Disinfectant Powder', stockLevel: 0, reorderLevel: 10.0, uom: 'kg', supplier: 'Antec Chemical Solutions', expiryDate: '2027-08-10' },
+      ];
+
+      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(units));
+      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
+      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
+    }
+
+    // Force a storage role change update to trigger components refreshing
+    window.dispatchEvent(new Event('storage-role-change'));
   },
 
   // Role Access
@@ -628,6 +695,7 @@ export const dbService = {
             eggsCracked: d.eggs_cracked,
             uniformity: Number(d.uniformity),
             bodyWeight: Number(d.body_weight),
+            birdAgeWeeks: d.bird_age_weeks || 20,
             medication: d.medication,
             remarks: d.remarks,
             hdPct: Number(d.hd_pct),
@@ -712,6 +780,7 @@ export const dbService = {
           closing_birds: e.closingBirds,
           uniformity: e.uniformity,
           body_weight: e.bodyWeight,
+          bird_age_weeks: e.birdAgeWeeks || 20,
           feed_kg: e.feedKg,
           water_liters: e.waterLiters,
           eggs_count: e.eggsCount,

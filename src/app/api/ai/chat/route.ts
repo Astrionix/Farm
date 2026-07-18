@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: 'system',
-            content: `You are Antigravity, the Senior AI Poultry Consultant for Sri Mahalakshmi Poultry AI ERP.
+            content: `You are FlockMind, the Senior AI Poultry Consultant for Sri Mahalakshmi Poultry AI ERP.
 You are communicating with the Farm Owner.
 You are given a JSON summary of the active farm statistics:
 ${JSON.stringify(dataSummary)}

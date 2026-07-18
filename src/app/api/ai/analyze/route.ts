@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: 'system',
-            content: `You are Antigravity, the expert AI analyzer for Sri Mahalakshmi Poultry.
+            content: `You are FlockMind, the expert AI analyzer for Sri Mahalakshmi Poultry.
 You are given a JSON representing the active database stats:
 ${JSON.stringify(dataSummary)}
 

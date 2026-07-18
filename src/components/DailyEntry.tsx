@@ -121,6 +121,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               bodyWeight: todayEntry.bodyWeight,
               medication: todayEntry.medication,
               remarks: todayEntry.remarks,
+              birdAgeWeeks: todayEntry.birdAgeWeeks,
             };
             if (sNum === 1) {
               setWeather(todayEntry.weather);
@@ -148,6 +149,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               bodyWeight: 1680,
               medication: '',
               remarks: '',
+              birdAgeWeeks: yesterdayEntry?.birdAgeWeeks ?? (18 + sNum * 2),
             };
           }
         });
@@ -228,6 +230,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       
       for (const [shedNumStr, input] of Object.entries(shedInputs)) {
         const sNum = Number(shedNumStr);
+        const closing = Number(input.closingBirds ?? (Number(input.openingBirds || 0) - Number(input.mortality || 0) - Number(input.culls || 0)));
         inputsArray.push({
           shedNumber: sNum,
           input: {
@@ -235,16 +238,16 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             openingBirds: Number(input.openingBirds || 0),
             mortality: Number(input.mortality || 0),
             culls: Number(input.culls || 0),
-            closingBirds: Number(input.closingBirds || 0),
-            feedKg: Number(input.feedKg || 0),
-            waterLiters: Number(input.waterLiters || 0),
+            closingBirds: closing,
+            feedKg: Number(input.feedKg || (closing ? Math.round(closing * 0.116) : 0)),
+            waterLiters: Number(input.waterLiters || (closing ? Math.round(closing * 0.116 * 2.0) : 0)),
             eggsCount: Number(input.eggsCount || 0),
-            eggWeightG: Number(input.eggWeightG || 0),
+            eggWeightG: Number(input.eggWeightG || 60.0),
             eggsBroken: Number(input.eggsBroken || 0),
             eggsDirty: Number(input.eggsDirty || 0),
             eggsCracked: Number(input.eggsCracked || 0),
-            uniformity: Number(input.uniformity || 0),
-            bodyWeight: Number(input.bodyWeight || 0),
+            uniformity: Number(input.uniformity || 85),
+            bodyWeight: Number(input.bodyWeight || 1680),
             medication: input.medication || '',
             remarks: input.remarks || '',
           },
@@ -495,21 +498,22 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               let scoreLabel = 'Critical';
 
               if (isActive) {
+                const closing = Number(input.closingBirds ?? (Number(input.openingBirds || 0) - Number(input.mortality || 0) - Number(input.culls || 0)));
                 const dummyInput: ShedDataInput = {
                   status: 'Active',
                   openingBirds: Number(input.openingBirds || 0),
                   mortality: Number(input.mortality || 0),
                   culls: Number(input.culls || 0),
-                  closingBirds: Number(input.closingBirds || 0),
-                  feedKg: Number(input.feedKg || 0),
-                  waterLiters: Number(input.waterLiters || 0),
+                  closingBirds: closing,
+                  feedKg: Number(input.feedKg || (closing ? Math.round(closing * 0.116) : 0)),
+                  waterLiters: Number(input.waterLiters || (closing ? Math.round(closing * 0.116 * 2.0) : 0)),
                   eggsCount: Number(input.eggsCount || 0),
-                  eggWeightG: Number(input.eggWeightG || 0),
+                  eggWeightG: Number(input.eggWeightG || 60.0),
                   eggsBroken: Number(input.eggsBroken || 0),
                   eggsDirty: Number(input.eggsDirty || 0),
                   eggsCracked: Number(input.eggsCracked || 0),
-                  uniformity: Number(input.uniformity || 0),
-                  bodyWeight: Number(input.bodyWeight || 0),
+                  uniformity: Number(input.uniformity || 85),
+                  bodyWeight: Number(input.bodyWeight || 1680),
                 };
 
                 const calc = calculateShedMetrics(dummyInput);
@@ -572,7 +576,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
                   {/* Input Grid (Rendered only if Active) */}
                   {isActive ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-4">
                       {/* Opening Birds */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Opening Birds</label>
@@ -584,7 +588,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           required
                         />
                       </div>
-
+ 
                       {/* Mortality */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Mortality</label>
@@ -595,7 +599,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
-
+ 
                       {/* Culls */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Culls</label>
@@ -606,7 +610,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
-
+ 
                       {/* Closing Birds (Calculated Indicator) */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
@@ -615,33 +619,19 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
                       </div>
 
-                      {/* Feed consumed (kg) */}
+                      {/* Bird Age (Weeks) */}
                       <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Feed Consumed (kg)</label>
+                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Bird Age (Weeks)</label>
                         <input
                           type="number"
-                          step="0.1"
-                          value={input.feedKg ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
+                          value={input.birdAgeWeeks ?? 0}
+                          onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                           required
                         />
                       </div>
-
-                      {/* Water Consumed (L) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Water Consumed (L)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={input.waterLiters ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'waterLiters', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
-                      </div>
-
-                      {/* Eggs Count */}
+ 
+                      {/* Eggs Collected */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>
                         <input
@@ -652,20 +642,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           required
                         />
                       </div>
-
-                      {/* Egg weight average */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Egg Weight (g)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={input.eggWeightG ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'eggWeightG', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
-                      </div>
-
+ 
                       {/* Broken eggs */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Broken Eggs</label>
@@ -676,7 +653,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
-
+ 
                       {/* Dirty eggs */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Dirty Eggs</label>
@@ -687,7 +664,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
-
+ 
                       {/* Cracked eggs */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Cracked Eggs</label>
@@ -696,52 +673,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           value={input.eggsCracked ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'eggsCracked', Number(e.target.value))}
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Uniformity */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Uniformity (%)</label>
-                        <input
-                          type="number"
-                          value={input.uniformity ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'uniformity', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Body weight average */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Body Weight (g)</label>
-                        <input
-                          type="number"
-                          value={input.bodyWeight ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'bodyWeight', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Medication */}
-                      <div className="space-y-1 col-span-2">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Medication / Feed Additives</label>
-                        <input
-                          type="text"
-                          value={input.medication ?? ''}
-                          onChange={(e) => handleInputChange(sNum, 'medication', e.target.value)}
-                          placeholder="e.g. Vitamin Premix"
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Remarks */}
-                      <div className="space-y-1 col-span-2 sm:col-span-3">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Specific Remarks</label>
-                        <input
-                          type="text"
-                          value={input.remarks ?? ''}
-                          onChange={(e) => handleInputChange(sNum, 'remarks', e.target.value)}
-                          placeholder="e.g. Feather picking noted"
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
                     </div>

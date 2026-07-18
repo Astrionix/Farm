@@ -16,8 +16,11 @@ import {
   LogOut,
   Menu,
   X,
-  Settings
+  Settings,
+  Database,
+  AlertTriangle
 } from 'lucide-react';
+import { dbService } from '../services/db';
 
 interface SidebarProps {
   currentTab: string;
@@ -43,12 +46,58 @@ export default function Sidebar({
   onLogout
 }: SidebarProps) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [dbMode, setDbMode] = useState<'Demo' | 'Live'>(() => dbService.getDbMode());
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [targetMode, setTargetMode] = useState<'Demo' | 'Live' | null>(null);
+
+  const handleModeSwitch = (mode: 'Demo' | 'Live') => {
+    setTargetMode(mode);
+    setShowResetModal(true);
+  };
+
+  const confirmModeSwitch = async () => {
+    if (!targetMode) return;
+    await dbService.clearAllData(targetMode);
+    setDbMode(targetMode);
+    setShowResetModal(false);
+    window.location.reload();
+  };
+
+  // ─── Database Control Block ──────────────────────────────────────
+  const DatabaseControlBlock = () => {
+    if (userRole !== 'Owner') return null;
+    return (
+      <div className="bg-primary-dark/40 rounded-xl p-3 border border-primary-light/5 text-xs space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-emerald-200/80 font-medium flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-secondary" />
+            Data Source:
+          </span>
+          <button
+            onClick={() => handleModeSwitch(dbMode === 'Demo' ? 'Live' : 'Demo')}
+            className={`px-2 py-0.5 text-[10px] font-bold uppercase transition rounded border cursor-pointer ${
+              dbMode === 'Live' 
+                ? 'bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border-emerald-500/30' 
+                : 'bg-yellow-500/20 hover:bg-yellow-500/35 text-yellow-300 border-yellow-500/30'
+            }`}
+          >
+            {dbMode === 'Live' ? 'Go Demo' : 'Go Live'}
+          </button>
+        </div>
+        <div className="text-[11px] font-semibold text-white flex items-center gap-1">
+          <span>Mode:</span>
+          <span className={dbMode === 'Live' ? 'text-emerald-400 font-bold' : 'text-yellow-400 font-bold'}>
+            {dbMode === 'Live' ? 'Live (Empty Slate)' : 'Demo (Mock Data)'}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   const tabs = [
     { id: 'dashboard', name: 'Dashboard', shortName: 'Home', icon: LayoutDashboard, roles: ['Owner'] },
     { id: 'unit-dashboard', name: 'Unit & Sheds', shortName: 'Units', icon: Grid3X3, roles: ['Owner', 'Supervisor'] },
     { id: 'daily-entry', name: 'Daily Entry Portal', shortName: 'Entry', icon: ClipboardPen, roles: ['Owner', 'Supervisor'] },
-    { id: 'inventory', name: 'Inventory Ledger', shortName: 'Stock', icon: Package, roles: ['Owner'] },
     { id: 'ai-chat', name: 'AI Insights & Chat', shortName: 'AI', icon: MessageSquareText, roles: ['Owner'] },
     { id: 'reports', name: 'Reports Generator', shortName: 'Reports', icon: FilePieChart, roles: ['Owner', 'Supervisor'] },
   ];
@@ -188,6 +237,7 @@ export default function Sidebar({
         {/* Bottom Controls */}
         <div className="p-4 border-t border-primary-light/10 space-y-4">
           <RoleControlBlock />
+          <DatabaseControlBlock />
           <div className="flex items-center justify-between text-xs text-emerald-200/50 px-1">
             <span>v1.2.0 (AI Enabled)</span>
             <div className="flex gap-2">
@@ -278,6 +328,7 @@ export default function Sidebar({
         {/* Drawer Footer */}
         <div className="p-4 border-t border-primary-light/10 space-y-4">
           <RoleControlBlock />
+          <DatabaseControlBlock />
           <div className="flex items-center justify-between px-1">
             <span className="text-[10px] text-emerald-200/50">v1.2.0 · AI Enabled</span>
             <div className="flex gap-2">
@@ -344,6 +395,51 @@ export default function Sidebar({
           <span className="text-[9px] font-bold uppercase tracking-wide">More</span>
         </button>
       </div>
+
+      {/* ─── Database Reset Warning Modal ─── */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in border border-slate-100 dark:border-slate-700 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <span className="p-2 bg-red-50 dark:bg-red-950/40 rounded-xl">
+                <AlertTriangle className="w-6 h-6" />
+              </span>
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-white">
+                Confirm Database Change
+              </h3>
+            </div>
+            
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+              {targetMode === 'Live' ? (
+                <span>
+                  You are switching to <strong className="text-red-500">Live Mode (Clean Slate)</strong>. This will wipe out all daily logs, inventory transactions, and notifications. Only Unit, Shed, and Inventory catalogs will remain, with stock levels reset to 0. <strong>This action cannot be undone.</strong>
+                </span>
+              ) : (
+                <span>
+                  You are switching to <strong className="text-yellow-500">Demo Mode (Mock Data)</strong>. This will overwrite all of your currently entered logs and replenish the database with 30 days of high-fidelity mock data.
+                </span>
+              )}
+            </p>
+
+            <div className="flex gap-3 pt-2 justify-end text-xs font-bold uppercase">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModeSwitch}
+                className={`px-4 py-2.5 text-white rounded-xl transition cursor-pointer ${
+                  targetMode === 'Live' ? 'bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20' : 'bg-yellow-600 hover:bg-yellow-700 shadow-md shadow-yellow-600/20'
+                }`}
+              >
+                Yes, Change Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

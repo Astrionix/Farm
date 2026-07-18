@@ -316,13 +316,16 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                           HD%: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.hdPct}%</span>
                         </div>
                         <div>
-                          Mort: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.mortality} birds</span>
+                          Age: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.birdAgeWeeks ?? 'N/A'} wks</span>
                         </div>
                         <div>
                           FCR: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.fcr}</span>
                         </div>
                         <div>
                           Eggs: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.eggsCount.toLocaleString()}</span>
+                        </div>
+                        <div className="col-span-2">
+                          Mortality: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.mortality} birds</span>
                         </div>
                       </div>
                     </div>
@@ -417,9 +420,13 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                       <span>Culls:</span>
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.culls} birds</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                    <div className="flex justify-between">
                       <span>Closing Birds:</span>
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.closingBirds.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                      <span>Bird Age (Weeks):</span>
+                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.birdAgeWeeks ?? 'N/A'} weeks</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Feed Consumed:</span>

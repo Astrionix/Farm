@@ -26,7 +26,7 @@ export default function AIChatPanel() {
   const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string }>>([
     { 
       sender: 'bot', 
-      text: `Welcome! I am **Antigravity**, your AI Poultry ERP Consultant. 
+      text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. 
 I have analyzed today's farm logs and inventory ledgers. 
 
 You can ask me questions like:
@@ -236,7 +236,7 @@ You can ask me questions like:
           <div className="flex items-center gap-2.5">
             <Bot className="w-5.5 h-5.5 text-secondary animate-bounce-slow" />
             <div>
-              <h3 className="text-sm font-extrabold leading-none">Antigravity AI Consultant</h3>
+              <h3 className="text-sm font-extrabold leading-none">FlockMind AI Consultant</h3>
               <span className="text-[9px] text-emerald-200 font-bold mt-1 inline-block">Online • Connected to Farm Ledger</span>
             </div>
           </div>

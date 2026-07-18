@@ -6,7 +6,6 @@ import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
 import UnitDashboard from '../components/UnitDashboard';
 import DailyEntry from '../components/DailyEntry';
-import InventoryModule from '../components/InventoryModule';
 import AIChatPanel from '../components/AIChatPanel';
 import ReportsPanel from '../components/ReportsPanel';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
@@ -153,10 +152,6 @@ export default function Home() {
             userRole={userRole}
             assignedUnit={assignedUnit}
           />
-        )}
-        
-        {currentTab === 'inventory' && userRole === 'Owner' && (
-          <InventoryModule />
         )}
         
         {currentTab === 'ai-chat' && userRole === 'Owner' && (

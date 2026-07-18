@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS daily_entries (
     mortality INT DEFAULT 0,
     culls INT DEFAULT 0,
     closing_birds INT NOT NULL,
+    bird_age_weeks INT DEFAULT 20,
     uniformity NUMERIC(5,2), -- in %
     body_weight NUMERIC(7,2), -- average in grams
     

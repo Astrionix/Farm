@@ -319,7 +319,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               {Math.round(todayWater).toLocaleString()} Liters
             </h4>
             <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              Water to Feed Ratio: <span className="font-bold text-slate-700 dark:text-slate-300">{(todayWater / todayFeed).toFixed(2)}</span>
+              Water to Feed Ratio: <span className="font-bold text-slate-700 dark:text-slate-300">{(todayFeed > 0 ? todayWater / todayFeed : 0).toFixed(2)}</span>
             </p>
           </div>
         </div>
@@ -344,7 +344,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       {/* Main Charts & Leaderboards section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recharts Analytics Charts Panel (Takes 2 columns) */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 space-y-6">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 space-y-6 self-start">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-black text-slate-800 dark:text-white text-base">Production & Performance Charts</h3>
@@ -353,48 +353,44 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           </div>
 
           <div className="space-y-6">
-            {/* Chart 1: Eggs Produced vs HD% */}
-            <div className="h-64">
-              <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F9A825" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                  <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                  <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
-                  <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                  <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
-                  <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Chart 2: Resource Inputs vs Revenue */}
-            <div className="h-60 pt-4 border-t border-slate-100 dark:border-slate-700/60">
-              <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Profitability vs Feed Cost (INR)</h4>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                  <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                  <YAxis stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0" }} />
-                  <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                  <Bar dataKey="profit" name="Net Profit (₹)" fill="#1B5E20" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="revenue" name="Total Revenue (₹)" fill="#F9A825" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {chartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[30rem] space-y-3">
+                <div className="p-4 bg-primary/5 rounded-full text-primary">
+                  <Activity className="w-8 h-8" />
+                </div>
+                <h4 className="font-extrabold text-slate-800 dark:text-white text-sm">No Live Production Data Yet</h4>
+                <p className="text-slate-400 text-xs max-w-sm leading-relaxed">
+                  The dashboard is currently operating on a clean database slate. Log your daily poultry production numbers in the Daily Entry Portal to populate the performance, input-output, and profit analysis charts.
+                </p>
+              </div>
+            ) : (
+              /* Chart 1: Eggs Produced vs HD% */
+              <div className="h-[26rem]">
+                <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F9A825" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
+                    <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
+                    <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                    <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                    <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
+                    <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 

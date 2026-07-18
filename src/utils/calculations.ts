@@ -17,6 +17,7 @@ export interface ShedDataInput {
   bodyWeight: number;
   medication?: string;
   remarks?: string;
+  birdAgeWeeks?: number;
 }
 
 export interface CalculatedShedMetrics {
