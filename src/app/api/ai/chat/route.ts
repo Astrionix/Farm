@@ -9,87 +9,42 @@ function generateFallbackChatResponse(message: string, summary: any): string {
   if (query.includes('compare') || query.includes('unit 1') || query.includes('unit 2')) {
     const u1 = summary.units?.find((u: any) => u.id === 1) || { score: 94, hdPct: 91.5, mort: 5 };
     const u2 = summary.units?.find((u: any) => u.id === 2) || { score: 88, hdPct: 89.2, mort: 8 };
-    return `### Unit 1 vs Unit 2 Comparison Report
-Here is the automated comparison based on today's logged performance metrics:
-
-1. **Overall Performance Score:**
-   - **Unit 1:** **${u1.score ?? 94}** (Excellent)
-   - **Unit 2:** **${u2.score ?? 88}** (Very Good)
-   Unit 1 is currently leading by **${Math.abs((u1.score ?? 94) - (u2.score ?? 88))} points**, driven by higher production consistency.
-
-2. **Production Rates (Hen-Day %):**
-   - **Unit 1:** **${u1.hdPct ?? '91.2'}%**
-   - **Unit 2:** **${u2.hdPct ?? '89.0'}%**
-   Unit 1 has a slightly higher rate, indicating better flock lay-curve optimization.
-
-3. **Mortality & Losses:**
-   - **Unit 1:** **${u1.mort ?? 2} birds** logged today.
-   - **Unit 2:** **${u2.mort ?? 4} birds** logged today.
-   Unit 2 has higher daily losses. Closer veterinary inspection is recommended.
-
-**Recommendation:** Unit 2 should review feed allocation and inspect ventilation systems, as FCR is slightly higher than Unit 1.`;
+    return `**Unit 1 vs Unit 2 Comparison:**
+* **Performance Score:** Unit 1: **${u1.score ?? 94}** (Excellent) | Unit 2: **${u2.score ?? 88}** (Very Good)
+* **Production Rate:** Unit 1: **${u1.hdPct ?? '91.2'}% HD** | Unit 2: **${u2.hdPct ?? '89.0'}% HD**
+* **Mortality:** Unit 1: **${u1.mort ?? 2}** | Unit 2: **${u2.mort ?? 4} birds**
+* **Recommendation:** Review Unit 2's feed distribution and ventilation due to higher losses and lower score.`;
   }
 
   if (query.includes('why') || query.includes('decrease') || query.includes('drop')) {
-    return `### Production Decline Analysis
-Based on the historical log files, we observed a **production drop in Unit 3, Shed 2** starting about 12 days ago:
-
-1. **Observations:**
-   - Egg Production dropped from a peak of **92% HD** to a low of **73% HD**.
-   - Concurrently, mortality rose slightly in that period (up to 6 birds per day).
-   - Feed consumption remained stable, indicating a sudden drop in **Feed Conversion Efficiency (FCR)**.
-
-2. **Underlying Causes Detected:**
-   - The remarks log shows a notification of *Tetracycline HCL* treatment initiated. This points to a temporary bacterial infection or sub-clinical respiratory stress.
-   - Low temperature variations (down to 24°C on rainy days) might have compounded environmental stress.
-
-3. **Current Status:**
-   - Production has begun recovering and is currently back to **84% HD**.
-   - Continue maintaining biosafety parameters and ensure water sanitation lines are thoroughly flushed.`;
+    return `**Unit 3 Production Drop Analysis:**
+* **Issue:** Egg production dropped from **92% HD** to **73% HD** in Unit 3, Shed 2.
+* **Reason:** Bacterial stress / respiratory irritation detected (treated with Tetracycline HCL). Rainy weather stress compounded the drop.
+* **Status:** Recovering (currently at **84% HD**). Ensure water lines are sanitized.`;
   }
 
   if (query.includes('mortality') || query.includes('abnormal') || query.includes('die')) {
-    return `### Mortality Anomalies Detected
-An audit of the daily logs for the past 30 days reveals the following anomaly points:
-
-1. **Unit 3, Shed 2 (12 Days Ago):**
-   - A spike of **8 mortalities** was reported in a single day.
-   - This was categorized as **High Risk** and triggered a system alert.
-   - Antibiotic treatment (Tetracycline) was logged, and mortality stabilized back to normal levels (0-1 deaths) within 3 days.
-
-2. **Unit 1, Shed 3 (22 Days Ago):**
-   - A spike of **6 mortalities** was logged.
-   - Investigation indicates a minor heat stroke warning (temperature logged at 34.5°C with 78% humidity).
-
-**Advice:** High heat indexes are the primary risk factor for respiratory failures. Ensure the cooling foggers in Unit 3 are activated when temperatures exceed 31.5°C.`;
+    return `**Mortality Anomalies:**
+* **Unit 3, Shed 2:** Spike of **8 mortalities** (12 days ago). Stabilized after Tetracycline HCL treatment.
+* **Unit 1, Shed 3:** Spike of **6 mortalities** (22 days ago) due to heat index warning (34.5°C).
+* **Action:** Activate cooling foggers when temperature exceeds 31.5°C.`;
   }
 
   if (query.includes('predict') || query.includes('tomorrow') || query.includes('forecast')) {
     const totalEggs = summary.totalProduction || 42800;
     const tomorrowEst = Math.round(totalEggs * 0.998);
     const weeklyEst = Math.round(totalEggs * 7 * 0.995);
-
-    return `### AI Production Forecast Model
-Analyzing rolling 7-day averages and flock age indicators:
-
-* **Tomorrow's Forecast:** **${tomorrowEst.toLocaleString()} Eggs** (Confidence: 94%)
-* **Next 7 Days Forecast:** **${weeklyEst.toLocaleString()} Eggs**
-* **Expected Trend:** **Stable / Slightly Declining (↓ -0.2%)** due to seasonal humidity increases.
-
-**Risk Warning:** The temperature forecast indicates humid conditions for the weekend. Expect water consumption to increase by 5% and egg weight to experience a slight contraction (~0.5g). Ensure mineral supplements are added to water lines.`;
+    return `**AI Production Forecast:**
+* **Tomorrow:** **${tomorrowEst.toLocaleString()} Eggs** (94% confidence)
+* **Next 7 Days:** **${weeklyEst.toLocaleString()} Eggs**
+* **Trend:** Stable / slight decline (↓ -0.2%) due to high seasonal humidity. Ensure electrolyte water supplements.`;
   }
 
   if (query.includes('feed') || query.includes('fcr') || query.includes('efficient')) {
-    return `### Feed Conversion Ratio (FCR) & Feed Optimization
-Your average FCR across the active units is **2.08**, which is optimal. However, we have detected a feed issue:
-
-1. **Unit 3, Shed 2 FCR Leak:**
-   - FCR rose to **2.52** during the production decline. This represents an feed wastage of approx **85 kg feed** over a 5-day span.
-   
-2. **Actionable Suggestions:**
-   - **Formulation:** Maintain Layer Phase-1 feed. If egg weight drops below 59g, increase calcium carbonate intake by 0.5% to improve shell thickness.
-   - **Troughs:** Inspect feed troughs in Unit 3 for leaks or billing-out (birds throwing feed out).
-   - **Time:** Split feeding schedules to 6:00 AM (40%) and 4:30 PM (60%) to match the natural laying cycle.`;
+    return `**Feed & FCR Optimization:**
+* **FCR Status:** Average FCR is optimal (**2.08**).
+* **Anomalies:** Unit 3, Shed 2 experienced FCR spike to **2.52** during sickness (85 kg feed wasted).
+* **Actions:** Inspect troughs for billing-out. Split feeding to 6:00 AM (40%) and 4:30 PM (60%) to support laying cycles.`;
   }
 
   return `### Sri Mahalakshmi Poultry AI Assistant
@@ -104,9 +59,18 @@ You can ask me to:
 }
 
 export async function POST(request: Request) {
+  let message = '';
+  let dataSummary: any = {};
+  
   try {
-    const { message, dataSummary } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    message = body.message || '';
+    dataSummary = body.dataSummary || {};
+  } catch (parseErr) {
+    console.warn('Failed parsing request JSON body:', parseErr);
+  }
 
+  try {
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -139,7 +103,8 @@ Rules:
 2. Focus on actionable insights, FCR targets, disease indicators, mortality spikes, and egg quality.
 3. Keep responses structured using markdown tables, bullet points, and headers.
 4. DO NOT compute complicated math manually — use the numbers provided in the summary directly.
-5. Provide specific recommendations (e.g. antibiotic treatments, ventilation checks, calcium updates).`
+5. Provide specific recommendations (e.g. antibiotic treatments, ventilation checks, calcium updates).
+6. BE EXTREMELY CONCISE. Keep responses direct, short, and to the point. Avoid generic text and conversational filler. Do not repeat tables if not asked. Keep explanations short.`
           },
           {
             role: 'user',
@@ -165,9 +130,7 @@ Rules:
   } catch (error: any) {
     console.warn('AI chat endpoint exception, triggering fallback:', error);
     try {
-      // Read request cloned stream in case it wasn't parsed fully
-      const body = await request.clone().json().catch(() => ({}));
-      const fallback = generateFallbackChatResponse(body.message || '', body.dataSummary || {});
+      const fallback = generateFallbackChatResponse(message, dataSummary);
       return NextResponse.json({ response: fallback, warning: 'Offline fallback activated.' });
     } catch (fallbackError) {
       console.error('Offline fallback failed:', fallbackError);

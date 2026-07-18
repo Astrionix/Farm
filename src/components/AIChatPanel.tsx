@@ -27,7 +27,7 @@ export default function AIChatPanel() {
     { 
       sender: 'bot', 
       text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. 
-I have analyzed today's farm logs and inventory ledgers. 
+I have analyzed today's farm logs and performance metrics. 
 
 You can ask me questions like:
 * **Compare Unit 1 and Unit 2** performance today.

@@ -39,9 +39,16 @@ function generateFallbackAnalysis(summary: any) {
 }
 
 export async function POST(request: Request) {
+  let dataSummary: any = {};
+  
   try {
-    const { dataSummary } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    dataSummary = body.dataSummary || {};
+  } catch (parseErr) {
+    console.warn('Failed parsing request JSON body:', parseErr);
+  }
 
+  try {
     if (!GROQ_API_KEY) {
       const fallback = generateFallbackAnalysis(dataSummary);
       return NextResponse.json(fallback);
@@ -127,8 +134,7 @@ The JSON must strictly match this structure:
   } catch (error: any) {
     console.warn('Analysis endpoint exception, triggering fallback:', error);
     try {
-      const body = await request.clone().json().catch(() => ({}));
-      const fallback = generateFallbackAnalysis(body.dataSummary || {});
+      const fallback = generateFallbackAnalysis(dataSummary);
       return NextResponse.json(fallback);
     } catch (fallbackError) {
       console.error('Offline analysis fallback failed:', fallbackError);

@@ -856,64 +856,7 @@ export const dbService = {
       }
     });
 
-    // Deduct feed inventory
-    const feedItem = inventory.find(i => i.category === 'Feed' && i.itemName.includes('Layer Feed'));
-    if (feedItem && feedConsumedTotal > 0) {
-      feedItem.stockLevel = Math.max(0, feedItem.stockLevel - feedConsumedTotal);
-      transactions.push({
-        id: `t-feed-consume-${date}-${unitId}`,
-        inventoryId: feedItem.id,
-        transactionType: 'Consumption',
-        quantity: feedConsumedTotal,
-        date,
-        reference: `Unit ${unitId} Feed Entry`,
-        remarks: `Daily feeding consumption logs.`,
-      });
-
-      if (feedItem.stockLevel < feedItem.reorderLevel) {
-        const orderQty = 10000;
-        feedItem.stockLevel += orderQty;
-        transactions.push({
-          id: `t-feed-restock-${date}-${unitId}`,
-          inventoryId: feedItem.id,
-          transactionType: 'Purchase',
-          quantity: orderQty,
-          date,
-          reference: `AUTO-REORDER-${unitId}`,
-          remarks: 'Automatic layer feed purchase on low stock.',
-        });
-        notifications.push({
-          id: `notif-${date}-low-feed-auto-${unitId}`,
-          date,
-          role: 'All',
-          type: 'Success',
-          title: 'Feed Restocked Automatically',
-          message: `Stock level fell below safety threshold. Restocked ${orderQty} kg feed.`,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    // Deduct trays inventory
-    const traysItem = inventory.find(i => i.category === 'Egg Trays');
-    const traysNeeded = Math.ceil(eggsHarvestedTotal / 30);
-    if (traysItem && traysNeeded > 0) {
-      traysItem.stockLevel = Math.max(0, traysItem.stockLevel - traysNeeded);
-      transactions.push({
-        id: `t-trays-consume-${date}-${unitId}`,
-        inventoryId: traysItem.id,
-        transactionType: 'Consumption',
-        quantity: traysNeeded,
-        date,
-        reference: `Unit ${unitId} Eggs Harvest`,
-        remarks: `Standard trays used for egg storage.`,
-      });
-    }
-
     localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify(entries));
-    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-    localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify(transactions));
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   },
 

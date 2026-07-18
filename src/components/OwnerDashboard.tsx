@@ -31,7 +31,6 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('7d');
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<DBDailyEntry[]>([]);
-  const [inventory, setInventory] = useState<DBInventoryItem[]>([]);
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -45,11 +44,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       setLoading(true);
       try {
         const allEntries = await dbService.getDailyEntries();
-        const allInventory = await dbService.getInventory();
         const allNotifications = await dbService.getNotifications();
 
         setEntries(allEntries);
-        setInventory(allInventory);
         setNotifications(allNotifications.filter(n => !n.isRead));
 
         // Get latest entry date
@@ -131,30 +128,52 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
     );
   }
 
-  // Current stats (Today / Last logged day)
+  // Get all unique dates sorted ascending
+  const uniqueDatesSorted = Array.from(new Set(entries.map(e => e.date)))
+    .sort((a, b) => a.localeCompare(b));
+
+  let activeDates: string[] = [];
+  if (dateRange === 'today') {
+    activeDates = uniqueDatesSorted.length > 0 ? [uniqueDatesSorted[uniqueDatesSorted.length - 1]] : [];
+  } else {
+    let filterDays = 7;
+    if (dateRange === '30d') filterDays = 30;
+    if (dateRange === '90d') filterDays = 90;
+    activeDates = uniqueDatesSorted.slice(-filterDays);
+  }
+
+  // Filter entries to the selected date range
+  const rangeEntries = entries.filter(e => activeDates.includes(e.date) && e.status === 'Active');
+
+  const totalEggs = rangeEntries.reduce((sum, e) => sum + e.eggsCount, 0);
+  const totalMortality = rangeEntries.reduce((sum, e) => sum + e.mortality, 0);
+  const totalFeed = rangeEntries.reduce((sum, e) => sum + e.feedKg, 0);
+  const totalWater = rangeEntries.reduce((sum, e) => sum + e.waterLiters, 0);
+  const totalBirdsDaySum = rangeEntries.reduce((sum, e) => sum + e.closingBirds, 0);
+
+  const avgHDPct = totalBirdsDaySum > 0 ? (totalEggs / totalBirdsDaySum) * 100 : 0;
+  const avgMortPct = totalBirdsDaySum > 0 ? (totalMortality / totalBirdsDaySum) * 100 : 0;
+
+  const totalRevenue = totalEggs * EGG_SALE_PRICE;
+  const totalFeedCost = totalFeed * FEED_COST_PER_KG;
+  const totalProfit = totalRevenue - totalFeedCost;
+
+  // Average farm score over the period (computed in-memory)
+  const avgFarmScore = rangeEntries.length > 0
+    ? Math.round(rangeEntries.reduce((sum, e) => sum + e.performanceScore, 0) / rangeEntries.length)
+    : aggMetrics?.farmScore || 90;
+  const farmLabel = avgFarmScore >= 90 ? 'Excellent' : avgFarmScore >= 80 ? 'Very Good' : avgFarmScore >= 70 ? 'Good' : 'Needs Care';
+
+  // Weather data mapping (average over range or latest value)
+  const latestWeather = rangeEntries[0]?.weather || 'Sunny';
+  const latestTemp = rangeEntries.length > 0 
+    ? Number((rangeEntries.reduce((sum, e) => sum + e.temperature, 0) / rangeEntries.length).toFixed(1))
+    : 31.4;
+  const latestHumid = rangeEntries.length > 0
+    ? Number((rangeEntries.reduce((sum, e) => sum + e.humidity, 0) / rangeEntries.length).toFixed(1))
+    : 62.5;
+
   const latestDate = entries[0]?.date || new Date().toISOString().split('T')[0];
-  const activeShedEntries = entries.filter(e => e.date === latestDate && e.status === 'Active');
-  
-  const todayEggs = activeShedEntries.reduce((sum, e) => sum + e.eggsCount, 0);
-  const todayMortality = activeShedEntries.reduce((sum, e) => sum + e.mortality, 0);
-  const todayFeed = activeShedEntries.reduce((sum, e) => sum + e.feedKg, 0);
-  const todayWater = activeShedEntries.reduce((sum, e) => sum + e.waterLiters, 0);
-  const totalBirds = activeShedEntries.reduce((sum, e) => sum + e.closingBirds, 0);
-
-  const avgHDPct = totalBirds > 0 ? (todayEggs / totalBirds) * 100 : 0;
-  const avgMortPct = totalBirds > 0 ? (todayMortality / (totalBirds + todayMortality)) * 100 : 0;
-
-  const todayRevenue = todayEggs * EGG_SALE_PRICE;
-  const todayFeedCost = todayFeed * FEED_COST_PER_KG;
-  const todayProfit = todayRevenue - todayFeedCost;
-
-  // Inventory Stock alerts
-  const lowStockItems = inventory.filter(item => item.stockLevel < item.reorderLevel);
-
-  // Weather data mapping (using the latest date entry values)
-  const latestWeather = activeShedEntries[0]?.weather || 'Sunny';
-  const latestTemp = activeShedEntries[0]?.temperature || 31.4;
-  const latestHumid = activeShedEntries[0]?.humidity || 62.5;
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen">
@@ -195,18 +214,24 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Today's Eggs</span>
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+              {dateRange === 'today' ? "Today's Eggs" : "Total Eggs"}
+            </span>
             <span className="p-2 bg-yellow-50 dark:bg-yellow-950/40 text-secondary rounded-xl">
               <Award className="w-5 h-5" />
             </span>
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-              {todayEggs.toLocaleString()}
+              {totalEggs.toLocaleString()}
             </h3>
             <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-success">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>+2.4% vs yesterday</span>
+              <span>
+                {dateRange === 'today' 
+                  ? "+2.4% vs yesterday" 
+                  : `Avg: ${Math.round(totalEggs / activeDates.length).toLocaleString()} / day`}
+              </span>
             </div>
           </div>
         </div>
@@ -224,9 +249,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {avgHDPct.toFixed(1)}%
             </h3>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-success">
+            <div className={`flex items-center gap-1.5 mt-2 text-xs font-bold ${avgHDPct >= 92 ? 'text-success' : 'text-amber-500'}`}>
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Above Target (92%)</span>
+              <span>{avgHDPct >= 92 ? 'Above Target (92%)' : 'Below Target (92%)'}</span>
             </div>
           </div>
         </div>
@@ -235,18 +260,24 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Mortality Rate</span>
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+              {dateRange === 'today' ? "Mortality Rate" : "Total Mortality"}
+            </span>
             <span className="p-2 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-xl">
               <AlertTriangle className="w-5 h-5" />
             </span>
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-              {todayMortality} <span className="text-xs text-slate-400 font-normal">birds ({avgMortPct.toFixed(2)}%)</span>
+              {totalMortality} <span className="text-xs text-slate-400 font-normal">birds ({avgMortPct.toFixed(2)}%)</span>
             </h3>
             <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-danger">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Spike logged in U3</span>
+              <span>
+                {dateRange === 'today'
+                  ? "Spike logged in U3"
+                  : `Avg: ${(totalMortality / activeDates.length).toFixed(1)} birds / day`}
+              </span>
             </div>
           </div>
         </div>
@@ -262,8 +293,8 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white flex items-baseline gap-1.5">
-              {aggMetrics.farmScore}
-              <span className="text-xs text-orange-500 font-bold uppercase">{aggMetrics.farmLabel}</span>
+              {avgFarmScore}
+              <span className="text-xs text-orange-500 font-bold uppercase">{farmLabel}</span>
             </h3>
             <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-success">
               <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
@@ -283,11 +314,11 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           </div>
           <div className="mt-3">
             <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              ₹{Math.round(todayProfit).toLocaleString()}
+              ₹{Math.round(totalProfit).toLocaleString()}
             </h4>
             <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium mt-1">
-              <span>Rev: ₹{Math.round(todayRevenue).toLocaleString()}</span>
-              <span>Feed Cost: ₹{Math.round(todayFeedCost).toLocaleString()}</span>
+              <span>Rev: ₹{Math.round(totalRevenue).toLocaleString()}</span>
+              <span>Feed Cost: ₹{Math.round(totalFeedCost).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -295,15 +326,17 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         {/* Resources Consumption (Feed & Water) */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
           <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>Daily Feed</span>
+            <span>{dateRange === 'today' ? "Daily Feed" : "Total Feed"}</span>
             <UtensilsCrossed className="w-4.5 h-4.5 text-orange-500" />
           </div>
           <div className="mt-3">
             <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {Math.round(todayFeed).toLocaleString()} kg
+              {Math.round(totalFeed).toLocaleString()} kg
             </h4>
             <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              Average Feed/Bird: <span className="font-bold text-slate-700 dark:text-slate-300">116.5 grams</span>
+              {dateRange === 'today' 
+                ? <>Average Feed/Bird: <span className="font-bold text-slate-700 dark:text-slate-300">116.5 grams</span></>
+                : `Avg: ${Math.round(totalFeed / activeDates.length).toLocaleString()} kg / day`}
             </p>
           </div>
         </div>
@@ -311,15 +344,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         {/* Daily Water */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
           <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>Daily Water</span>
+            <span>{dateRange === 'today' ? "Daily Water" : "Total Water"}</span>
             <Droplet className="w-4.5 h-4.5 text-blue-500" />
           </div>
           <div className="mt-3">
             <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {Math.round(todayWater).toLocaleString()} Liters
+              {Math.round(totalWater).toLocaleString()} Liters
             </h4>
             <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              Water to Feed Ratio: <span className="font-bold text-slate-700 dark:text-slate-300">{(todayFeed > 0 ? todayWater / todayFeed : 0).toFixed(2)}</span>
+              Water to Feed Ratio: <span className="font-bold text-slate-700 dark:text-slate-300">{(totalFeed > 0 ? totalWater / totalFeed : 0).toFixed(2)}</span>
             </p>
           </div>
         </div>
@@ -327,15 +360,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         {/* Weather Conditions */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
           <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>Shed Weather</span>
+            <span>{dateRange === 'today' ? "Shed Weather" : "Avg Weather"}</span>
             <CloudSun className="w-4.5 h-4.5 text-yellow-500" />
           </div>
           <div className="mt-3">
             <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {latestTemp}°C <span className="text-xs text-slate-400 font-semibold">{latestWeather}</span>
+              {latestTemp}°C {dateRange === 'today' && <span className="text-xs text-slate-400 font-semibold">{latestWeather}</span>}
             </h4>
             <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              Humidity: <span className="font-bold text-slate-700 dark:text-slate-300">{latestHumid}% RH</span>
+              {dateRange === 'today' ? "Humidity:" : "Avg Humidity:"} <span className="font-bold text-slate-700 dark:text-slate-300">{latestHumid}% RH</span>
             </p>
           </div>
         </div>
@@ -365,7 +398,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               </div>
             ) : (
               /* Chart 1: Eggs Produced vs HD% */
-              <div className="h-[26rem]">
+              <div className="h-[32rem]">
                 <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -435,45 +468,29 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
             </div>
           </div>
 
-          {/* Critical Alerts & Low Stock widget */}
+          {/* Critical Alerts widget */}
           <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-3">
-              <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Inventory & Alerts</h3>
+              <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Critical Alerts</h3>
               <CircleAlert className="w-4.5 h-4.5 text-red-500" />
             </div>
 
             <div className="space-y-3">
               {/* Active notifications */}
-              {notifications.slice(0, 2).map(n => (
-                <div key={n.id} className="p-3 bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-950/40 rounded-xl flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-[11px] font-bold text-red-800 dark:text-red-300 leading-tight">{n.title}</h4>
-                    <p className="text-[10px] text-red-600/90 dark:text-red-400/80 leading-snug mt-0.5">{n.message}</p>
+              {notifications.length > 0 ? (
+                notifications.slice(0, 3).map(n => (
+                  <div key={n.id} className="p-3 bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-950/40 rounded-xl flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-[11px] font-bold text-red-800 dark:text-red-300 leading-tight">{n.title}</h4>
+                      <p className="text-[10px] text-red-600/90 dark:text-red-400/80 leading-snug mt-0.5">{n.message}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-
-              {/* Low stock alerts */}
-              {lowStockItems.length > 0 ? (
-                <div className="p-3 bg-yellow-50/60 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-950/40 rounded-xl space-y-2">
-                  <div className="flex items-center gap-1.5 text-yellow-800 dark:text-yellow-300">
-                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wide">Low Stock Alert</span>
-                  </div>
-                  <div className="space-y-1 pl-5">
-                    {lowStockItems.slice(0, 3).map(item => (
-                      <div key={item.id} className="text-[10px] text-slate-600 dark:text-slate-400 flex justify-between font-semibold">
-                        <span>{item.itemName}</span>
-                        <span className="text-red-500 font-bold">{Math.round(item.stockLevel)} {item.uom} left</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ))
               ) : (
                 <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-950/40 rounded-xl flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">All stock levels satisfactory</span>
+                  <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">No active alerts. System healthy.</span>
                 </div>
               )}
             </div>
