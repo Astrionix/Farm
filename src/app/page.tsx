@@ -9,6 +9,7 @@ import DailyEntry from '../components/DailyEntry';
 import InventoryModule from '../components/InventoryModule';
 import AIChatPanel from '../components/AIChatPanel';
 import ReportsPanel from '../components/ReportsPanel';
+import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { dbService } from '../services/db';
 
 export default function Home() {
@@ -16,7 +17,12 @@ export default function Home() {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [userRole, setUserRole] = useState<'Owner' | 'Supervisor'>('Owner');
   const [assignedUnit, setAssignedUnit] = useState<number>(1);
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('smp_dark_mode') === 'true';
+    }
+    return false;
+  });
   const [dbReady, setDbReady] = useState<boolean>(false);
 
   // Initialize DB & Local state on first mount
@@ -59,13 +65,15 @@ export default function Home() {
     setAssignedUnit(unitId);
   };
 
-  // Toggle Dark Mode
+  // Toggle Dark Mode & persist preference
   useEffect(() => {
     const root = window.document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
+      localStorage.setItem('smp_dark_mode', 'true');
     } else {
       root.classList.remove('dark');
+      localStorage.setItem('smp_dark_mode', 'false');
     }
   }, [darkMode]);
 
@@ -98,13 +106,9 @@ export default function Home() {
 
   if (!dbReady) {
     return (
-      <div className="flex-1 min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-200">
-            Initializing Sri Mahalakshmi Poultry AI ERP...
-          </h3>
-        </div>
+      <div className="flex w-full min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="w-60 bg-primary shrink-0" />
+        <SkeletonDashboard />
       </div>
     );
   }

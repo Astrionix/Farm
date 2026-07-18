@@ -93,3 +93,89 @@ body {
   background: #475569;
 }
 
+/* ─── Print-Friendly Styles for Reports ─── */
+@media print {
+  /* Hide non-essential chrome */
+  aside,
+  nav,
+  button,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Reset backgrounds and shadows for paper */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    font-family: 'Inter', Arial, sans-serif;
+  }
+
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Flatten cards to simple bordered boxes */
+  .bg-white,
+  .dark\:bg-slate-800,
+  [class*="bg-slate-"],
+  [class*="bg-primary"],
+  [class*="rounded-2xl"],
+  [class*="rounded-xl"],
+  [class*="shadow"] {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+    border-radius: 4px !important;
+  }
+
+  /* Force text colors visible on paper */
+  [class*="text-slate-"],
+  [class*="text-white"],
+  [class*="text-emerald-"],
+  [class*="dark:text-"] {
+    color: #0f172a !important;
+  }
+
+  /* Table printing */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 6px 10px;
+    font-size: 9pt;
+  }
+
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm 1cm;
+    size: A4 landscape;
+  }
+
+  /* Print header branding */
+  .print-header::before {
+    content: "Sri Mahalakshmi Poultry AI ERP — Production Report";
+    display: block;
+    font-size: 14pt;
+    font-weight: 900;
+    color: #1b5e20;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #1b5e20;
+    padding-bottom: 6px;
+  }
+}
