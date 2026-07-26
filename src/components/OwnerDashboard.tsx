@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -34,6 +34,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
 
   // Constant values for financial calculation
   const EGG_SALE_PRICE = 5.5; // Rs. 5.50 per egg
@@ -144,6 +145,28 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
 
   // Filter entries to the selected date range
   const rangeEntries = entries.filter(e => activeDates.includes(e.date) && e.status === 'Active');
+
+  const unitComparisonData = useMemo(() => {
+    if (!aggMetrics) return [];
+    const units = aggMetrics.unitSummaries.map((u: any) => ({ id: u.unitId, name: u.unitName }));
+    return units.map((u: any) => {
+      const unitEntries = rangeEntries.filter(e => e.unitId === u.id);
+      const totalEggsCollected = unitEntries.reduce((sum, e) => sum + e.eggsCount, 0);
+      const activeBirds = unitEntries.reduce((sum, e) => sum + e.closingBirds, 0);
+      const avgHd = activeBirds > 0 ? (totalEggsCollected / activeBirds) * 100 : 0;
+      
+      let displayName = u.name;
+      if (displayName.includes('Jaggampeta')) {
+        displayName = displayName.replace('Jaggampeta ', 'Jgp ');
+      }
+      
+      return {
+        name: displayName,
+        eggs: totalEggsCollected,
+        hdPct: Number(avgHd.toFixed(1)),
+      };
+    }).sort((a: any, b: any) => b.eggs - a.eggs);
+  }, [aggMetrics, rangeEntries]);
 
   const totalEggs = rangeEntries.reduce((sum, e) => sum + e.eggsCount, 0);
   const totalMortality = rangeEntries.reduce((sum, e) => sum + e.mortality, 0);
@@ -378,10 +401,35 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recharts Analytics Charts Panel (Takes 2 columns) */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
             <div>
               <h3 className="font-black text-slate-800 dark:text-white text-base">Production & Performance Charts</h3>
               <p className="text-slate-400 text-xs font-semibold">Graphical representation of key indicators</p>
+            </div>
+            
+            <div className="bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-lg flex gap-0.5 border border-slate-200/30 dark:border-slate-700/30 shrink-0">
+              <button
+                type="button"
+                onClick={() => setChartTab('trend')}
+                className={`px-3 py-1 rounded-md text-[10px] font-extrabold transition ${
+                  chartTab === 'trend'
+                    ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                Trend Chart
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartTab('comparison')}
+                className={`px-3 py-1 rounded-md text-[10px] font-extrabold transition ${
+                  chartTab === 'comparison'
+                    ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                Unit Comparison
+              </button>
             </div>
           </div>
 
@@ -397,34 +445,55 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
                 </p>
               </div>
             ) : (
-              /* Chart 1: Eggs Produced vs HD% */
-              <div className="flex-1 min-h-[20rem] flex flex-col justify-between">
-                <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
-                <div className="flex-1 h-full min-h-[16rem]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.25}/>
-                          <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#F9A825" stopOpacity={0.25}/>
-                          <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                      <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                      <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
-                      <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                      <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
-                      <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+              chartTab === 'trend' ? (
+                /* Chart 1: Eggs Produced vs HD% */
+                <div className="flex-1 min-h-[20rem] flex flex-col justify-between animate-fade-in">
+                  <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
+                  <div className="flex-1 h-full min-h-[16rem]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F9A825" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
+                        <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
+                        <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                        <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
+                        <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Chart 2: Egg collection by Unit */
+                <div className="flex-1 min-h-[20rem] flex flex-col justify-between animate-fade-in">
+                  <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Egg Collection by Unit</h4>
+                  <div className="flex-1 h-full min-h-[16rem]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={unitComparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
+                        <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
+                        <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" domain={[0, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                        <Bar yAxisId="left" dataKey="eggs" name="Eggs Collected" fill="#1B5E20" radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="right" dataKey="hdPct" name="Avg HD %" fill="#F9A825" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )
             )}
           </div>
         </div>
