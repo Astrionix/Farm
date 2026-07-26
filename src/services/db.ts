@@ -491,26 +491,42 @@ export const dbService = {
     }
     
     if (!storedUnitsStr || needReset) {
-      const seed = generateHistoricalMockData();
-      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(seed.units));
-      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(seed.sheds));
-      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify(seed.dailyEntries));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(seed.inventory));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify(seed.inventoryTransactions));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(seed.notifications));
+      const units = UNIT_CONFIGS.map(uc => ({ id: uc.id, name: uc.name, status: uc.status }));
+
+      const sheds: DBShed[] = [];
+      UNIT_CONFIGS.forEach(uc => {
+        for (let s = 1; s <= uc.shedsCount; s++) {
+          sheds.push({ unitId: uc.id, shedNumber: s, status: 'Active' as const });
+        }
+      });
+
+      const inventory = [
+        { id: 'inv-feed-1', category: 'Feed' as const, itemName: 'Layer Feed MaxPlus', stockLevel: 0, reorderLevel: 2000, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
+        { id: 'inv-feed-2', category: 'Feed' as const, itemName: 'Pre-Lay Starter Crumble', stockLevel: 0, reorderLevel: 500, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
+        { id: 'inv-med-1', category: 'Medicines' as const, itemName: 'Amprolium Dewormer 9.6%', stockLevel: 0, reorderLevel: 8.0, uom: 'liters', supplier: 'VetCare India Labs', expiryDate: '2027-04-18' },
+        { id: 'inv-vac-1', category: 'Vaccines' as const, itemName: 'Newcastle ND LaSota (1000 doses)', stockLevel: 0, reorderLevel: 4, uom: 'vials', supplier: 'Indovax Bio', expiryDate: '2026-11-20' },
+        { id: 'inv-tray-1', category: 'Egg Trays' as const, itemName: 'Premium Molded Fiber Paper Trays', stockLevel: 0, reorderLevel: 1500, uom: 'units', supplier: 'Sri Lakshmi Paper Products', expiryDate: null },
+        { id: 'inv-pack-1', category: 'Packaging' as const, itemName: 'Recycled Egg Cartons (12 Eggs Size)', stockLevel: 0, reorderLevel: 400, uom: 'units', supplier: 'Carton Works Co.', expiryDate: null },
+        { id: 'inv-chem-1', category: 'Chemicals' as const, itemName: 'Virkon S Bio-Disinfectant Powder', stockLevel: 0, reorderLevel: 10.0, uom: 'kg', supplier: 'Antec Chemical Solutions', expiryDate: '2027-08-10' },
+      ];
+
+      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(units));
+      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
+      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
       
       // Default configurations
       localStorage.setItem(STORAGE_KEYS.USER_ROLE, 'Owner');
       localStorage.setItem(STORAGE_KEYS.ASSIGNED_UNIT, '1');
-      localStorage.setItem(STORAGE_KEYS.DB_MODE, 'Demo');
+      localStorage.setItem(STORAGE_KEYS.DB_MODE, 'Live');
     }
   },
 
   // DB Mode Access
   getDbMode: (): 'Demo' | 'Live' => {
-    if (typeof window === 'undefined') return 'Demo';
-    dbService.init();
-    return (localStorage.getItem(STORAGE_KEYS.DB_MODE) as 'Demo' | 'Live') || 'Demo';
+    return 'Live';
   },
 
   clearAllData: async (mode: 'Demo' | 'Live'): Promise<void> => {
