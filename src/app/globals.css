@@ -158,26 +158,39 @@ html {
   [class*="bg-slate-"],
   [class*="bg-primary"],
   [class*="rounded-2xl"],
+  [class*="rounded-3xl"],
   [class*="rounded-xl"],
   [class*="shadow"] {
     background: #ffffff !important;
     border-color: #cbd5e1 !important;
     box-shadow: none !important;
     border-radius: 4px !important;
+    padding: 12px !important;
   }
 
   /* Force text colors visible on paper */
   [class*="text-slate-"],
-  [class*="text-white"],
   [class*="text-emerald-"],
   [class*="dark:text-"] {
     color: #0f172a !important;
   }
 
-  /* Table printing */
+  /* Restore primary colors for logo, ratings, and stats metrics on paper */
+  .text-primary, [class*="text-primary"] {
+    color: #1b5e20 !important;
+    font-weight: 800 !important;
+  }
+  
+  .text-secondary, [class*="text-secondary"] {
+    color: #b38f00 !important;
+    font-weight: 800 !important;
+  }
+
+  /* Table printing formatting */
   table {
-    border-collapse: collapse;
-    width: 100%;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin-top: 15px !important;
     page-break-inside: auto;
   }
 
@@ -186,10 +199,21 @@ html {
     page-break-after: auto;
   }
 
-  th, td {
-    border: 1px solid #e2e8f0;
-    padding: 6px 10px;
-    font-size: 9pt;
+  th {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 10px !important;
+    font-size: 8.5pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+  }
+
+  td {
+    border: 1px solid #e2e8f0 !important;
+    padding: 8px 10px !important;
+    font-size: 8.5pt !important;
+    color: #334155 !important;
   }
 
   thead { display: table-header-group; }
@@ -197,19 +221,7 @@ html {
 
   /* Page setup */
   @page {
-    margin: 1.5cm 1cm;
+    margin: 1.5cm 1.5cm;
     size: A4 landscape;
-  }
-
-  /* Print header branding */
-  .print-header::before {
-    content: "Sri Mahalakshmi Poultry AI ERP — Production Report";
-    display: block;
-    font-size: 14pt;
-    font-weight: 900;
-    color: #1b5e20;
-    margin-bottom: 8px;
-    border-bottom: 2px solid #1b5e20;
-    padding-bottom: 6px;
   }
 }

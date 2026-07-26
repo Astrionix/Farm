@@ -438,9 +438,9 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
       </div>
 
       {/* Main Print Layout Report Card */}
-      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium print:border-none print:shadow-none space-y-6">
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium print:border-none print:shadow-none print:p-0 print:m-0 space-y-6">
         {/* Printable Header */}
-        <div className="flex justify-between items-start border-b border-primary/20 pb-5">
+        <div className="flex justify-between items-start border-b border-primary/20 pb-5 print:pt-4">
           <div>
             <h3 className="text-xl font-extrabold text-slate-800 dark:text-white">Sri Mahalakshmi Poultry</h3>
             <p className="text-[9px] text-secondary font-black tracking-widest uppercase mt-0.5">Intelligent Poultry Management Powered by AI</p>
