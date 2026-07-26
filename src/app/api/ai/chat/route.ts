@@ -9,12 +9,48 @@ const CORS_HEADERS = {
 };
 
 // Fallback rule-based analysis generator when Groq is not available
+// Fallback rule-based analysis generator when Groq is not available
 function generateFallbackChatResponse(message: string, summary: any): string {
   const query = message.toLowerCase();
 
+  // Handle empty or live database state where data scores resolve to 0
+  const isNoData = !summary.totalProduction || summary.totalProduction === 0;
+
+  if (isNoData) {
+    if (query.includes('compare') || query.includes('unit')) {
+      return `Welcome to **FlockMind AI**. 
+Currently, there are **no logged production sheets** in the database for today.
+
+Once you submit your daily logs using the **Daily Entry Portal**, I will dynamically compare and analyze Unit scores, HD% yields, and mortality levels side-by-side. 
+* *Advice:* Head over to the **Daily Entry** tab to seed today's metrics first.`;
+    }
+
+    if (query.includes('why') || query.includes('decrease') || query.includes('drop')) {
+      return `I see you are inquiring about production shifts. 
+However, **no production logs are available** for today to run comparative analysis. 
+
+Once logs are active, I will monitor for feed waste, relative humidity spikes, or medication logs to trace the cause of any drops.`;
+    }
+
+    if (query.includes('predict') || query.includes('tomorrow') || query.includes('forecast')) {
+      return `**AI Forecast Engine Status:**
+* **Chances:** No baseline data.
+* **Forecast:** *Pending logs*
+
+Please seed today's closing bird counts and egg gathers to let the Llama-3 regression model construct weekly estimates.`;
+    }
+
+    return `Hello! I am **FlockMind**, your AI Poultry ERP Consultant. 
+
+Currently, the live database is clean and has **no production entries** recorded for today. 
+
+Once your supervisors submit today's logs (opening birds, feed, culls, eggs), I will calculate real-time insights here. What details would you like to plan first?`;
+  }
+
+  // Fallback structures when baseline data does exist
   if (query.includes('compare') || query.includes('jaggampeta unit 1') || query.includes('jaggampeta unit 2') || query.includes('unit 1') || query.includes('unit 2')) {
-    const u1 = summary.units?.find((u: any) => u.id === 1) || { score: 94, hdPct: 91.5, mort: 5 };
-    const u2 = summary.units?.find((u: any) => u.id === 2) || { score: 88, hdPct: 89.2, mort: 8 };
+    const u1 = summary.unitsList?.find((u: any) => u.id === 1) || { score: 94, hdPct: 91.5, mort: 5 };
+    const u2 = summary.unitsList?.find((u: any) => u.id === 2) || { score: 88, hdPct: 89.2, mort: 8 };
     return `**Jaggampeta Unit 1 vs Jaggampeta Unit 2 Comparison:**
 * **Performance Score:** Jaggampeta Unit 1: **${u1.score ?? 94}** (Excellent) | Jaggampeta Unit 2: **${u2.score ?? 88}** (Very Good)
 * **Production Rate:** Jaggampeta Unit 1: **${u1.hdPct ?? '91.2'}% HD** | Jaggampeta Unit 2: **${u2.hdPct ?? '89.0'}% HD**
