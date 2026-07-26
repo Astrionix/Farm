@@ -213,11 +213,27 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
       </div>
 
       {/* AI Gauge Scores Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {renderGauge(scorePerformance, 'Performance Index', Activity, 'text-primary', 'stroke-primary')}
         {renderGauge(scoreHealth, 'Flock Health Score', HeartPulse, 'text-emerald-500', 'stroke-emerald-500')}
         {renderGauge(scoreEfficiency, 'Feed/Water Efficiency', Zap, 'text-secondary', 'stroke-secondary')}
         {renderGauge(scoreRisk, 'Mortality Risk Score', AlertOctagon, 'text-red-500', 'stroke-red-500')}
+        
+        {/* Total Eggs Card */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-100/50 dark:border-amber-900/30">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider leading-none">Total Eggs Collected</h4>
+            <span className="text-base font-black text-slate-800 dark:text-white block mt-1.5 leading-none">
+              {totalEggs.toLocaleString()}
+            </span>
+            <span className="text-[10px] text-primary font-bold mt-1 block">
+              Avg {unitHDPct.toFixed(1)}% HD Production
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Shed Cards Grid */}
