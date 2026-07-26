@@ -10,9 +10,6 @@ export interface ShedDataInput {
   waterLiters: number;
   eggsCount: number;
   eggWeightG: number;
-  eggsBroken: number;
-  eggsDirty: number;
-  eggsCracked: number;
   uniformity: number;
   bodyWeight: number;
   medication?: string;
@@ -28,8 +25,6 @@ export interface CalculatedShedMetrics {
   eggMassKg: number;          // Total egg weight in kg
   fcr: number;                 // Feed Conversion Ratio (kg feed / kg egg mass)
   waterToFeedRatio: number;   // Water liters / Feed kg
-  brokenEggPct: number;       // Broken egg %
-  defectEggPct: number;       // Total defective eggs (broken, dirty, cracked) %
   performanceScore: number;   // Performance score (0 - 100)
   performanceRating: number;  // 1 - 5 stars
   performanceLabel: 'Excellent' | 'Very Good' | 'Good' | 'Needs Attention' | 'Critical';
@@ -55,8 +50,6 @@ export function calculateShedMetrics(input: ShedDataInput): CalculatedShedMetric
       eggMassKg: 0,
       fcr: 0,
       waterToFeedRatio: 0,
-      brokenEggPct: 0,
-      defectEggPct: 0,
       performanceScore: 0,
       performanceRating: 0,
       performanceLabel: 'Critical',
@@ -72,9 +65,6 @@ export function calculateShedMetrics(input: ShedDataInput): CalculatedShedMetric
     waterLiters,
     eggsCount,
     eggWeightG,
-    eggsBroken,
-    eggsDirty,
-    eggsCracked,
     uniformity,
   } = input;
 
@@ -94,42 +84,34 @@ export function calculateShedMetrics(input: ShedDataInput): CalculatedShedMetric
   // FCR = Feed consumed (kg) / Egg mass (kg)
   const fcr = eggMassKg > 0 ? feedKg / eggMassKg : 0;
 
-  // 4. Quality Defects
-  const brokenEggPct = eggsCount > 0 ? (eggsBroken / eggsCount) * 100 : 0;
-  const totalDefects = eggsBroken + eggsDirty + eggsCracked;
-  const defectEggPct = eggsCount > 0 ? (totalDefects / eggsCount) * 100 : 0;
-
   // 5. Performance Scoring (0 to 100)
-  // HD% (Weight: 35%) -> Target: 92% or higher
-  const hdScore = Math.min(35, (hdPct / 92) * 35);
+  // HD% (Weight: 40%) -> Target: 92% or higher
+  const hdScore = Math.min(40, (hdPct / 92) * 40);
 
   // Mortality (Weight: 25%) -> Daily target: 0% mortality. 
   // Deduct 10 points for every 0.1% daily mortality (e.g. 0.2% mortality removes 20 points)
   const mortalityScore = Math.max(0, 25 - (mortalityPct * 100));
 
-  // FCR (Weight: 15%) -> Target FCR <= 2.0. Limit <= 3.2
+  // FCR (Weight: 20%) -> Target FCR <= 2.0. Limit <= 3.2
   let fcrScore = 0;
   if (fcr > 0) {
     if (fcr <= 2.0) {
-      fcrScore = 15;
+      fcrScore = 20;
     } else if (fcr >= 3.2) {
       fcrScore = 0;
     } else {
-      fcrScore = 15 * (1 - (fcr - 2.0) / (3.2 - 2.0));
+      fcrScore = 20 * (1 - (fcr - 2.0) / (3.2 - 2.0));
     }
   }
 
   // Water Ratio (Weight: 10%) -> Target water ratio is 2.0. Deduct for variance.
   const waterRatioScore = Math.max(0, 10 - Math.abs(waterToFeedRatio - 2.0) * 10);
 
-  // Egg Quality Defects (Weight: 10%) -> Target: 0% defects
-  const qualityScore = Math.max(0, 10 - defectEggPct * 2);
-
   // Uniformity (Weight: 5%) -> Target: 85% or higher
   const uniformityScore = Math.min(5, (uniformity / 85) * 5);
 
   // Total raw score
-  let performanceScore = Math.round(hdScore + mortalityScore + fcrScore + waterRatioScore + qualityScore + uniformityScore);
+  let performanceScore = Math.round(hdScore + mortalityScore + fcrScore + waterRatioScore + uniformityScore);
   performanceScore = Math.max(0, Math.min(100, performanceScore));
 
   // Ratings & Labels
@@ -161,8 +143,6 @@ export function calculateShedMetrics(input: ShedDataInput): CalculatedShedMetric
     eggMassKg: Number(eggMassKg.toFixed(3)),
     fcr: Number(fcr.toFixed(2)),
     waterToFeedRatio: Number(waterToFeedRatio.toFixed(2)),
-    brokenEggPct: Number(brokenEggPct.toFixed(2)),
-    defectEggPct: Number(defectEggPct.toFixed(2)),
     performanceScore,
     performanceRating,
     performanceLabel,

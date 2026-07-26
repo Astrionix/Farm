@@ -40,6 +40,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   // Environmental stats
   const [weather, setWeather] = useState<string>('Sunny');
   const [temperature, setTemperature] = useState<string>('31.5');
+  const [apparentTemperature, setApparentTemperature] = useState<string>('');
   const [humidity, setHumidity] = useState<string>('60');
   const [generalRemarks, setGeneralRemarks] = useState<string>('');
 
@@ -142,9 +143,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               waterLiters: todayEntry.waterLiters,
               eggsCount: todayEntry.eggsCount,
               eggWeightG: todayEntry.eggWeightG,
-              eggsBroken: todayEntry.eggsBroken,
-              eggsDirty: todayEntry.eggsDirty,
-              eggsCracked: todayEntry.eggsCracked,
               uniformity: todayEntry.uniformity,
               bodyWeight: todayEntry.bodyWeight,
               medication: todayEntry.medication,
@@ -173,9 +171,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               waterLiters: prevClosing > 0 ? Math.round((prevClosing * 0.116 * 2)) : 0,
               eggsCount: prevClosing > 0 ? Math.round(prevClosing * 0.90) : 0,
               eggWeightG: prevClosing > 0 ? 60.5 : 0,
-              eggsBroken: 0,
-              eggsDirty: 0,
-              eggsCracked: 0,
               uniformity: prevClosing > 0 ? 85 : 0,
               bodyWeight: prevClosing > 0 ? 1680 : 0,
               medication: '',
@@ -274,9 +269,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             waterLiters: Number(input.waterLiters || (closing ? Math.round(closing * 0.116 * 2.0) : 0)),
             eggsCount: Number(input.eggsCount || 0),
             eggWeightG: Number(input.eggWeightG || 60.0),
-            eggsBroken: Number(input.eggsBroken || 0),
-            eggsDirty: Number(input.eggsDirty || 0),
-            eggsCracked: Number(input.eggsCracked || 0),
             uniformity: Number(input.uniformity || 85),
             bodyWeight: Number(input.bodyWeight || 1680),
             medication: input.medication || '',
@@ -333,6 +325,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       if (data.temperature !== undefined) {
         setTemperature(data.temperature.toFixed(1));
       }
+      if (data.temperatureApparent !== undefined) {
+        setApparentTemperature(data.temperatureApparent.toFixed(1));
+      }
       if (data.humidity !== undefined) {
         setHumidity(Math.round(data.humidity).toString());
       }
@@ -379,6 +374,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                 .then(resData => {
                   const data = resData.data?.values || {};
                   if (data.temperature !== undefined) setTemperature(data.temperature.toFixed(1));
+                  if (data.temperatureApparent !== undefined) setApparentTemperature(data.temperatureApparent.toFixed(1));
                   if (data.humidity !== undefined) setHumidity(Math.round(data.humidity).toString());
                   if (data.weatherCode !== undefined) {
                     const code = data.weatherCode;
@@ -576,7 +572,14 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
             {/* Temp */}
             <div className="space-y-1.5">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Temperature (°C)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Temperature (°C)</label>
+                {apparentTemperature && (
+                  <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
+                    Feels like {apparentTemperature}°C
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="number"
@@ -638,9 +641,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                   waterLiters: Number(input.waterLiters || (closing ? Math.round(closing * 0.116 * 2.0) : 0)),
                   eggsCount: Number(input.eggsCount || 0),
                   eggWeightG: Number(input.eggWeightG || 60.0),
-                  eggsBroken: Number(input.eggsBroken || 0),
-                  eggsDirty: Number(input.eggsDirty || 0),
-                  eggsCracked: Number(input.eggsCracked || 0),
                   uniformity: Number(input.uniformity || 85),
                   bodyWeight: Number(input.bodyWeight || 1680),
                 };
@@ -771,39 +771,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
                           className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                           required
-                        />
-                      </div>
- 
-                      {/* Broken eggs */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Broken Eggs</label>
-                        <input
-                          type="number"
-                          value={input.eggsBroken ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'eggsBroken', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
- 
-                      {/* Dirty eggs */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Dirty Eggs</label>
-                        <input
-                          type="number"
-                          value={input.eggsDirty ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'eggsDirty', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
- 
-                      {/* Cracked eggs */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Cracked Eggs</label>
-                        <input
-                          type="number"
-                          value={input.eggsCracked ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'eggsCracked', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
                     </div>

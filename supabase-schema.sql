@@ -92,9 +92,6 @@ CREATE TABLE IF NOT EXISTS daily_entries (
     -- Egg Metrics
     eggs_count INT NOT NULL,
     egg_weight_g NUMERIC(5,2) NOT NULL, -- average weight in grams
-    eggs_broken INT DEFAULT 0,
-    eggs_dirty INT DEFAULT 0,
-    eggs_cracked INT DEFAULT 0,
     
     -- Treatment & Log
     medication TEXT DEFAULT '',
@@ -108,7 +105,6 @@ CREATE TABLE IF NOT EXISTS daily_entries (
     fcr NUMERIC(5,2),              -- Feed Conversion Ratio
     water_to_feed_ratio NUMERIC(5,2),
     egg_mass_kg NUMERIC(8,2),      -- Total mass of eggs in kg
-    broken_egg_pct NUMERIC(5,2),   -- Broken eggs / Total eggs %
     performance_score INT,         -- Dynamic Performance Score (0-100)
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

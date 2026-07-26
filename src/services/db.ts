@@ -310,11 +310,6 @@ function generateHistoricalMockData() {
       // Egg average weight in grams (~58 - 63 grams)
       const eggWeightG = 59.5 + Math.random() * 2.5;
 
-      // Egg quality defects
-      const eggsBroken = Math.floor(eggsCount * (0.002 + Math.random() * 0.006));
-      const eggsDirty = Math.floor(eggsCount * (0.005 + Math.random() * 0.012));
-      const eggsCracked = Math.floor(eggsCount * (0.001 + Math.random() * 0.004));
-
       // Uniformity % (~82 - 88%)
       const uniformity = 83 + Math.random() * 5;
 
@@ -338,9 +333,6 @@ function generateHistoricalMockData() {
         waterLiters,
         eggsCount,
         eggWeightG,
-        eggsBroken,
-        eggsDirty,
-        eggsCracked,
         uniformity,
         bodyWeight,
         birdAgeWeeks: 18 + s * 2,
@@ -687,9 +679,6 @@ export const dbService = {
             waterLiters: Number(d.water_liters),
             eggsCount: d.eggs_count,
             eggWeightG: Number(d.egg_weight_g),
-            eggsBroken: d.eggs_broken,
-            eggsDirty: d.eggs_dirty,
-            eggsCracked: d.eggs_cracked,
             uniformity: Number(d.uniformity),
             bodyWeight: Number(d.body_weight),
             birdAgeWeeks: d.bird_age_weeks || 20,
@@ -702,8 +691,6 @@ export const dbService = {
             fcr: Number(d.fcr),
             waterToFeedRatio: Number(d.water_to_feed_ratio),
             eggMassKg: Number(d.egg_mass_kg),
-            brokenEggPct: Number(d.broken_egg_pct),
-            defectEggPct: Number(d.broken_egg_pct),
             performanceScore: d.performance_score,
             performanceRating: d.performance_score >= 90 ? 5 : d.performance_score >= 80 ? 4 : d.performance_score >= 70 ? 3 : d.performance_score >= 50 ? 2 : 1,
             performanceLabel: d.performance_score >= 90 ? 'Excellent' : d.performance_score >= 80 ? 'Very Good' : d.performance_score >= 70 ? 'Good' : d.performance_score >= 50 ? 'Needs Attention' : 'Critical',
@@ -782,9 +769,6 @@ export const dbService = {
           water_liters: e.waterLiters,
           eggs_count: e.eggsCount,
           egg_weight_g: e.eggWeightG,
-          eggs_broken: e.eggsBroken,
-          eggs_dirty: e.eggsDirty,
-          eggs_cracked: e.eggsCracked,
           medication: e.medication || '',
           remarks: e.remarks || '',
           hd_pct: e.hdPct,
@@ -794,7 +778,6 @@ export const dbService = {
           fcr: e.fcr,
           water_to_feed_ratio: e.waterToFeedRatio,
           egg_mass_kg: e.eggMassKg,
-          broken_egg_pct: e.brokenEggPct,
           performance_score: e.performanceScore,
         }));
 

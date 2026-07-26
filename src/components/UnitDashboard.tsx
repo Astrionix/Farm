@@ -479,18 +479,6 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                       <span>Feed Conversion (FCR):</span>
                       <span className="text-primary font-black">{selectedShedDetails.fcr}</span>
                     </div>
-                    <div className="flex justify-between text-red-500">
-                      <span>Broken Eggs:</span>
-                      <span className="font-bold">{selectedShedDetails.eggsBroken} ({selectedShedDetails.brokenEggPct}%)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Dirty Eggs:</span>
-                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.eggsDirty}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Cracked Eggs:</span>
-                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.eggsCracked}</span>
-                    </div>
                     <div className="flex justify-between">
                       <span>Flock Uniformity:</span>
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.uniformity}%</span>
