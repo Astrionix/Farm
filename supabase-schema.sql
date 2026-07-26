@@ -11,11 +11,12 @@ CREATE TABLE IF NOT EXISTS units (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed static units (Max 5 Units)
+-- Seed static units (Max 6 Units)
 INSERT INTO units (id, name, status) VALUES
 (1, 'Jaggampeta Unit 1', 'Active'),
 (2, 'Jaggampeta Unit 2', 'Active'),
 (3, 'Jaggampeta Unit 3', 'Active'),
+(6, 'Chick Shed Unit', 'Active'),
 (4, 'Kotapadu', 'Active'),
 (5, 'Chebrolu', 'Active')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
@@ -38,8 +39,8 @@ BEGIN
     -- Remove existing seeded sheds to avoid layout drift
     DELETE FROM sheds;
 
-    -- Unit 1: 12 sheds
-    FOR s_num IN 1..12 LOOP
+    -- Unit 1: 6 sheds
+    FOR s_num IN 1..6 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (1, s_num, 'Active');
     END LOOP;
 
@@ -48,17 +49,20 @@ BEGIN
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (2, s_num, 'Active');
     END LOOP;
 
-    -- Unit 3: 4 sheds (3 normal sheds + 1 chick shed = 4)
-    FOR s_num IN 1..4 LOOP
+    -- Unit 3: 3 sheds (Chick shed removed, leaving 3)
+    FOR s_num IN 1..3 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (3, s_num, 'Active');
     END LOOP;
 
-    -- Unit 4: 12 sheds (11 normal sheds + 1 chick shed = 12)
+    -- Unit 6: Chick Shed Unit (1 shed)
+    INSERT INTO sheds (unit_id, shed_number, status) VALUES (6, 1, 'Active');
+
+    -- Unit 4: 12 sheds (Kotapadu)
     FOR s_num IN 1..12 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (4, s_num, 'Active');
     END LOOP;
 
-    -- Unit 5: 2 sheds
+    -- Unit 5: 2 sheds (Chebrolu)
     FOR s_num IN 1..2 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (5, s_num, 'Active');
     END LOOP;
