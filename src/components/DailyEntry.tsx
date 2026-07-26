@@ -691,10 +691,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         {/* Auto batch age badge */}
                         {(() => {
                           const batchDate = dbService.getBatchDate(selectedUnit, sNum);
-                          const autoAge = dbService.calculateBirdAge(selectedUnit, sNum, selectedDate);
-                          return batchDate ? (
+                          const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
+                          return batchDate && ageFull ? (
                             <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 block mt-0.5">
-                              🐣 Week {autoAge} · Batch: {new Date(batchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                              🐣 {ageFull.weeks} wks {ageFull.days} days · Batch: {new Date(batchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
                             </span>
                           ) : null;
                         })()}
@@ -793,19 +793,19 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
                       </div>
 
-                      {/* Bird Age (Weeks) - Auto from batch date */}
+                      {/* Bird Age (Weeks + Days) - Auto from batch date */}
                       {(() => {
-                        const autoAge = dbService.calculateBirdAge(selectedUnit, sNum, selectedDate);
-                        const hasAuto = autoAge !== null;
+                        const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
+                        const hasAuto = ageFull !== null;
                         return (
                           <div className="space-y-1">
                             <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                              Bird Age (Wks)
+                              Bird Age
                               {hasAuto && <span className="text-[8px] bg-primary/15 text-primary px-1.5 rounded-full font-black normal-case">Auto</span>}
                             </label>
-                            {hasAuto ? (
+                            {hasAuto && ageFull ? (
                               <div className="w-full px-2.5 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg text-xs font-black text-primary flex items-center gap-1">
-                                {autoAge}w
+                                {ageFull.weeks}w {ageFull.days}d
                                 <span className="text-[8px] text-primary/60 font-semibold">auto</span>
                               </div>
                             ) : (

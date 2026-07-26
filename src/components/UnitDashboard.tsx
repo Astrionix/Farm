@@ -391,7 +391,13 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                           HD%: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.hdPct}%</span>
                         </div>
                         <div>
-                          Age: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.birdAgeWeeks ?? 'N/A'} wks</span>
+                          Age: <span className="font-bold text-slate-700 dark:text-slate-300">
+                            {(() => {
+                              const ageFull = dbService.calculateBirdAgeFull(selectedUnit, shedNum);
+                              if (ageFull) return `${ageFull.weeks} wks ${ageFull.days} days`;
+                              return entry.birdAgeWeeks != null ? `${entry.birdAgeWeeks} wks` : 'N/A';
+                            })()}
+                          </span>
                           {(() => {
                             const batchDate = dbService.getBatchDate(selectedUnit, shedNum);
                             if (!batchDate) return null;
@@ -405,6 +411,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                             );
                           })()}
                         </div>
+
                         <div>
                           FCR: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.fcr}</span>
                         </div>
@@ -515,8 +522,14 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.closingBirds.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
-                      <span>Bird Age (Weeks):</span>
-                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.birdAgeWeeks ?? 'N/A'} weeks</span>
+                      <span>Bird Age:</span>
+                      <span className="text-slate-800 dark:text-white font-bold">
+                        {(() => {
+                          const ageFull = dbService.calculateBirdAgeFull(selectedShedDetails.unitId, selectedShedDetails.shedNumber);
+                          if (ageFull) return `${ageFull.weeks} wks ${ageFull.days} days`;
+                          return selectedShedDetails.birdAgeWeeks != null ? `${selectedShedDetails.birdAgeWeeks} wks` : 'N/A';
+                        })()}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Feed Consumed:</span>

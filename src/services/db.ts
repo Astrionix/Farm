@@ -730,6 +730,22 @@ export const dbService = {
     return Math.max(0, Math.floor(diffDays / 7));
   },
 
+  /** Returns bird age as { weeks, days, totalDays } for "7 wks 3 days" display */
+  calculateBirdAgeFull: (unitId: number, shedNumber: number, targetDateISO?: string): { weeks: number; days: number; totalDays: number } | null => {
+    const placementDate = dbService.getBatchDate(unitId, shedNumber);
+    if (!placementDate) return null;
+    const start = new Date(placementDate);
+    const end = targetDateISO ? new Date(targetDateISO) : new Date();
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const totalDays = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    return {
+      totalDays,
+      weeks: Math.floor(totalDays / 7),
+      days: totalDays % 7,
+    };
+  },
+
   // ─── OFFLINE STATUS & SYNC QUEUE ────────────────────────────
   isOnline: (): boolean => {
     if (typeof window === 'undefined') return true;
