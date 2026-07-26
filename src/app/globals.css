@@ -192,7 +192,6 @@ html {
 
   /* Force text colors visible on paper */
   [class*="text-slate-"],
-  [class*="text-emerald-"],
   [class*="dark:text-"] {
     color: #0f172a !important;
   }
