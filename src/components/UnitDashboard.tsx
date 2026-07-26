@@ -216,7 +216,9 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
               >
-                {u.name.replace('Jaggampeta ', 'J. ')}
+                {/* On desktop show full name, on mobile keep shortened J. wrapper */}
+                <span className="md:hidden">{u.name.replace('Jaggampeta ', 'J. ')}</span>
+                <span className="hidden md:inline">{u.name}</span>
                 {selectedUnit === u.id && (
                   <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-primary dark:bg-secondary rounded-t-full" />
                 )}
@@ -229,8 +231,8 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
       {/* ── Scrollable Content ─────────────────────── */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4">
 
-        {/* Metrics Grid — 2 cols on mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Metrics Grid — 2 cols on mobile, 3 cols on tablet, 7 cols on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
           {/* Total Eggs Card */}
           <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium flex flex-col gap-2">
             <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/15 flex items-center justify-center text-amber-500 border border-amber-100/50 dark:border-amber-900/30">
@@ -258,6 +260,20 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 {avgBirdAge > 0 ? `${avgBirdAge.toFixed(1)}w` : '0.0w'}
               </span>
               <span className="text-[9px] text-blue-500 font-bold mt-1 block">Active Lifecycle</span>
+            </div>
+          </div>
+
+          {/* Feed Consumed Card */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium flex flex-col gap-2">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/15 flex items-center justify-center text-emerald-500 border border-emerald-100/50 dark:border-emerald-900/30">
+              <Zap className="w-4.5 h-4.5 text-emerald-500" />
+            </div>
+            <div>
+              <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase tracking-wider leading-none">Feed Consumed</h4>
+              <span className="text-base font-black text-slate-800 dark:text-white block mt-1 leading-none">
+                {totalFeed.toLocaleString()} kg
+              </span>
+              <span className="text-[9px] text-emerald-500 font-bold mt-1 block">Unit Feed Total</span>
             </div>
           </div>
 
