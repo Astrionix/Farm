@@ -105,6 +105,8 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
   const [isMounted, setIsMounted] = useState(false);
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
 
+  const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('today');
+
   useEffect(() => {
     async function loadUnits() {
       const u = await dbService.getUnits();
@@ -131,11 +133,144 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
     async function loadReportData() {
       setLoading(true);
       try {
+        let filterDays = 1;
+        if (dateRange === '7d') filterDays = 7;
+        if (dateRange === '30d') filterDays = 30;
+        if (dateRange === '90d') filterDays = 90;
+
+        const endDate = reportDate;
+        const startDateObj = new Date(reportDate);
+        startDateObj.setDate(startDateObj.getDate() - (filterDays - 1));
+        const startDate = startDateObj.toISOString().split('T')[0];
+
+        // Fetch entries in date range
         const data = await dbService.getDailyEntries({ 
-          date: reportDate, 
+          dateStart: startDate,
+          dateEnd: endDate,
           unitId: selectedUnit 
         });
-        setEntries(data.filter(e => e.status === 'Active'));
+
+        // Filter active entries
+        const activeData = data.filter(e => e.status === 'Active');
+
+        if (filterDays === 1) {
+          setEntries(activeData);
+        } else {
+          // Aggregate data per shed across the selected period
+          const aggregatedMap: Record<number, any> = {};
+          activeData.forEach(entry => {
+            const sNum = entry.shedNumber;
+            if (!aggregatedMap[sNum]) {
+              aggregatedMap[sNum] = {
+                shedNumber: sNum,
+                openingBirds: entry.openingBirds, // Start of period opening
+                mortality: 0,
+                culls: 0,
+                closingBirds: entry.closingBirds, // Will be overwritten by latest entry
+                feedKg: 0,
+                waterLiters: 0,
+                eggsCount: 0,
+                eggWeightSum: 0,
+                eggWeightCount: 0,
+                uniformitySum: 0,
+                uniformityCount: 0,
+                bodyWeightSum: 0,
+                bodyWeightCount: 0,
+                birdAgeWeeks: entry.birdAgeWeeks,
+                performanceScoreSum: 0,
+                performanceScoreCount: 0,
+                recordsCount: 0,
+                date: entry.date,
+              };
+            }
+
+            const record = aggregatedMap[sNum];
+            // Accumulate
+            record.mortality += entry.mortality;
+            record.culls += entry.culls;
+            record.feedKg += entry.feedKg;
+            record.waterLiters += entry.waterLiters;
+            record.eggsCount += entry.eggsCount;
+            
+            if (entry.eggWeightG > 0) {
+              record.eggWeightSum += entry.eggWeightG;
+              record.eggWeightCount++;
+            }
+            if (entry.uniformity > 0) {
+              record.uniformitySum += entry.uniformity;
+              record.uniformityCount++;
+            }
+            if (entry.bodyWeight > 0) {
+              record.bodyWeightSum += entry.bodyWeight;
+              record.bodyWeightCount++;
+            }
+            if (entry.performanceScore > 0) {
+              record.performanceScoreSum += entry.performanceScore;
+              record.performanceScoreCount++;
+            }
+
+            // Keep the latest record's closingBirds and age
+            if (entry.date >= record.date) {
+              record.closingBirds = entry.closingBirds;
+              record.birdAgeWeeks = entry.birdAgeWeeks;
+              record.date = entry.date;
+            }
+            // Keep the oldest record's openingBirds
+            if (entry.date <= record.date) {
+              record.openingBirds = entry.openingBirds;
+            }
+            
+            record.recordsCount++;
+          });
+
+          // Compile map back to list with averages
+          const compiledList: DBDailyEntry[] = Object.values(aggregatedMap).map((r: any) => {
+            const avgEggWeight = r.eggWeightCount > 0 ? Number((r.eggWeightSum / r.eggWeightCount).toFixed(1)) : 60.0;
+            const avgUniformity = r.uniformityCount > 0 ? Number((r.uniformitySum / r.uniformityCount).toFixed(1)) : 85.0;
+            const avgBodyWeight = r.bodyWeightCount > 0 ? Number((r.bodyWeightSum / r.bodyWeightCount).toFixed(0)) : 1680;
+            const avgScore = r.performanceScoreCount > 0 ? Math.round(r.performanceScoreSum / r.performanceScoreCount) : 85;
+            
+            const hdPct = r.closingBirds > 0 ? Number(((r.eggsCount / r.recordsCount) / r.closingBirds * 100).toFixed(1)) : 0;
+            const fcr = r.eggsCount > 0 ? Number((r.feedKg / ((r.eggsCount * avgEggWeight) / 1000)).toFixed(2)) : 2.15;
+            const mortalityPct = r.openingBirds > 0 ? Number((r.mortality / r.openingBirds * 100).toFixed(2)) : 0;
+
+            return {
+              id: `agg-shed-${r.shedNumber}`,
+              date: endDate,
+              unitId: selectedUnit,
+              shedNumber: r.shedNumber,
+              weather: 'Multiple',
+              temperature: 0,
+              humidity: 0,
+              status: 'Active',
+              openingBirds: r.openingBirds,
+              mortality: r.mortality,
+              culls: r.culls,
+              closingBirds: r.closingBirds,
+              feedKg: Number(r.feedKg.toFixed(1)),
+              waterLiters: Number(r.waterLiters.toFixed(1)),
+              eggsCount: r.eggsCount,
+              eggWeightG: avgEggWeight,
+              uniformity: avgUniformity,
+              bodyWeight: avgBodyWeight,
+              birdAgeWeeks: r.birdAgeWeeks,
+              medication: '',
+              remarks: `Period: ${startDate} to ${endDate}`,
+              hdPct,
+              mortalityPct,
+              feedPerBirdG: r.closingBirds > 0 ? Number(((r.feedKg / r.recordsCount) / r.closingBirds * 1000).toFixed(1)) : 0,
+              waterPerBirdMl: r.closingBirds > 0 ? Number(((r.waterLiters / r.recordsCount) / r.closingBirds * 1000).toFixed(1)) : 0,
+              fcr,
+              waterToFeedRatio: r.feedKg > 0 ? Number((r.waterLiters / r.feedKg).toFixed(2)) : 2.0,
+              eggMassKg: Number(((r.eggsCount * avgEggWeight) / 1000).toFixed(1)),
+              performanceScore: avgScore,
+              performanceRating: avgScore >= 90 ? 5 : avgScore >= 80 ? 4 : avgScore >= 70 ? 3 : avgScore >= 50 ? 2 : 1,
+              performanceLabel: avgScore >= 90 ? 'Excellent' : avgScore >= 80 ? 'Very Good' : avgScore >= 70 ? 'Good' : 'Needs Attention',
+            };
+          });
+
+          setEntries(compiledList.sort((a, b) => a.shedNumber - b.shedNumber));
+        }
       } catch (err) {
         console.error('Failed loading reports:', err);
       } finally {
@@ -143,7 +278,7 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
       }
     }
     loadReportData();
-  }, [reportDate, selectedUnit]);
+  }, [reportDate, selectedUnit, dateRange]);
 
   const handlePrint = () => {
     window.print();
@@ -219,6 +354,28 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             </select>
           )}
 
+          {/* Date Range Selectors */}
+          <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-0.5 border border-slate-200/50 dark:border-slate-800">
+            {([
+              { id: 'today', label: 'Today' },
+              { id: '7d', label: '7 Days' },
+              { id: '30d', label: '30 Days' },
+              { id: '90d', label: '90 Days' }
+            ] as const).map(range => (
+              <button
+                key={range.id}
+                onClick={() => setDateRange(range.id)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                  dateRange === range.id
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+
           {/* Date Picker */}
           <input
             type="date"
@@ -289,8 +446,18 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             <p className="text-[9px] text-secondary font-black tracking-widest uppercase mt-0.5">Intelligent Poultry Management Powered by AI</p>
           </div>
           <div className="text-right text-[10px] text-slate-400 font-semibold space-y-0.5">
-            <div>Report: <span className="font-extrabold text-slate-700 dark:text-slate-200">Daily Production Audit</span></div>
-            <div>Reporting Date: <span className="font-extrabold text-slate-700 dark:text-slate-200">{reportDate}</span></div>
+            <div>Report: <span className="font-extrabold text-slate-700 dark:text-slate-200">{dateRange === 'today' ? 'Daily Production Audit' : `Production Audit (${dateRange.toUpperCase()})`}</span></div>
+            <div>Reporting Period: <span className="font-extrabold text-slate-700 dark:text-slate-200">
+              {(() => {
+                if (dateRange === 'today') return reportDate;
+                let days = 7;
+                if (dateRange === '30d') days = 30;
+                if (dateRange === '90d') days = 90;
+                const start = new Date(reportDate);
+                start.setDate(start.getDate() - (days - 1));
+                return `${start.toISOString().split('T')[0]} to ${reportDate}`;
+              })()}
+            </span></div>
             <div>Unit Number: <span className="font-extrabold text-slate-700 dark:text-slate-200">Unit {selectedUnit}</span></div>
           </div>
         </div>
