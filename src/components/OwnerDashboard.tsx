@@ -115,20 +115,6 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
     loadDashboardData();
   }, [dateRange]);
 
-  if (loading || !aggMetrics) {
-    return (
-      <div className="flex-1 p-4 md:p-8 space-y-6 animate-pulse">
-        <div className="h-8 bg-slate-200 dark:bg-slate-700 w-1/4 rounded" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-          ))}
-        </div>
-        <div className="h-96 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-      </div>
-    );
-  }
-
   // Get all unique dates sorted ascending
   const uniqueDatesSorted = Array.from(new Set(entries.map(e => e.date)))
     .sort((a, b) => a.localeCompare(b));
@@ -167,6 +153,20 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       };
     }).sort((a: any, b: any) => b.eggs - a.eggs);
   }, [aggMetrics, rangeEntries]);
+
+  if (loading || !aggMetrics) {
+    return (
+      <div className="flex-1 p-4 md:p-8 space-y-6 animate-pulse">
+        <div className="h-8 bg-slate-200 dark:bg-slate-700 w-1/4 rounded" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+          ))}
+        </div>
+        <div className="h-96 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+      </div>
+    );
+  }
 
   const totalEggs = rangeEntries.reduce((sum, e) => sum + e.eggsCount, 0);
   const totalMortality = rangeEntries.reduce((sum, e) => sum + e.mortality, 0);
