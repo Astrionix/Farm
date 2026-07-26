@@ -105,10 +105,10 @@ const STORAGE_KEYS = {
 export const UNIT_CONFIGS = [
   { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 6, status: 'Active' as const },
   { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
-  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 3, status: 'Active' as const }, // Reduced from 4 (removed chick shed)
-  { id: 4, name: 'Kotapadu', shedsCount: 12, status: 'Active' as const }, // 11 normal + 1 chick shed = 12
+  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 3, status: 'Active' as const },
+  { id: 6, name: 'Chick Shed Unit', shedsCount: 1, status: 'Active' as const }, // Moved directly after Unit 3
+  { id: 4, name: 'Kotapadu', shedsCount: 12, status: 'Active' as const },
   { id: 5, name: 'Chebrolu', shedsCount: 2, status: 'Active' as const },
-  { id: 6, name: 'Chick Shed Unit', shedsCount: 1, status: 'Active' as const }, // New unit with 1 chick shed
 ];
 
 // Seeding 30 Days of high fidelity historical data
@@ -632,7 +632,13 @@ export const dbService = {
       supabaseActive = false;
     }
     dbService.init();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.UNITS) || '[]');
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.UNITS) || '[]');
+    // Sort local units to match the exact order of UNIT_CONFIGS array
+    return stored.sort((a: any, b: any) => {
+      const idxA = UNIT_CONFIGS.findIndex(uc => uc.id === a.id);
+      const idxB = UNIT_CONFIGS.findIndex(uc => uc.id === b.id);
+      return idxA - idxB;
+    });
   },
 
   updateUnitStatus: async (unitId: number, status: 'Active' | 'Not In Use'): Promise<void> => {
