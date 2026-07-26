@@ -724,28 +724,25 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         {isActive ? 'Disable Shed' : 'Enable Shed'}
                       </button>
 
-                      {/* Set Batch Date Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = dbService.getBatchDate(selectedUnit, sNum);
-                          const input = window.prompt(
-                            `Set batch placement date for ${isChickShed(selectedUnit, sNum) ? 'Chick Shed' : `Shed ${sNum}`}\n(Bird age will auto-calculate every day from this date)`,
-                            current || new Date().toISOString().split('T')[0]
-                          );
-                          if (input && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
-                            dbService.setBatchDate(selectedUnit, sNum, input);
-                            // Re-trigger load to refresh age
-                            setShedInputs(prev => ({ ...prev }));
-                            window.dispatchEvent(new Event('batch-date-changed'));
-                          } else if (input !== null) {
-                            alert('Please enter date in YYYY-MM-DD format');
-                          }
-                        }}
-                        className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
-                      >
-                        🐣 {dbService.getBatchDate(selectedUnit, sNum) ? 'Change Batch' : 'Set Batch'}
-                      </button>
+                      {/* Set Batch Date Calendar Picker */}
+                      <div className="relative">
+                        <label className="cursor-pointer px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 flex items-center gap-1">
+                          🐣 {dbService.getBatchDate(selectedUnit, sNum) ? 'Change Batch' : 'Set Batch'}
+                          <input
+                            type="date"
+                            value={dbService.getBatchDate(selectedUnit, sNum) || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val) {
+                                dbService.setBatchDate(selectedUnit, sNum, val);
+                                setShedInputs(prev => ({ ...prev }));
+                                window.dispatchEvent(new Event('batch-date-changed'));
+                              }
+                            }}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
