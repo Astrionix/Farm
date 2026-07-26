@@ -25,6 +25,14 @@ interface DailyEntryProps {
   assignedUnit: number;
 }
 
+const UNIT_COORDINATES: Record<number, { lat: number; lon: number }> = {
+  1: { lat: 17.18, lon: 82.05 }, // Jaggampeta Unit 1
+  2: { lat: 17.18, lon: 82.05 }, // Jaggampeta Unit 2
+  3: { lat: 17.18, lon: 82.05 }, // Jaggampeta Unit 3
+  4: { lat: 17.88, lon: 83.04 }, // Kotapadu
+  5: { lat: 17.18701821929379, lon: 82.31389540958138 }, // Chebrolu
+};
+
 export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) {
   const [selectedUnit, setSelectedUnit] = useState<number>(1);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -34,6 +42,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const [temperature, setTemperature] = useState<string>('31.5');
   const [humidity, setHumidity] = useState<string>('60');
   const [generalRemarks, setGeneralRemarks] = useState<string>('');
+
+  const [fetchingWeather, setFetchingWeather] = useState(false);
+  const [weatherError, setWeatherError] = useState('');
 
   const [shedsList, setShedsList] = useState<DBShed[]>([]);
   const [shedInputs, setShedInputs] = useState<Record<number, Partial<ShedDataInput>>>({});
@@ -304,6 +315,89 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     }
   };
 
+  const handleAutoDetectWeather = async () => {
+    const coords = UNIT_COORDINATES[selectedUnit];
+    if (!coords) return;
+    
+    setFetchingWeather(true);
+    setWeatherError('');
+    
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_TOMORROW_API_KEY || 'zMKQ3NtHPI3MWY3wWqJQfAHewuxwNZui';
+      const res = await fetch(`https://api.tomorrow.io/v4/weather/realtime?location=${coords.lat},${coords.lon}&apikey=${apiKey}`);
+      if (!res.ok) throw new Error('Failed to fetch weather');
+      
+      const resData = await res.json();
+      const data = resData.data?.values || {};
+      
+      if (data.temperature !== undefined) {
+        setTemperature(data.temperature.toFixed(1));
+      }
+      if (data.humidity !== undefined) {
+        setHumidity(Math.round(data.humidity).toString());
+      }
+      if (data.weatherCode !== undefined) {
+        const code = data.weatherCode;
+        let mappedWeather = 'Sunny';
+        if (code === 1000 || code === 1100) {
+          mappedWeather = 'Sunny';
+        } else if (code >= 1001 && code <= 1102) {
+          mappedWeather = 'Cloudy';
+        } else if ((code >= 4000 && code <= 4201) || code === 8000) {
+          mappedWeather = 'Rainy';
+        } else if (code === 2000 || code === 2100) {
+          mappedWeather = 'Humid';
+        }
+        setWeather(mappedWeather);
+      }
+    } catch (err) {
+      console.error('Error auto-detecting weather:', err);
+      setWeatherError('Failed to auto-detect weather.');
+    } finally {
+      setFetchingWeather(false);
+    }
+  };
+
+  // Trigger weather auto-detection for today's new entry
+  useEffect(() => {
+    if (!selectedDate) return;
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDate === todayStr) {
+      dbService.getDailyEntries({ date: selectedDate, unitId: selectedUnit })
+        .then(entries => {
+          if (entries.length === 0) {
+            const coords = UNIT_COORDINATES[selectedUnit];
+            if (coords) {
+              setFetchingWeather(true);
+              const apiKey = process.env.NEXT_PUBLIC_TOMORROW_API_KEY || 'zMKQ3NtHPI3MWY3wWqJQfAHewuxwNZui';
+              fetch(`https://api.tomorrow.io/v4/weather/realtime?location=${coords.lat},${coords.lon}&apikey=${apiKey}`)
+                .then(res => {
+                  if (res.ok) return res.json();
+                  throw new Error();
+                })
+                .then(resData => {
+                  const data = resData.data?.values || {};
+                  if (data.temperature !== undefined) setTemperature(data.temperature.toFixed(1));
+                  if (data.humidity !== undefined) setHumidity(Math.round(data.humidity).toString());
+                  if (data.weatherCode !== undefined) {
+                    const code = data.weatherCode;
+                    let mappedWeather = 'Sunny';
+                    if (code === 1000 || code === 1100) mappedWeather = 'Sunny';
+                    else if (code >= 1001 && code <= 1102) mappedWeather = 'Cloudy';
+                    else if ((code >= 4000 && code <= 4201) || code === 8000) mappedWeather = 'Rainy';
+                    else if (code === 2000 || code === 2100) mappedWeather = 'Humid';
+                    setWeather(mappedWeather);
+                  }
+                })
+                .catch(() => {})
+                .finally(() => setFetchingWeather(false));
+            }
+          }
+        });
+    }
+  }, [selectedDate, selectedUnit]);
+
   // Restore saved draft
   const handleRestoreDraft = () => {
     const saved = localStorage.getItem(DRAFT_KEY);
@@ -427,9 +521,24 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Environment Settings Card */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
-          <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider mb-4">
-            Environmental Conditions
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">
+              Environmental Conditions
+            </h3>
+            <button
+              type="button"
+              onClick={handleAutoDetectWeather}
+              disabled={fetchingWeather}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 disabled:opacity-50"
+            >
+              <CloudSun className={`w-3.5 h-3.5 ${fetchingWeather ? 'animate-spin' : ''}`} />
+              {fetchingWeather ? 'Detecting...' : 'Auto-detect Weather'}
+            </button>
+          </div>
+          
+          {weatherError && (
+            <p className="text-[10px] text-red-500 font-bold mb-3">{weatherError}</p>
+          )}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
             {/* Date Pick */}
