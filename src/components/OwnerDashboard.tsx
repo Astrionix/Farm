@@ -232,7 +232,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       </div>
 
       {/* Main KPI Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
         {/* Eggs Card */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
@@ -325,74 +325,25 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Financials & Resource Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Daily Profit */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
-          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>Estimated Profit</span>
-            <DollarSign className="w-4.5 h-4.5 text-primary" />
+        {/* Weather Card */}
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+              {dateRange === 'today' ? "Shed Weather" : "Avg Weather"}
+            </span>
+            <span className="p-2 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-500 rounded-xl">
+              <CloudSun className="w-5 h-5" />
+            </span>
           </div>
-          <div className="mt-3">
-            <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              ₹{Math.round(totalProfit).toLocaleString()}
-            </h4>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium mt-1">
-              <span>Rev: ₹{Math.round(totalRevenue).toLocaleString()}</span>
-              <span>Feed Cost: ₹{Math.round(totalFeedCost).toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Resources Consumption (Feed & Water) */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
-          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>{dateRange === 'today' ? "Daily Feed" : "Total Feed"}</span>
-            <UtensilsCrossed className="w-4.5 h-4.5 text-orange-500" />
-          </div>
-          <div className="mt-3">
-            <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {Math.round(totalFeed).toLocaleString()} kg
-            </h4>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              {dateRange === 'today' 
-                ? <>Average Feed/Bird: <span className="font-bold text-slate-700 dark:text-slate-300">116.5 grams</span></>
-                : `Avg: ${Math.round(totalFeed / activeDates.length).toLocaleString()} kg / day`}
-            </p>
-          </div>
-        </div>
-
-        {/* Daily Water */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
-          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>{dateRange === 'today' ? "Daily Water" : "Total Water"}</span>
-            <Droplet className="w-4.5 h-4.5 text-blue-500" />
-          </div>
-          <div className="mt-3">
-            <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {Math.round(totalWater).toLocaleString()} Liters
-            </h4>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              Water to Feed Ratio: <span className="font-bold text-slate-700 dark:text-slate-300">{(totalFeed > 0 ? totalWater / totalFeed : 0).toFixed(2)}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Weather Conditions */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover">
-          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
-            <span>{dateRange === 'today' ? "Shed Weather" : "Avg Weather"}</span>
-            <CloudSun className="w-4.5 h-4.5 text-yellow-500" />
-          </div>
-          <div className="mt-3">
-            <h4 className="text-xl font-extrabold text-slate-800 dark:text-white">
+          <div className="mt-4">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {latestTemp}°C {dateRange === 'today' && <span className="text-xs text-slate-400 font-semibold">{latestWeather}</span>}
-            </h4>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium">
-              {dateRange === 'today' ? "Humidity:" : "Avg Humidity:"} <span className="font-bold text-slate-700 dark:text-slate-300">{latestHumid}% RH</span>
-            </p>
+            </h3>
+            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-slate-500">
+              <span>{dateRange === 'today' ? "Humidity:" : "Avg Humidity:"} <span className="font-black text-slate-700 dark:text-slate-200">{latestHumid}% RH</span></span>
+            </div>
           </div>
         </div>
       </div>
