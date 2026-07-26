@@ -10,14 +10,21 @@
   --color-danger: #ef4444;
   --color-neutral-bg: #f8fafc;
   --color-card: #ffffff;
-  
+
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-fade-in: fadeIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 :root {
@@ -43,17 +50,25 @@ body {
 }
 
 /* Ensure all containers are bounded */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   min-width: 0;
 }
 
 /* Safe area padding utilities */
-.safe-top    { padding-top: env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
 /* Remove tap highlight on mobile */
-button, a {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -124,11 +139,18 @@ html {
 }
 
 /* Scrollbar hide utility for tab bars */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* ─── Print-Friendly Styles for Reports ─── */
 @media print {
+
   /* Hide non-essential chrome */
   aside,
   nav,
@@ -176,12 +198,14 @@ html {
   }
 
   /* Restore primary colors for logo, ratings, and stats metrics on paper */
-  .text-primary, [class*="text-primary"] {
+  .text-primary,
+  [class*="text-primary"] {
     color: #1b5e20 !important;
     font-weight: 800 !important;
   }
-  
-  .text-secondary, [class*="text-secondary"] {
+
+  .text-secondary,
+  [class*="text-secondary"] {
     color: #b38f00 !important;
     font-weight: 800 !important;
   }
@@ -216,20 +240,17 @@ html {
     color: #334155 !important;
   }
 
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
-
-  /* Page setup (Setting margin to 0 inside page hides default browser date/headers/footers) */
-  @page {
-    margin: 0;
-    size: A4 landscape;
+  thead {
+    display: table-header-group;
   }
-  
-  body {
-    padding: 1.5cm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 11pt;
-    font-family: 'Inter', Arial, sans-serif;
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm 1.5cm;
+    size: A4 landscape;
   }
 }
