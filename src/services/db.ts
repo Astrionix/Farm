@@ -5,7 +5,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { calculateShedMetrics, calculateUnitMetrics, calculateFarmMetrics, ShedDataInput, CalculatedShedMetrics } from '../utils/calculations';
 
 export function isChickShed(unitId: number, shedNumber: number): boolean {
-  return (unitId === 3 && shedNumber === 4) ||
+  return (unitId === 6 && shedNumber === 1) || // New Chick Shed Unit (1 shed)
          (unitId === 4 && shedNumber === 12);
 }
 
@@ -105,9 +105,10 @@ const STORAGE_KEYS = {
 export const UNIT_CONFIGS = [
   { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 6, status: 'Active' as const },
   { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
-  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 4, status: 'Active' as const }, // 3 normal + 1 chick shed = 4
+  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 3, status: 'Active' as const }, // Reduced from 4 (removed chick shed)
   { id: 4, name: 'Kotapadu', shedsCount: 12, status: 'Active' as const }, // 11 normal + 1 chick shed = 12
   { id: 5, name: 'Chebrolu', shedsCount: 2, status: 'Active' as const },
+  { id: 6, name: 'Chick Shed Unit', shedsCount: 1, status: 'Active' as const }, // New unit with 1 chick shed
 ];
 
 // Seeding 30 Days of high fidelity historical data
@@ -490,7 +491,7 @@ export const dbService = {
     if (storedUnitsStr && !needReset) {
       try {
         const storedUnits = JSON.parse(storedUnitsStr);
-        if (storedUnits.length !== 5 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {
+        if (storedUnits.length !== 6 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {
           needReset = true;
         }
         const storedShedsStr = localStorage.getItem(STORAGE_KEYS.SHEDS);
@@ -499,7 +500,8 @@ export const dbService = {
           const u1Count = storedSheds.filter((s: any) => s.unitId === 1).length;
           const u4Count = storedSheds.filter((s: any) => s.unitId === 4).length;
           const u3Count = storedSheds.filter((s: any) => s.unitId === 3).length;
-          if (u1Count !== 6 || u4Count !== 12 || u3Count !== 4) {
+          const u6Count = storedSheds.filter((s: any) => s.unitId === 6).length;
+          if (u1Count !== 6 || u4Count !== 12 || u3Count !== 3 || u6Count !== 1) {
             needReset = true;
           }
         }
