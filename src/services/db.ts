@@ -98,6 +98,7 @@ const STORAGE_KEYS = {
   USER_ROLE: 'smp_user_role',
   ASSIGNED_UNIT: 'smp_assigned_unit',
   DB_MODE: 'smp_db_mode',
+  BATCH_DATES: 'smp_batch_dates', // { "unitId-shedNumber": "YYYY-MM-DD" }
 };
 
 export const UNIT_CONFIGS = [
@@ -679,6 +680,44 @@ export const dbService = {
       sheds[index].status = status;
       localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
     }
+  },
+
+  // ─── BATCH / FLOCK PLACEMENT DATE ───────────────────────────
+  // Key format: "unitId-shedNumber" → "YYYY-MM-DD"
+  // Once set, birdAgeWeeks auto-calculates every day until changed.
+
+  /** Store a batch placement date for a specific shed */
+  setBatchDate: (unitId: number, shedNumber: number, dateISO: string): void => {
+    if (typeof window === 'undefined') return;
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    all[`${unitId}-${shedNumber}`] = dateISO;
+    localStorage.setItem(STORAGE_KEYS.BATCH_DATES, JSON.stringify(all));
+  },
+
+  /** Get batch placement date for a specific shed (returns null if not set) */
+  getBatchDate: (unitId: number, shedNumber: number): string | null => {
+    if (typeof window === 'undefined') return null;
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    return all[`${unitId}-${shedNumber}`] || null;
+  },
+
+  /** Get all batch dates as a map */
+  getAllBatchDates: (): Record<string, string> => {
+    if (typeof window === 'undefined') return {};
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+  },
+
+  /** Auto-calculate bird age in weeks from placement date to a target date (defaults to today) */
+  calculateBirdAge: (unitId: number, shedNumber: number, targetDateISO?: string): number | null => {
+    const placementDate = dbService.getBatchDate(unitId, shedNumber);
+    if (!placementDate) return null;
+    const start = new Date(placementDate);
+    const end = targetDateISO ? new Date(targetDateISO) : new Date();
+    // Set to midnight to avoid DST issues
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.floor(diffDays / 7));
   },
 
   // 3. DAILY ENTRIES

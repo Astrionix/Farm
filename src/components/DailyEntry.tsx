@@ -159,7 +159,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             // Prefill new entry
             const currentDbMode = dbService.getDbMode();
             const prevClosing = yesterdayEntry?.closingBirds ?? (currentDbMode === 'Live' ? 0 : 5000);
+            // Auto-calculate bird age from batch placement date
+            const autoAge = dbService.calculateBirdAge(selectedUnit, sNum, selectedDate);
             const prevAge = yesterdayEntry?.birdAgeWeeks ?? (currentDbMode === 'Live' ? 0 : (18 + sNum * 2));
+            const resolvedAge = autoAge !== null ? autoAge : prevAge;
 
             inputsMap[sNum] = {
               status: shed.status,
@@ -175,7 +178,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               bodyWeight: prevClosing > 0 ? 1680 : 0,
               medication: '',
               remarks: '',
-              birdAgeWeeks: prevAge,
+              birdAgeWeeks: resolvedAge,
             };
           }
         });
@@ -681,6 +684,16 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         <span className={`text-[10px] font-bold ${isActive ? 'text-primary' : 'text-slate-400'}`}>
                           {isActive ? (isChickShed(selectedUnit, sNum) ? 'Active Chick Shed' : 'Active & Included in Reports') : 'Not In Use — Excluded from Math'}
                         </span>
+                        {/* Auto batch age badge */}
+                        {(() => {
+                          const batchDate = dbService.getBatchDate(selectedUnit, sNum);
+                          const autoAge = dbService.calculateBirdAge(selectedUnit, sNum, selectedDate);
+                          return batchDate ? (
+                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 block mt-0.5">
+                              🐣 Week {autoAge} · Batch: {new Date(batchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 
@@ -709,6 +722,29 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           }`}
                       >
                         {isActive ? 'Disable Shed' : 'Enable Shed'}
+                      </button>
+
+                      {/* Set Batch Date Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = dbService.getBatchDate(selectedUnit, sNum);
+                          const input = window.prompt(
+                            `Set batch placement date for ${isChickShed(selectedUnit, sNum) ? 'Chick Shed' : `Shed ${sNum}`}\n(Bird age will auto-calculate every day from this date)`,
+                            current || new Date().toISOString().split('T')[0]
+                          );
+                          if (input && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+                            dbService.setBatchDate(selectedUnit, sNum, input);
+                            // Re-trigger load to refresh age
+                            setShedInputs(prev => ({ ...prev }));
+                            window.dispatchEvent(new Event('batch-date-changed'));
+                          } else if (input !== null) {
+                            alert('Please enter date in YYYY-MM-DD format');
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
+                      >
+                        🐣 {dbService.getBatchDate(selectedUnit, sNum) ? 'Change Batch' : 'Set Batch'}
                       </button>
                     </div>
                   </div>
@@ -758,17 +794,33 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
                       </div>
 
-                      {/* Bird Age (Weeks) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Bird Age (Weeks)</label>
-                        <input
-                          type="number"
-                          value={input.birdAgeWeeks ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
-                      </div>
+                      {/* Bird Age (Weeks) - Auto from batch date */}
+                      {(() => {
+                        const autoAge = dbService.calculateBirdAge(selectedUnit, sNum, selectedDate);
+                        const hasAuto = autoAge !== null;
+                        return (
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                              Bird Age (Wks)
+                              {hasAuto && <span className="text-[8px] bg-primary/15 text-primary px-1.5 rounded-full font-black normal-case">Auto</span>}
+                            </label>
+                            {hasAuto ? (
+                              <div className="w-full px-2.5 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg text-xs font-black text-primary flex items-center gap-1">
+                                {autoAge}w
+                                <span className="text-[8px] text-primary/60 font-semibold">auto</span>
+                              </div>
+                            ) : (
+                              <input
+                                type="number"
+                                value={input.birdAgeWeeks ?? 0}
+                                onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
+                                className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                required
+                              />
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Eggs Collected */}
                       <div className="space-y-1">
