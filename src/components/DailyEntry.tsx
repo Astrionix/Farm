@@ -655,9 +655,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               return (
                 <div 
                   key={sNum}
-                  className={`bg-white dark:bg-slate-800 rounded-2xl border ${
-                    isActive ? 'border-slate-100 dark:border-slate-800' : 'border-dashed border-slate-200 dark:border-slate-700 opacity-60'
-                  } p-5 shadow-premium transition-all relative`}
+                  className={`bg-white dark:bg-slate-800 rounded-2xl border-l-4 ${
+                    isActive 
+                      ? 'border-l-primary border-t-slate-100 border-r-slate-100 border-b-slate-100 dark:border-t-slate-800/50 dark:border-r-slate-800/50 dark:border-b-slate-800/50 shadow-premium' 
+                      : 'border-l-slate-300 border-dashed border-t-slate-200 border-r-slate-200 border-b-slate-200 dark:border-l-slate-700 dark:border-t-slate-700/30 dark:border-r-slate-700/30 dark:border-b-slate-700/30 opacity-60'
+                  } p-5 transition-all duration-300 hover:shadow-lg relative`}
                 >
                   {/* Top Bar for Card */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-3.5 mb-4">
@@ -678,15 +680,19 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                     {/* Active Checkbox */}
                     <div className="flex items-center gap-4">
                       {isActive && (
-                        <div className="bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex items-center gap-4 text-[11px] font-extrabold text-slate-500">
-                          <div>
-                            HD%: <span className="text-slate-700 dark:text-slate-200 font-black">{previewHDPct}%</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="bg-emerald-50/50 dark:bg-emerald-950/20 px-2.5 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-950/30 text-[10px] font-black text-slate-500">
+                            HD%: <span className="text-primary font-black ml-0.5">{previewHDPct}%</span>
                           </div>
-                          <div>
-                            FCR: <span className="text-primary font-black">{previewFCR}</span>
+                          <div className="bg-primary/5 dark:bg-primary-dark/20 px-2.5 py-1 rounded-lg border border-primary/10 dark:border-primary/5 text-[10px] font-black text-slate-500">
+                            FCR: <span className="text-primary font-black ml-0.5">{previewFCR}</span>
                           </div>
-                          <div>
-                            Shed Score: <span className={`font-black ${previewScore >= 90 ? 'text-primary' : 'text-amber-500'}`}>{previewScore} ({scoreLabel})</span>
+                          <div className={`px-2.5 py-1 rounded-lg border text-[10px] font-black ${
+                            previewScore >= 90 
+                              ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100/50 dark:border-emerald-950/30 text-emerald-600' 
+                              : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-100/50 dark:border-amber-950/30 text-amber-600'
+                          }`}>
+                            Shed Score: <span className="font-black ml-0.5">{previewScore} ({scoreLabel})</span>
                           </div>
                         </div>
                       )}
@@ -715,7 +721,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.openingBirds ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'openingBirds', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                           required
                         />
                       </div>
@@ -727,7 +733,8 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.mortality ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'mortality', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                          required
                         />
                       </div>
  
@@ -738,16 +745,20 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.culls ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'culls', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                          required
                         />
                       </div>
  
                       {/* Closing Birds (Calculated Indicator) */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
-                        <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {input.closingBirds ?? 0}
-                        </div>
+                        <input
+                          type="number"
+                          value={input.closingBirds ?? (Number(input.openingBirds || 0) - Number(input.mortality || 0) - Number(input.culls || 0))}
+                          disabled
+                          className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                        />
                       </div>
 
                       {/* Bird Age (Weeks) */}
@@ -757,7 +768,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.birdAgeWeeks ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                           required
                         />
                       </div>
@@ -769,7 +780,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.eggsCount ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                           required
                         />
                       </div>

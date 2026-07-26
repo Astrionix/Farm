@@ -74,8 +74,11 @@ export default function Sidebar({
           <Database className="w-3.5 h-3.5 text-secondary" />
           <span>Database Connection:</span>
         </div>
-        <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-2">
+          <div className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </div>
           <span>Live (Supabase Connected)</span>
         </div>
       </div>
@@ -90,9 +93,9 @@ export default function Sidebar({
     { id: 'reports', name: 'Reports Generator', shortName: 'Reports', icon: FilePieChart, roles: ['Owner', 'Supervisor'] },
   ];
 
-  const visibleTabs = tabs.filter(tab => tab.roles.includes(userRole));
-  // Bottom nav: max 5 tabs + settings icon
-  const bottomNavTabs = visibleTabs.slice(0, 5);
+  const visibleTabs = tabs.filter(t => t.roles.includes(userRole));
+
+  const bottomNavTabs = tabs.filter(t => t.roles.includes(userRole));
 
   const handleTabChange = (tabId: string) => {
     setCurrentTab(tabId);
@@ -190,7 +193,7 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           DESKTOP SIDEBAR (hidden on mobile)
       ═══════════════════════════════════════════ */}
-      <aside className="hidden md:flex w-64 min-h-screen bg-primary text-white flex-col justify-between border-r border-primary-dark/30 shadow-premium shrink-0">
+      <aside className="hidden md:flex w-64 min-h-screen bg-gradient-to-b from-slate-900 via-primary-dark to-slate-950 text-white flex-col justify-between border-r border-slate-800 shadow-premium shrink-0">
         <div className="flex flex-col">
           {/* Logo */}
           <div className="p-6 border-b border-primary-light/10">
@@ -206,17 +209,17 @@ export default function Sidebar({
                 <button
                   key={tab.id}
                   onClick={() => setCurrentTab(tab.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                  className={`w-full flex items-center justify-between py-3 pr-4 transition-all duration-200 group border-l-4 ${
                     isActive 
-                      ? 'bg-secondary text-primary-dark shadow-md font-semibold' 
-                      : 'text-emerald-100 hover:bg-primary-light/30 hover:text-white'
+                      ? 'bg-white/10 text-white font-bold border-l-secondary rounded-r-xl pl-3 shadow-inner' 
+                      : 'text-emerald-100/80 hover:bg-white/5 hover:text-white border-l-transparent rounded-r-xl pl-4'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
                     <span>{tab.name}</span>
                   </div>
-                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-primary-dark' : 'group-hover:translate-x-1'}`} />
+                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-secondary' : 'group-hover:translate-x-1'}`} />
                 </button>
               );
             })}
@@ -252,7 +255,7 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           MOBILE TOP HEADER BAR
       ═══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-slate-900 to-primary-dark text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
         <LogoBlock />
         <div className="flex items-center gap-2">
           <button 
@@ -282,7 +285,7 @@ export default function Sidebar({
         />
       )}
       {/* Drawer Panel */}
-      <div className={`md:hidden fixed top-0 left-0 h-full w-72 bg-primary text-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
+      <div className={`md:hidden fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900 via-primary-dark to-slate-950 text-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
         mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Drawer Header */}
@@ -307,17 +310,17 @@ export default function Sidebar({
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all group ${
+                  className={`w-full flex items-center justify-between py-3.5 pr-4 transition-all duration-200 group border-l-4 ${
                     isActive 
-                      ? 'bg-secondary text-primary-dark shadow-md font-bold' 
-                      : 'text-emerald-100 hover:bg-primary-light/30 hover:text-white'
+                      ? 'bg-white/10 text-white font-bold border-l-secondary rounded-r-xl pl-3 shadow-inner' 
+                      : 'text-emerald-100/80 hover:bg-white/5 hover:text-white border-l-transparent rounded-r-xl pl-4'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5" />
+                    <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
                     <span>{tab.name}</span>
                   </div>
-                  {isActive && <ChevronRight className="w-4 h-4 opacity-50 rotate-90" />}
+                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-secondary' : 'group-hover:translate-x-1'}`} />
                 </button>
               );
             })}

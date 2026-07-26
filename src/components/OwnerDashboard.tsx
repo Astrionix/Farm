@@ -27,6 +27,35 @@ interface OwnerDashboardProps {
   onNavigateToUnit: (unitId: number) => void;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3.5 border border-slate-100 dark:border-slate-850 rounded-2xl shadow-xl space-y-2 text-xs font-semibold">
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-black">{label}</p>
+        <div className="space-y-1">
+          {payload.map((item: any, index: number) => {
+            const color = item.stroke || item.fill || '#cbd5e1';
+            return (
+              <div key={index} className="flex items-center gap-6 justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
+                </div>
+                <span className="font-black text-slate-800 dark:text-white">
+                  {typeof item.value === 'number' && item.name.includes('%') 
+                    ? `${item.value.toFixed(1)}%` 
+                    : item.value.toLocaleString()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDashboardProps) {
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('7d');
   const [loading, setLoading] = useState(true);
@@ -245,9 +274,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       {/* Main KPI Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
         {/* Eggs Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium transition-all duration-300 hover:-translate-y-1 hover:shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-28 h-28 bg-secondary/15 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-between relative z-10">
             <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
               {dateRange === 'today' ? "Today's Eggs" : "Total Eggs"}
             </span>
@@ -255,7 +284,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               <Award className="w-5 h-5" />
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 relative z-10">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {totalEggs.toLocaleString()}
             </h3>
@@ -271,15 +300,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* Hen Day % Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium transition-all duration-300 hover:-translate-y-1 hover:shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-28 h-28 bg-primary/15 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-between relative z-10">
             <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Hen-Day (HD) %</span>
             <span className="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-primary rounded-xl">
               <Activity className="w-5 h-5" />
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 relative z-10">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {avgHDPct.toFixed(1)}%
             </h3>
@@ -291,9 +320,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* Mortality Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium transition-all duration-300 hover:-translate-y-1 hover:shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-28 h-28 bg-red-500/15 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-between relative z-10">
             <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
               {dateRange === 'today' ? "Mortality Rate" : "Total Mortality"}
             </span>
@@ -301,7 +330,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               <AlertTriangle className="w-5 h-5" />
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 relative z-10">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {totalMortality} <span className="text-xs text-slate-400 font-normal">birds ({avgMortPct.toFixed(2)}%)</span>
             </h3>
@@ -317,15 +346,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* AI Performance Score Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium transition-all duration-300 hover:-translate-y-1 hover:shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-28 h-28 bg-orange-500/20 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-between relative z-10">
             <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Farm AI Score</span>
             <span className="p-2 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl">
               <Sparkles className="w-5 h-5" />
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 relative z-10">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white flex items-baseline gap-1.5">
               {avgFarmScore}
               <span className="text-xs text-orange-500 font-bold uppercase">{farmLabel}</span>
@@ -338,17 +367,17 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* Weather Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium transition-all duration-300 hover:-translate-y-1 hover:shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-28 h-28 bg-blue-500/15 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-between relative z-10">
             <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
               {dateRange === 'today' ? "Shed Weather" : "Avg Weather"}
             </span>
-            <span className="p-2 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-500 rounded-xl">
+            <span className="p-2 bg-blue-50 dark:bg-blue-950/40 text-blue-500 rounded-xl">
               <CloudSun className="w-5 h-5" />
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 relative z-10">
             <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {latestTemp}°C {dateRange === 'today' && <span className="text-xs text-slate-400 font-semibold">{latestWeather}</span>}
             </h3>
@@ -428,7 +457,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
                         <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
                         <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
                         <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                        <Tooltip content={<CustomTooltip />} />
                         <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
                         <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
                         <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
@@ -447,7 +476,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
                         <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
                         <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
                         <YAxis yAxisId="right" orientation="right" domain={[0, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                        <Tooltip content={<CustomTooltip />} />
                         <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
                         <Bar yAxisId="left" dataKey="eggs" name="Eggs Collected" fill="#1B5E20" radius={[4, 4, 0, 0]} />
                         <Bar yAxisId="right" dataKey="hdPct" name="Avg HD %" fill="#F9A825" radius={[4, 4, 0, 0]} />
