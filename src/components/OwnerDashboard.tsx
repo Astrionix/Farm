@@ -41,11 +41,14 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const FEED_COST_PER_KG = 36.0; // Rs. 36.00 per kg
 
   useEffect(() => {
+    let active = true;
     async function loadDashboardData() {
       setLoading(true);
       try {
         const allEntries = await dbService.getDailyEntries();
         const allNotifications = await dbService.getNotifications();
+
+        if (!active) return;
 
         setEntries(allEntries);
         setNotifications(allNotifications.filter(n => !n.isRead));
@@ -56,6 +59,8 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
 
         // 1. Calculate Aggregated Farm Scores for targetDate
         const metrics = await dbService.getAggregatedScores(targetDate);
+        
+        if (!active) return;
         setAggMetrics(metrics);
 
         // 2. Prepare Chart Data based on range filter
@@ -104,15 +109,21 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           };
         });
 
+        if (!active) return;
         setChartData(dataByDate);
       } catch (err) {
         console.error('Error fetching dashboard metrics:', err);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     loadDashboardData();
+    return () => {
+      active = false;
+    };
   }, [dateRange]);
 
   // Get all unique dates sorted ascending
