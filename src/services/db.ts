@@ -18,14 +18,8 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export const isSupabaseConfigured = SUPABASE_URL !== '' && SUPABASE_ANON_KEY !== '';
 
 export let supabaseClient: SupabaseClient | null = null;
-export let supabaseActive = isSupabaseConfigured;
 if (isSupabaseConfigured) {
-  try {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch (e) {
-    console.error('Supabase initialization failed, falling back to local state:', e);
-    supabaseActive = false;
-  }
+  supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 // -------------------------------------------------------------
@@ -88,18 +82,11 @@ export interface DBNotification {
 // -------------------------------------------------------------
 // LOCAL STATE STORAGE ENGINE
 // -------------------------------------------------------------
+// Only config/session keys stored locally — all data lives in Supabase
 const STORAGE_KEYS = {
-  UNITS: 'smp_units',
-  SHEDS: 'smp_sheds',
-  DAILY_ENTRIES: 'smp_daily_entries',
-  INVENTORY: 'smp_inventory',
-  INVENTORY_TRANSACTIONS: 'smp_inventory_transactions',
-  NOTIFICATIONS: 'smp_notifications',
   USER_ROLE: 'smp_user_role',
   ASSIGNED_UNIT: 'smp_assigned_unit',
-  DB_MODE: 'smp_db_mode',
   BATCH_DATES: 'smp_batch_dates', // { "unitId-shedNumber": "YYYY-MM-DD" }
-  SYNC_QUEUE: 'smp_sync_queue', // Array of Omit<DBDailyEntry, 'id'>[]
 };
 
 export const UNIT_CONFIGS = [
@@ -483,64 +470,9 @@ export const dbService = {
   // Initialize state
   init: () => {
     if (typeof window === 'undefined') return;
-    
-    // Check if seeded or if we need to migrate/reseed for 5 units
-    const storedDbMode = localStorage.getItem(STORAGE_KEYS.DB_MODE);
-    const storedUnitsStr = localStorage.getItem(STORAGE_KEYS.UNITS);
-    let needReset = storedDbMode !== 'Live';
-    if (storedUnitsStr && !needReset) {
-      try {
-        const storedUnits = JSON.parse(storedUnitsStr);
-        if (storedUnits.length !== 6 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {
-          needReset = true;
-        }
-        const storedShedsStr = localStorage.getItem(STORAGE_KEYS.SHEDS);
-        if (storedShedsStr && !needReset) {
-          const storedSheds = JSON.parse(storedShedsStr);
-          const u1Count = storedSheds.filter((s: any) => s.unitId === 1).length;
-          const u4Count = storedSheds.filter((s: any) => s.unitId === 4).length;
-          const u3Count = storedSheds.filter((s: any) => s.unitId === 3).length;
-          const u6Count = storedSheds.filter((s: any) => s.unitId === 6).length;
-          if (u1Count !== 6 || u4Count !== 12 || u3Count !== 3 || u6Count !== 1) {
-            needReset = true;
-          }
-        }
-      } catch (e) {
-        needReset = true;
-      }
-    }
-    
-    if (!storedUnitsStr || needReset) {
-      const units = UNIT_CONFIGS.map(uc => ({ id: uc.id, name: uc.name, status: uc.status }));
-
-      const sheds: DBShed[] = [];
-      UNIT_CONFIGS.forEach(uc => {
-        for (let s = 1; s <= uc.shedsCount; s++) {
-          sheds.push({ unitId: uc.id, shedNumber: s, status: 'Active' as const });
-        }
-      });
-
-      const inventory = [
-        { id: 'inv-feed-1', category: 'Feed' as const, itemName: 'Layer Feed MaxPlus', stockLevel: 0, reorderLevel: 2000, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
-        { id: 'inv-feed-2', category: 'Feed' as const, itemName: 'Pre-Lay Starter Crumble', stockLevel: 0, reorderLevel: 500, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
-        { id: 'inv-med-1', category: 'Medicines' as const, itemName: 'Amprolium Dewormer 9.6%', stockLevel: 0, reorderLevel: 8.0, uom: 'liters', supplier: 'VetCare India Labs', expiryDate: '2027-04-18' },
-        { id: 'inv-vac-1', category: 'Vaccines' as const, itemName: 'Newcastle ND LaSota (1000 doses)', stockLevel: 0, reorderLevel: 4, uom: 'vials', supplier: 'Indovax Bio', expiryDate: '2026-11-20' },
-        { id: 'inv-tray-1', category: 'Egg Trays' as const, itemName: 'Premium Molded Fiber Paper Trays', stockLevel: 0, reorderLevel: 1500, uom: 'units', supplier: 'Sri Lakshmi Paper Products', expiryDate: null },
-        { id: 'inv-pack-1', category: 'Packaging' as const, itemName: 'Recycled Egg Cartons (12 Eggs Size)', stockLevel: 0, reorderLevel: 400, uom: 'units', supplier: 'Carton Works Co.', expiryDate: null },
-        { id: 'inv-chem-1', category: 'Chemicals' as const, itemName: 'Virkon S Bio-Disinfectant Powder', stockLevel: 0, reorderLevel: 10.0, uom: 'kg', supplier: 'Antec Chemical Solutions', expiryDate: '2027-08-10' },
-      ];
-
-      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(units));
-      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
-      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
-      
-      // Default configurations
+    if (!localStorage.getItem(STORAGE_KEYS.USER_ROLE)) {
       localStorage.setItem(STORAGE_KEYS.USER_ROLE, 'Owner');
       localStorage.setItem(STORAGE_KEYS.ASSIGNED_UNIT, '1');
-      localStorage.setItem(STORAGE_KEYS.DB_MODE, 'Live');
     }
   },
 
@@ -549,50 +481,9 @@ export const dbService = {
     return 'Live';
   },
 
-  clearAllData: async (mode: 'Demo' | 'Live'): Promise<void> => {
+  clearAllData: async (_mode?: 'Demo' | 'Live'): Promise<void> => {
     if (typeof window === 'undefined') return;
     dbService.init();
-
-    localStorage.setItem(STORAGE_KEYS.DB_MODE, mode);
-
-    if (mode === 'Demo') {
-      const seed = generateHistoricalMockData();
-      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(seed.units));
-      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(seed.sheds));
-      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify(seed.dailyEntries));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(seed.inventory));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify(seed.inventoryTransactions));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(seed.notifications));
-    } else {
-      // Live / Clean slate
-      const units = UNIT_CONFIGS.map(uc => ({ id: uc.id, name: uc.name, status: uc.status }));
-
-      const sheds: DBShed[] = [];
-      UNIT_CONFIGS.forEach(uc => {
-        for (let s = 1; s <= uc.shedsCount; s++) {
-          sheds.push({ unitId: uc.id, shedNumber: s, status: 'Active' as const });
-        }
-      });
-
-      const inventory = [
-        { id: 'inv-feed-1', category: 'Feed' as const, itemName: 'Layer Feed MaxPlus', stockLevel: 0, reorderLevel: 2000, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
-        { id: 'inv-feed-2', category: 'Feed' as const, itemName: 'Pre-Lay Starter Crumble', stockLevel: 0, reorderLevel: 500, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
-        { id: 'inv-med-1', category: 'Medicines' as const, itemName: 'Amprolium Dewormer 9.6%', stockLevel: 0, reorderLevel: 8.0, uom: 'liters', supplier: 'VetCare India Labs', expiryDate: '2027-04-18' },
-        { id: 'inv-vac-1', category: 'Vaccines' as const, itemName: 'Newcastle ND LaSota (1000 doses)', stockLevel: 0, reorderLevel: 4, uom: 'vials', supplier: 'Indovax Bio', expiryDate: '2026-11-20' },
-        { id: 'inv-tray-1', category: 'Egg Trays' as const, itemName: 'Premium Molded Fiber Paper Trays', stockLevel: 0, reorderLevel: 1500, uom: 'units', supplier: 'Sri Lakshmi Paper Products', expiryDate: null },
-        { id: 'inv-pack-1', category: 'Packaging' as const, itemName: 'Recycled Egg Cartons (12 Eggs Size)', stockLevel: 0, reorderLevel: 400, uom: 'units', supplier: 'Carton Works Co.', expiryDate: null },
-        { id: 'inv-chem-1', category: 'Chemicals' as const, itemName: 'Virkon S Bio-Disinfectant Powder', stockLevel: 0, reorderLevel: 10.0, uom: 'kg', supplier: 'Antec Chemical Solutions', expiryDate: '2027-08-10' },
-      ];
-
-      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(units));
-      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
-      localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
-    }
-
-    // Force a storage role change update to trigger components refreshing
     window.dispatchEvent(new Event('storage-role-change'));
   },
 
@@ -620,21 +511,12 @@ export const dbService = {
     window.dispatchEvent(new Event('storage-role-change'));
   },
 
-  // 1. UNITS
+  // 1. UNITS — Supabase only
   getUnits: async (): Promise<DBUnit[]> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        const { data, error } = await withTimeout(supabaseClient.from('units').select('*').order('id', { ascending: true }));
-        if (!error && data && data.length > 0) return data;
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in getUnits. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.UNITS) || '[]');
-    // Sort local units to match the exact order of UNIT_CONFIGS array
-    return stored.sort((a: any, b: any) => {
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient.from('units').select('*').order('id', { ascending: true });
+    if (error) { console.error('getUnits failed:', error.message); return []; }
+    return (data || []).sort((a: any, b: any) => {
       const idxA = UNIT_CONFIGS.findIndex(uc => uc.id === a.id);
       const idxB = UNIT_CONFIGS.findIndex(uc => uc.id === b.id);
       return idxA - idxB;
@@ -642,54 +524,23 @@ export const dbService = {
   },
 
   updateUnitStatus: async (unitId: number, status: 'Active' | 'Not In Use'): Promise<void> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        await withTimeout(supabaseClient.from('units').update({ status }).eq('id', unitId));
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in updateUnitStatus. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    const units = await dbService.getUnits();
-    const index = units.findIndex(u => u.id === unitId);
-    if (index !== -1) {
-      units[index].status = status;
-      localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(units));
-    }
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from('units').update({ status }).eq('id', unitId);
+    if (error) console.error('updateUnitStatus failed:', error.message);
   },
 
-  // 2. SHEDS
+  // 2. SHEDS — Supabase only
   getSheds: async (): Promise<DBShed[]> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        const { data, error } = await withTimeout(supabaseClient.from('sheds').select('*').order('unit_id', { ascending: true }).order('shed_number', { ascending: true }));
-        if (!error && data && data.length > 0) return data.map(s => ({ unitId: s.unit_id, shedNumber: s.shed_number, status: s.status }));
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in getSheds. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEDS) || '[]');
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient.from('sheds').select('*').order('unit_id', { ascending: true }).order('shed_number', { ascending: true });
+    if (error) { console.error('getSheds failed:', error.message); return []; }
+    return (data || []).map((s: any) => ({ unitId: s.unit_id, shedNumber: s.shed_number, status: s.status }));
   },
 
   updateShedStatus: async (unitId: number, shedNumber: number, status: 'Active' | 'Not In Use'): Promise<void> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        await withTimeout(supabaseClient.from('sheds').update({ status }).eq('unit_id', unitId).eq('shed_number', shedNumber));
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in updateShedStatus. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    const sheds = await dbService.getSheds();
-    const index = sheds.findIndex(s => s.unitId === unitId && s.shedNumber === shedNumber);
-    if (index !== -1) {
-      sheds[index].status = status;
-      localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(sheds));
-    }
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from('sheds').update({ status }).eq('unit_id', unitId).eq('shed_number', shedNumber);
+    if (error) console.error('updateShedStatus failed:', error.message);
   },
 
   // ─── BATCH / FLOCK PLACEMENT DATE ───────────────────────────
@@ -746,104 +597,22 @@ export const dbService = {
     };
   },
 
-  // ─── OFFLINE STATUS & SYNC QUEUE ────────────────────────────
+  // ─── CONNECTION STATUS ────────────────────────────
   isOnline: (): boolean => {
     if (typeof window === 'undefined') return true;
     return navigator.onLine;
   },
 
-  getSyncQueueLength: (): number => {
-    if (typeof window === 'undefined') return 0;
-    try {
-      const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE) || '[]');
-      return queue.length;
-    } catch {
-      return 0;
-    }
-  },
+  getSyncQueueLength: (): number => 0,
+  addToSyncQueue: (_entries: any[]): void => {},
 
-  addToSyncQueue: (entries: any[]): void => {
-    if (typeof window === 'undefined') return;
-    try {
-      const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE) || '[]');
-      queue.push(...entries);
-      localStorage.setItem(STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
-      window.dispatchEvent(new Event('sync-queue-updated'));
-    } catch (e) {
-      console.error('Failed to append to sync queue:', e);
-    }
-  },
+  // Sync queue removed — all saves go directly to Supabase
+  syncPendingEntries: async (): Promise<void> => { return; },
 
-  syncPendingEntries: async (): Promise<void> => {
-    if (typeof window === 'undefined' || !navigator.onLine || !supabaseClient) return;
-    
-    const queueStr = localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE);
-    if (!queueStr) return;
-    
-    let queue: any[] = [];
-    try {
-      queue = JSON.parse(queueStr);
-    } catch {
-      localStorage.removeItem(STORAGE_KEYS.SYNC_QUEUE);
-      return;
-    }
-    
-    if (queue.length === 0) return;
-    
-    console.log(`Starting background sync of ${queue.length} pending daily entries to Supabase...`);
-    
-    try {
-      const records = queue.map(e => ({
-        date: e.date,
-        unit_id: e.unitId,
-        shed_number: e.shedNumber,
-        weather: e.weather,
-        temperature: e.temperature,
-        humidity: e.humidity,
-        opening_birds: e.openingBirds,
-        mortality: e.mortality,
-        culls: e.culls,
-        closing_birds: e.closingBirds,
-        uniformity: e.uniformity,
-        body_weight: e.bodyWeight,
-        bird_age_weeks: e.birdAgeWeeks || 20,
-        feed_kg: e.feedKg,
-        water_liters: e.waterLiters,
-        eggs_count: e.eggsCount,
-        egg_weight_g: e.eggWeightG,
-        medication: e.medication || '',
-        remarks: e.remarks || '',
-        hd_pct: e.hdPct,
-        mortality_pct: e.mortalityPct,
-        feed_per_bird_g: e.feedPerBirdG,
-        water_per_bird_ml: e.waterPerBirdMl,
-        fcr: e.fcr,
-        water_to_feed_ratio: e.waterToFeedRatio,
-        egg_mass_kg: e.eggMassKg,
-        performance_score: e.performanceScore,
-      }));
-
-      // Upsert in batches
-      const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
-      if (error) {
-        console.error('Sync to Supabase failed:', error);
-        return;
-      }
-      
-      // Successfully synced! Clear the queue
-      localStorage.setItem(STORAGE_KEYS.SYNC_QUEUE, '[]');
-      supabaseActive = true;
-      window.dispatchEvent(new Event('sync-queue-updated'));
-      console.log('Background sync completed successfully!');
-    } catch (e) {
-      console.error('Error during database sync transaction:', e);
-    }
-  },
-
-  // 3. DAILY ENTRIES
+  // 3. DAILY ENTRIES — Supabase only
   getDailyEntries: async (filters?: { date?: string; unitId?: number; dateStart?: string; dateEnd?: string }): Promise<DBDailyEntry[]> => {
     try {
-      if (supabaseActive && supabaseClient) {
+      if (supabaseClient) {
         let query = supabaseClient.from('daily_entries').select('*');
         if (filters?.date) query = query.eq('date', filters.date);
         if (filters?.unitId) query = query.eq('unit_id', filters.unitId);
@@ -888,29 +657,9 @@ export const dbService = {
         }
       }
     } catch (e) {
-      console.warn('Supabase connection failed in getDailyEntries. Switching to offline mode.', e);
-      supabaseActive = false;
+      console.error('getDailyEntries failed:', e);
     }
-    
-    dbService.init();
-    let entries: DBDailyEntry[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DAILY_ENTRIES) || '[]');
-    
-    if (filters) {
-      if (filters.date) {
-        entries = entries.filter(e => e.date === filters.date);
-      }
-      if (filters.unitId) {
-        entries = entries.filter(e => e.unitId === filters.unitId);
-      }
-      if (filters.dateStart) {
-        entries = entries.filter(e => e.date >= filters.dateStart!);
-      }
-      if (filters.dateEnd) {
-        entries = entries.filter(e => e.date <= filters.dateEnd!);
-      }
-    }
-    
-    return entries.sort((a, b) => b.date.localeCompare(a.date) || a.shedNumber - b.shedNumber);
+    return [];
   },
 
   saveDailyEntries: async (
@@ -938,153 +687,80 @@ export const dbService = {
       };
     });
 
-    // 2. Perform DB insert
-    let saveDirectlyToSupabase = supabaseActive && supabaseClient && navigator.onLine;
-
-    if (saveDirectlyToSupabase && supabaseClient) {
-      try {
-        const records = processedEntries.map(e => ({
-          date: e.date,
-          unit_id: e.unitId,
-          shed_number: e.shedNumber,
-          weather: e.weather,
-          temperature: e.temperature,
-          humidity: e.humidity,
-          opening_birds: e.openingBirds,
-          mortality: e.mortality,
-          culls: e.culls,
-          closing_birds: e.closingBirds,
-          uniformity: e.uniformity,
-          body_weight: e.bodyWeight,
-          bird_age_weeks: e.birdAgeWeeks || 20,
-          feed_kg: e.feedKg,
-          water_liters: e.waterLiters,
-          eggs_count: e.eggsCount,
-          egg_weight_g: e.eggWeightG,
-          medication: e.medication || '',
-          remarks: e.remarks || '',
-          hd_pct: e.hdPct,
-          mortality_pct: e.mortalityPct,
-          feed_per_bird_g: e.feedPerBirdG,
-          water_per_bird_ml: e.waterPerBirdMl,
-          fcr: e.fcr,
-          water_to_feed_ratio: e.waterToFeedRatio,
-          egg_mass_kg: e.eggMassKg,
-          performance_score: e.performanceScore,
-        }));
-
-        const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
-        if (error) {
-          console.error('Supabase save failed, queuing for offline sync:', error);
-          dbService.addToSyncQueue(processedEntries);
-        }
-      } catch (e) {
-        console.warn('Supabase save failed with error, queuing for offline sync:', e);
-        dbService.addToSyncQueue(processedEntries);
-      }
-    } else {
-      // Offline: Add entries to local sync queue
-      console.log('App is offline or database unavailable. Queuing entries for auto-sync.');
-      dbService.addToSyncQueue(processedEntries);
+    // 2. Save directly to Supabase — no offline fallback
+    if (!supabaseClient) {
+      throw new Error('No Supabase connection. Please check your internet and try again.');
     }
 
-    // Local Storage save
-    dbService.init();
-    const entries: DBDailyEntry[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DAILY_ENTRIES) || '[]');
-    const inventory: DBInventoryItem[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY) || '[]');
-    const transactions: DBInventoryTransaction[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS) || '[]');
-    const notifications: DBNotification[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || '[]');
+    const records = processedEntries.map(e => ({
+      date: e.date,
+      unit_id: e.unitId,
+      shed_number: e.shedNumber,
+      weather: e.weather,
+      temperature: e.temperature,
+      humidity: e.humidity,
+      opening_birds: e.openingBirds,
+      mortality: e.mortality,
+      culls: e.culls,
+      closing_birds: e.closingBirds,
+      uniformity: e.uniformity,
+      body_weight: e.bodyWeight,
+      bird_age_weeks: e.birdAgeWeeks || 20,
+      feed_kg: e.feedKg,
+      water_liters: e.waterLiters,
+      eggs_count: e.eggsCount,
+      egg_weight_g: e.eggWeightG,
+      medication: e.medication || '',
+      remarks: e.remarks || '',
+      hd_pct: e.hdPct,
+      mortality_pct: e.mortalityPct,
+      feed_per_bird_g: e.feedPerBirdG,
+      water_per_bird_ml: e.waterPerBirdMl,
+      fcr: e.fcr,
+      water_to_feed_ratio: e.waterToFeedRatio,
+      egg_mass_kg: e.eggMassKg,
+      performance_score: e.performanceScore,
+    }));
 
-    let feedConsumedTotal = 0;
-    let eggsHarvestedTotal = 0;
+    const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
+    if (error) {
+      console.error('Supabase save failed:', error);
+      throw new Error(`Save failed: ${error.message}`);
+    }
 
-    processedEntries.forEach(newEntry => {
-      const matchIndex = entries.findIndex(e => e.date === date && e.unitId === unitId && e.shedNumber === newEntry.shedNumber);
-      
-      if (matchIndex !== -1) {
-        entries[matchIndex] = {
-          ...newEntry,
-          id: entries[matchIndex].id,
-        } as DBDailyEntry;
-      } else {
-        const entryId = `entry-${date}-${unitId}-${newEntry.shedNumber}`;
-        entries.push({
-          ...newEntry,
-          id: entryId,
-        } as DBDailyEntry);
-      }
-
-      if (newEntry.status === 'Active') {
-        feedConsumedTotal += newEntry.feedKg;
-        eggsHarvestedTotal += newEntry.eggsCount;
-
-        if (newEntry.mortality > 5) {
-          notifications.push({
-            id: `notif-${date}-spike-${unitId}-${newEntry.shedNumber}`,
-            date,
-            role: 'Owner',
-            type: 'Alert',
-            title: `High Mortality Alert`,
-            message: `Supervisor logged ${newEntry.mortality} mortalities in Unit ${unitId}, Shed ${newEntry.shedNumber}.`,
-            isRead: false,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      }
-    });
-
-    localStorage.setItem(STORAGE_KEYS.DAILY_ENTRIES, JSON.stringify(entries));
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   },
 
-  // 4. INVENTORY
+
+  // 4. INVENTORY — Supabase only
   getInventory: async (): Promise<DBInventoryItem[]> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        const { data, error } = await withTimeout(supabaseClient.from('inventory').select('*').order('category', { ascending: true }));
-        if (!error && data && data.length > 0) {
-          return data.map(d => ({
-            id: d.id,
-            category: d.category,
-            itemName: d.item_name,
-            stockLevel: Number(d.stock_level),
-            reorderLevel: Number(d.reorder_level),
-            uom: d.uom,
-            supplier: d.supplier || '',
-            expiryDate: d.expiry_date,
-          }));
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in getInventory. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY) || '[]');
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient.from('inventory').select('*').order('category', { ascending: true });
+    if (error) { console.error('getInventory failed:', error.message); return []; }
+    return (data || []).map((d: any) => ({
+      id: d.id,
+      category: d.category,
+      itemName: d.item_name,
+      stockLevel: Number(d.stock_level),
+      reorderLevel: Number(d.reorder_level),
+      uom: d.uom,
+      supplier: d.supplier || '',
+      expiryDate: d.expiry_date,
+    }));
   },
 
   getInventoryTransactions: async (): Promise<DBInventoryTransaction[]> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        const { data, error } = await withTimeout(supabaseClient.from('inventory_transactions').select('*').order('date', { ascending: false }));
-        if (!error && data && data.length > 0) {
-          return data.map(d => ({
-            id: d.id,
-            inventoryId: d.inventory_id,
-            transactionType: d.transaction_type,
-            quantity: Number(d.quantity),
-            date: d.date,
-            reference: d.reference || '',
-            remarks: d.remarks || '',
-          }));
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in getInventoryTransactions. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS) || '[]');
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient.from('inventory_transactions').select('*').order('date', { ascending: false });
+    if (error) { console.error('getInventoryTransactions failed:', error.message); return []; }
+    return (data || []).map((d: any) => ({
+      id: d.id,
+      inventoryId: d.inventory_id,
+      transactionType: d.transaction_type,
+      quantity: Number(d.quantity),
+      date: d.date,
+      reference: d.reference || '',
+      remarks: d.remarks || '',
+    }));
   },
 
   addInventoryTransaction: async (
@@ -1094,118 +770,50 @@ export const dbService = {
     remarks: string,
     reference: string
   ): Promise<void> => {
+    if (!supabaseClient) throw new Error('No Supabase connection.');
     const date = new Date().toISOString().split('T')[0];
-
-    if (supabaseActive && supabaseClient) {
-      try {
-        const { error } = await withTimeout(supabaseClient.from('inventory_transactions').insert({
-          inventory_id: inventoryId,
-          transaction_type: transactionType,
-          quantity,
-          date,
-          reference,
-          remarks,
-        }));
-        if (error) console.error('Supabase inventory insert failed:', error);
-      } catch (e) {
-        console.warn('Supabase connection failed in addInventoryTransaction. Switching to offline mode.', e);
-        supabaseActive = false;
-      }
-    }
-
-    dbService.init();
-    const inventory: DBInventoryItem[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY) || '[]');
-    const transactions: DBInventoryTransaction[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS) || '[]');
-    const notifications: DBNotification[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || '[]');
-
-    const item = inventory.find(i => i.id === inventoryId);
-    if (item) {
-      if (transactionType === 'Purchase') {
-        item.stockLevel += quantity;
-      } else if (transactionType === 'Consumption') {
-        item.stockLevel = Math.max(0, item.stockLevel - quantity);
-      }
-
-      transactions.push({
-        id: `t-manual-${Date.now()}`,
-        inventoryId,
-        transactionType,
-        quantity,
-        date,
-        reference,
-        remarks,
-      });
-
-      if (item.stockLevel < item.reorderLevel) {
-        notifications.push({
-          id: `notif-manual-low-${Date.now()}`,
-          date,
-          role: 'Owner',
-          type: 'Warning',
-          title: `Low Stock: ${item.itemName}`,
-          message: `${item.itemName} (${item.stockLevel} ${item.uom}) has fallen below reorder level (${item.reorderLevel} ${item.uom}).`,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-      localStorage.setItem(STORAGE_KEYS.INVENTORY_TRANSACTIONS, JSON.stringify(transactions));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+    const { error } = await supabaseClient.from('inventory_transactions').insert({
+      inventory_id: inventoryId,
+      transaction_type: transactionType,
+      quantity,
+      date,
+      reference,
+      remarks,
+    });
+    if (error) {
+      console.error('addInventoryTransaction failed:', error.message);
+      throw new Error(error.message);
     }
   },
 
-  // 5. NOTIFICATIONS
+  // 5. NOTIFICATIONS — Supabase only
   getNotifications: async (): Promise<DBNotification[]> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        const { data, error } = await withTimeout(supabaseClient.from('notifications').select('*').order('created_at', { ascending: false }));
-        if (!error && data && data.length > 0) {
-          return data.map(d => ({
-            id: d.id,
-            date: d.date,
-            role: d.role,
-            type: d.type,
-            title: d.title,
-            message: d.message,
-            isRead: d.is_read,
-            createdAt: d.created_at,
-          }));
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in getNotifications. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || '[]');
+    if (!supabaseClient) return [];
+    const { data, error } = await supabaseClient.from('notifications').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('getNotifications failed:', error.message); return []; }
+    return (data || []).map((d: any) => ({
+      id: d.id,
+      date: d.date,
+      role: d.role,
+      type: d.type,
+      title: d.title,
+      message: d.message,
+      isRead: d.is_read,
+      createdAt: d.created_at,
+    }));
   },
 
   markNotificationAsRead: async (id: string): Promise<void> => {
-    try {
-      if (supabaseActive && supabaseClient) {
-        await withTimeout(supabaseClient.from('notifications').update({ is_read: true }).eq('id', id));
-      }
-    } catch (e) {
-      console.warn('Supabase connection failed in markNotificationAsRead. Switching to offline mode.', e);
-      supabaseActive = false;
-    }
-    dbService.init();
-    const notifications = await dbService.getNotifications();
-    const index = notifications.findIndex(n => n.id === id);
-    if (index !== -1) {
-      notifications[index].isRead = true;
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
-    }
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) console.error('markNotificationAsRead failed:', error.message);
   },
 
-  // 6. SCORES METRICS AGGREGATIONS
+  // 6. SCORES METRICS AGGREGATIONS — Supabase only
   getAggregatedScores: async (dateStr: string) => {
-    dbService.init();
     const entries = await dbService.getDailyEntries({ date: dateStr });
     const sheds = await dbService.getSheds();
-
-    const units = JSON.parse(localStorage.getItem(STORAGE_KEYS.UNITS) || '[]');
+    const units = await dbService.getUnits();
     const unitSummaries = units.map((unit: any) => {
       const unitId = unit.id;
       const unitSheds = sheds.filter(s => s.unitId === unitId);
