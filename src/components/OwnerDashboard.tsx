@@ -387,7 +387,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
 
           <div className="space-y-6">
             {chartData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[30rem] space-y-3">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[20rem] space-y-3">
                 <div className="p-4 bg-primary/5 rounded-full text-primary">
                   <Activity className="w-8 h-8" />
                 </div>
@@ -398,7 +398,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               </div>
             ) : (
               /* Chart 1: Eggs Produced vs HD% */
-              <div className="h-[32rem]">
+              <div className="h-[20rem]">
                 <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -436,14 +436,14 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               <Award className="w-4.5 h-4.5 text-secondary" />
             </div>
             
-            <div className="space-y-3.5">
+            <div className="space-y-2">
               {aggMetrics.rankedUnits.map((unit: any, idx: number) => {
                 const rankColors = ['bg-yellow-500 text-white', 'bg-slate-300 text-slate-800', 'bg-amber-600 text-white', 'bg-slate-100 dark:bg-slate-700 text-slate-500'];
                 return (
                   <div 
                     key={unit.unitId} 
                     onClick={() => onNavigateToUnit(unit.unitId)}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/80 cursor-pointer transition-all duration-200"
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/80 cursor-pointer transition-all duration-200"
                   >
                     <div className="flex items-center gap-3">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${rankColors[idx] || 'bg-slate-100 text-slate-500'}`}>
@@ -475,11 +475,11 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               <CircleAlert className="w-4.5 h-4.5 text-red-500" />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Active notifications */}
               {notifications.length > 0 ? (
                 notifications.slice(0, 3).map(n => (
-                  <div key={n.id} className="p-3 bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-950/40 rounded-xl flex items-start gap-2.5">
+                  <div key={n.id} className="p-2 bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-950/40 rounded-xl flex items-start gap-2.5">
                     <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-[11px] font-bold text-red-800 dark:text-red-300 leading-tight">{n.title}</h4>
