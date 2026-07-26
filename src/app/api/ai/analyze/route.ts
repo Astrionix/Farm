@@ -14,25 +14,50 @@ function generateFallbackAnalysis(summary: any) {
   const bestShedUnit = summary.bestShed?.unitId || 1;
   const bestShedNum = summary.bestShed?.shedNumber || 5;
 
+  const getUnitName = (id: number) => {
+    const found = summary.unitSummaries?.find((u: any) => u.unitId === id);
+    return found ? found.unitName : `Unit ${id}`;
+  };
+
+  const getShedName = (unitId: number, num: number) => {
+    if (unitId === 4 && num === 8) return 'Chick Shed';
+    return `Shed ${num}`;
+  };
+
+  const bestUnitText = summary.bestUnit
+    ? `${summary.bestUnit.unitName || getUnitName(summary.bestUnit.unitId)} (Score: ${summary.bestUnit.performanceScore}, HD: ${summary.bestUnit.hdPct}%)`
+    : `Jaggampeta Unit 1 (Score: 94, HD: 91.5%)`;
+
+  const worstUnitText = summary.worstUnit
+    ? `${summary.worstUnit.unitName || getUnitName(summary.worstUnit.unitId)} (Score: ${summary.worstUnit.performanceScore})`
+    : `Chebrolu (Score: 52)`;
+
+  const bestUnitName = summary.bestUnit?.unitName || 'Jaggampeta Unit 1';
+  const worstUnitName = summary.worstUnit?.unitName || 'Chebrolu';
+  const worstShedUnitName = getUnitName(worstShedUnit);
+  const worstShedName = getShedName(worstShedUnit, worstShedNum);
+  const bestShedUnitName = getUnitName(bestShedUnit);
+  const bestShedName = getShedName(bestShedUnit, bestShedNum);
+
   return {
-    executiveSummary: `The overall farm performance index stands at **${summary.farmScore || 91}% (${summary.farmLabel || 'Excellent'})**. Total daily production reached **${(summary.totalProduction || 42800).toLocaleString()} eggs**. While Unit 1 and Unit 2 are executing at peak efficiency (average HD% of 91.2%), Unit 3 is experiencing minor layout inefficiencies in lower sheds, depressing the average score slightly.`,
-    bestUnit: `Unit 1 (Score: ${summary.bestUnit?.performanceScore || 94}, HD: ${summary.bestUnit?.hdPct || 91.5}%)`,
-    worstUnit: `Unit 4 (Score: ${summary.worstUnit?.performanceScore || 52}, Only 2 active sheds slots in use)`,
-    bestShed: `Unit ${bestShedUnit} Shed ${bestShedNum} (Score: ${summary.bestShed?.score || 98})`,
-    worstShed: `Unit ${worstShedUnit} Shed ${worstShedNum} (Score: ${summary.worstShed?.score || 73})`,
+    executiveSummary: `The overall farm performance index stands at **${summary.farmScore || 91}% (${summary.farmLabel || 'Excellent'})**. Total daily production reached **${(summary.totalProduction || 42800).toLocaleString()} eggs**. While ${bestUnitName} is executing at peak efficiency (average HD% of 91.5%), ${worstUnitName} has minor layout or capacity differences, depressing the average score slightly.`,
+    bestUnit: bestUnitText,
+    worstUnit: worstUnitText,
+    bestShed: `${bestShedUnitName} ${bestShedName} (Score: ${summary.bestShed?.score || 98})`,
+    worstShed: `${worstShedUnitName} ${worstShedName} (Score: ${summary.worstShed?.score || 73})`,
     observations: {
-      diseaseIndicators: `Unit 3, Shed 2 logged therapeutic treatment (Tetracycline) for bacterial diarrhea. Mortality has subsided to 1 death/day.`,
-      feedIssues: `FCR leakage in Unit 3, Shed 2 (FCR: 2.45) resulted in excess feed consumption. Feeding troughs should be checked for height alignment.`,
+      diseaseIndicators: `Jaggampeta Unit 3, Shed 2 logged therapeutic treatment (Tetracycline) for bacterial diarrhea. Mortality has subsided to 1 death/day.`,
+      feedIssues: `FCR leakage in Jaggampeta Unit 3, Shed 2 (FCR: 2.45) resulted in excess feed consumption. Feeding troughs should be checked for height alignment.`,
       waterIssues: `Water-to-feed ratio is optimal at 2.05 across active sheds, indicating birds are hydrated during peak summer hours.`,
       environmentalIssues: `Humidity is averaging 62%. Fans should continue running at full capacity to avoid respiratory heat index complications.`
     },
     recommendations: [
-      `Flush water lines in Unit 3 with sanitizers (chlorine dioxide) to prevent bacterial biofilm build-up.`,
-      `Adjust trough gates in Unit 3, Shed 2 to prevent feed wastage.`,
+      `Flush water lines in Jaggampeta Unit 3 with sanitizers (chlorine dioxide) to prevent bacterial biofilm build-up.`,
+      `Adjust trough gates in Jaggampeta Unit 3, Shed 2 to prevent feed wastage.`,
       `Replenish Newcastle vaccines stock immediately, as inventory is nearing reorder points.`
     ],
     priorityActions: [
-      `Inspect Unit 3, Shed 2 ventilation fans and verify air exchange rates.`,
+      `Inspect Jaggampeta Unit 3, Shed 2 ventilation fans and verify air exchange rates.`,
       `Submit reorder purchase order for Paper Egg Trays from supplier Sri Lakshmi Mills.`
     ],
     riskAnalysis: `High humiture index represents a moderate heat-stress risk for Unit 3. FCR efficiency drop-off represents the primary financial leakage this week.`,

@@ -12,27 +12,27 @@ const CORS_HEADERS = {
 function generateFallbackChatResponse(message: string, summary: any): string {
   const query = message.toLowerCase();
 
-  if (query.includes('compare') || query.includes('unit 1') || query.includes('unit 2')) {
+  if (query.includes('compare') || query.includes('jaggampeta unit 1') || query.includes('jaggampeta unit 2') || query.includes('unit 1') || query.includes('unit 2')) {
     const u1 = summary.units?.find((u: any) => u.id === 1) || { score: 94, hdPct: 91.5, mort: 5 };
     const u2 = summary.units?.find((u: any) => u.id === 2) || { score: 88, hdPct: 89.2, mort: 8 };
-    return `**Unit 1 vs Unit 2 Comparison:**
-* **Performance Score:** Unit 1: **${u1.score ?? 94}** (Excellent) | Unit 2: **${u2.score ?? 88}** (Very Good)
-* **Production Rate:** Unit 1: **${u1.hdPct ?? '91.2'}% HD** | Unit 2: **${u2.hdPct ?? '89.0'}% HD**
-* **Mortality:** Unit 1: **${u1.mort ?? 2}** | Unit 2: **${u2.mort ?? 4} birds**
-* **Recommendation:** Review Unit 2's feed distribution and ventilation due to higher losses and lower score.`;
+    return `**Jaggampeta Unit 1 vs Jaggampeta Unit 2 Comparison:**
+* **Performance Score:** Jaggampeta Unit 1: **${u1.score ?? 94}** (Excellent) | Jaggampeta Unit 2: **${u2.score ?? 88}** (Very Good)
+* **Production Rate:** Jaggampeta Unit 1: **${u1.hdPct ?? '91.2'}% HD** | Jaggampeta Unit 2: **${u2.hdPct ?? '89.0'}% HD**
+* **Mortality:** Jaggampeta Unit 1: **${u1.mort ?? 2}** | Jaggampeta Unit 2: **${u2.mort ?? 4} birds**
+* **Recommendation:** Review Jaggampeta Unit 2's feed distribution and ventilation due to higher losses and lower score.`;
   }
 
-  if (query.includes('why') || query.includes('decrease') || query.includes('drop')) {
-    return `**Unit 3 Production Drop Analysis:**
-* **Issue:** Egg production dropped from **92% HD** to **73% HD** in Unit 3, Shed 2.
+  if (query.includes('why') || query.includes('decrease') || query.includes('drop') || query.includes('unit 3')) {
+    return `**Jaggampeta Unit 3 Production Drop Analysis:**
+* **Issue:** Egg production dropped from **92% HD** to **73% HD** in Jaggampeta Unit 3, Shed 2.
 * **Reason:** Bacterial stress / respiratory irritation detected (treated with Tetracycline HCL). Rainy weather stress compounded the drop.
 * **Status:** Recovering (currently at **84% HD**). Ensure water lines are sanitized.`;
   }
 
   if (query.includes('mortality') || query.includes('abnormal') || query.includes('die')) {
     return `**Mortality Anomalies:**
-* **Unit 3, Shed 2:** Spike of **8 mortalities** (12 days ago). Stabilized after Tetracycline HCL treatment.
-* **Unit 1, Shed 3:** Spike of **6 mortalities** (22 days ago) due to heat index warning (34.5°C).
+* **Jaggampeta Unit 3, Shed 2:** Spike of **8 mortalities** (12 days ago). Stabilized after Tetracycline HCL treatment.
+* **Jaggampeta Unit 1, Shed 3:** Spike of **6 mortalities** (22 days ago) due to heat index warning (34.5°C).
 * **Action:** Activate cooling foggers when temperature exceeds 31.5°C.`;
   }
 
@@ -49,7 +49,7 @@ function generateFallbackChatResponse(message: string, summary: any): string {
   if (query.includes('feed') || query.includes('fcr') || query.includes('efficient')) {
     return `**Feed & FCR Optimization:**
 * **FCR Status:** Average FCR is optimal (**2.08**).
-* **Anomalies:** Unit 3, Shed 2 experienced FCR spike to **2.52** during sickness (85 kg feed wasted).
+* **Anomalies:** Jaggampeta Unit 3, Shed 2 experienced FCR spike to **2.52** during sickness (85 kg feed wasted).
 * **Actions:** Inspect troughs for billing-out. Split feeding to 6:00 AM (40%) and 4:30 PM (60%) to support laying cycles.`;
   }
 
@@ -57,8 +57,8 @@ function generateFallbackChatResponse(message: string, summary: any): string {
 I have analyzed the current farm ledger. How can I help you?
 
 You can ask me to:
-* **Compare Unit 1 and Unit 2** performance
-* **Analyze why production decreased** in Unit 3
+* **Compare Jaggampeta Unit 1 and Jaggampeta Unit 2** performance
+* **Analyze why production decreased** in Jaggampeta Unit 3
 * **Forecast tomorrow's production** numbers
 * **Find abnormal mortality spikes**
 * **Provide feed and FCR optimization recommendations**`;

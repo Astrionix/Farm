@@ -28,6 +28,15 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const [shedStatusMap, setShedStatusMap] = useState<Record<number, 'Active' | 'Not In Use'>>({});
   const [loading, setLoading] = useState(true);
   const [selectedShedDetails, setSelectedShedDetails] = useState<DBDailyEntry | null>(null);
+  const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    async function loadUnits() {
+      const u = await dbService.getUnits();
+      setUnitsList(u);
+    }
+    loadUnits();
+  }, []);
 
   // Sync unit choice with assigned unit for supervisors
   useEffect(() => {
@@ -181,24 +190,24 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
         {/* Unit Selector */}
         {userRole === 'Owner' && (
           <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/50 dark:border-slate-700/50">
-            {[1, 2, 3, 4].map(u => (
+            {unitsList.map(u => (
               <button
-                key={u}
-                onClick={() => setSelectedUnit(u)}
+                key={u.id}
+                onClick={() => setSelectedUnit(u.id)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedUnit === u
+                  selectedUnit === u.id
                     ? 'bg-primary text-white shadow-md'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
               >
-                Unit {u}
+                {u.name}
               </button>
             ))}
           </div>
         )}
         {userRole === 'Supervisor' && (
           <span className="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-xs font-extrabold uppercase tracking-wide">
-            Supervisor: Unit {selectedUnit} Only
+            Supervisor: {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`} Only
           </span>
         )}
       </div>
@@ -217,7 +226,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
           <div>
             <h3 className="font-black text-slate-800 dark:text-white text-base">Shed Slot Grid</h3>
             <p className="text-slate-400 text-xs font-semibold">
-              Unit {selectedUnit} contains {activeShedsCount} Active sheds and {12 - activeShedsCount} Not In Use slots
+              {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`} contains {activeShedsCount} Active sheds and {Object.keys(shedStatusMap).length - activeShedsCount} Not In Use slots
             </p>
           </div>
           {userRole === 'Owner' && (
@@ -229,7 +238,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {Array.from({ length: 12 }, (_, i) => i + 1).map(shedNum => {
+          {Array.from({ length: Object.keys(shedStatusMap).length }, (_, i) => i + 1).map(shedNum => {
             const status = shedStatusMap[shedNum] || 'Active';
             const isActive = status === 'Active';
             const entry = latestEntries.find(e => e.shedNumber === shedNum);
@@ -269,7 +278,9 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 {/* Top header row */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-extrabold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">Shed {shedNum}</h4>
+                    <h4 className="font-extrabold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      {selectedUnit === 4 && shedNum === 8 ? 'Chick Shed' : `Shed ${shedNum}`}
+                    </h4>
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase mt-1 ${
                       isActive ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                     }`}>
@@ -362,7 +373,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
               <div>
                 <span className="text-[10px] text-secondary font-black uppercase tracking-widest">Inspection Sheet</span>
                 <h3 className="text-lg font-extrabold mt-0.5">
-                  Unit {selectedShedDetails.unitId} — Shed {selectedShedDetails.shedNumber}
+                  {unitsList.find(u => u.id === selectedShedDetails.unitId)?.name || `Unit ${selectedShedDetails.unitId}`} — {selectedShedDetails.unitId === 4 && selectedShedDetails.shedNumber === 8 ? 'Chick Shed' : `Shed ${selectedShedDetails.shedNumber}`}
                 </h3>
               </div>
               <button 

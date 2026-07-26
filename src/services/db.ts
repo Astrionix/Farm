@@ -95,36 +95,28 @@ const STORAGE_KEYS = {
   DB_MODE: 'smp_db_mode',
 };
 
+export const UNIT_CONFIGS = [
+  { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 12, status: 'Active' as const },
+  { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
+  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 3, status: 'Active' as const },
+  { id: 4, name: 'Kotapadu', shedsCount: 8, status: 'Active' as const }, // 7 sheds + chick shed = 8
+  { id: 5, name: 'Chebrolu', shedsCount: 2, status: 'Active' as const },
+];
+
 // Seeding 30 Days of high fidelity historical data
 function generateHistoricalMockData() {
-  const units: DBUnit[] = [
-    { id: 1, name: 'Unit 1', status: 'Active' },
-    { id: 2, name: 'Unit 2', status: 'Active' },
-    { id: 3, name: 'Unit 3', status: 'Active' },
-    { id: 4, name: 'Unit 4', status: 'Active' },
-  ];
+  const units: DBUnit[] = UNIT_CONFIGS.map(uc => ({ id: uc.id, name: uc.name, status: uc.status }));
 
   const sheds: DBShed[] = [];
-  for (let u = 1; u <= 4; u++) {
-    for (let s = 1; s <= 12; s++) {
-      // Setup status according to farm structure rules:
-      // Unit 1: 10 active, 2 not in use (11, 12)
-      // Unit 2: 8 active, 4 not in use (9-12)
-      // Unit 3: 10 active, 2 not in use (11, 12)
-      // Unit 4: 2 active, 10 not in use (3-12)
-      let status: 'Active' | 'Not In Use' = 'Active';
-      if (u === 1 && s > 10) status = 'Not In Use';
-      else if (u === 2 && s > 8) status = 'Not In Use';
-      else if (u === 3 && s > 10) status = 'Not In Use';
-      else if (u === 4 && s > 2) status = 'Not In Use';
-
+  UNIT_CONFIGS.forEach(uc => {
+    for (let s = 1; s <= uc.shedsCount; s++) {
       sheds.push({
-        unitId: u,
+        unitId: uc.id,
         shedNumber: s,
-        status,
+        status: 'Active',
       });
     }
-  }
+  });
 
   // Set up default inventory
   const inventory: DBInventoryItem[] = [
@@ -268,136 +260,138 @@ function generateHistoricalMockData() {
     let dailyFeedConsumptionTotal = 0;
     let dailyEggsHarvestedTotal = 0;
 
-    // For each unit and active shed
-    for (let u = 1; u <= 4; u++) {
-      for (let s = 1; s <= 12; s++) {
-        const shedKey = `${u}-${s}`;
-        const isShedActive = sheds.find(sh => sh.unitId === u && sh.shedNumber === s)?.status === 'Active';
-        
-        if (!isShedActive) continue;
+    // For each active shed
+    sheds.forEach(shed => {
+      const u = shed.unitId;
+      const s = shed.shedNumber;
+      const isShedActive = shed.status === 'Active';
+      if (!isShedActive) return;
 
-        const opening = currentBirdCounts[shedKey];
-        
-        // Random mortality (usually 0, 1, or 2 birds per day per shed. Occasionally a bit more)
-        let mortality = 0;
-        const randMort = Math.random();
-        if (randMort > 0.96) {
-          mortality = 4 + Math.floor(Math.random() * 4); // Spike!
-        } else if (randMort > 0.85) {
-          mortality = 2;
-        } else if (randMort > 0.5) {
-          mortality = 1;
-        }
-        
-        // Culls
-        const culls = Math.random() > 0.92 ? 1 + Math.floor(Math.random() * 2) : 0;
-        const closing = opening - mortality - culls;
-        currentBirdCounts[shedKey] = closing;
-
-        // Feed consumption in kg (usually ~112 - 120 grams per bird per day)
-        const avgFeedPerBirdG = 112 + Math.random() * 8; // g
-        const feedKg = (closing * avgFeedPerBirdG) / 1000;
-        dailyFeedConsumptionTotal += feedKg;
-
-        // Water consumption in Liters (usually 2 to 2.2 times feed in weight, i.e., ~220 - 250 ml/bird)
-        const waterRatio = 1.9 + Math.random() * 0.3;
-        const waterLiters = feedKg * waterRatio;
-
-        // Egg Production (Hen-day rate usually 88% - 93% in peak, standard aging is fine)
-        // Let's create an production anomaly in Unit 3, Shed 2 around 12 days ago to simulate issues
-        let productionRate = 0.89 + (Math.random() * 0.04); // 89% - 93%
-        
-        if (u === 3 && s === 2 && d < 15 && d > 8) {
-          // Trigger drop: disease or feed issue
-          productionRate = 0.72 + (Math.random() * 0.05); // Drop to 72% - 77%
-        }
-        
-        const eggsCount = Math.floor(closing * productionRate);
-        dailyEggsHarvestedTotal += eggsCount;
-
-        // Egg average weight in grams (~58 - 63 grams)
-        const eggWeightG = 59.5 + Math.random() * 2.5;
-
-        // Egg quality defects
-        const eggsBroken = Math.floor(eggsCount * (0.002 + Math.random() * 0.006));
-        const eggsDirty = Math.floor(eggsCount * (0.005 + Math.random() * 0.012));
-        const eggsCracked = Math.floor(eggsCount * (0.001 + Math.random() * 0.004));
-
-        // Uniformity % (~82 - 88%)
-        const uniformity = 83 + Math.random() * 5;
-
-        // Body Weight in grams (~1620 - 1730g)
-        const bodyWeight = 1640 + Math.floor(Math.random() * 80);
-
-        // Medications
-        let medication = '';
-        if (mortality > 3) {
-          medication = 'Tetracycline HCL (soluble)';
-        }
-
-        // Calculations
-        const inputMetrics: ShedDataInput = {
-          status: 'Active',
-          openingBirds: opening,
-          mortality,
-          culls,
-          closingBirds: closing,
-          feedKg,
-          waterLiters,
-          eggsCount,
-          eggWeightG,
-          eggsBroken,
-          eggsDirty,
-          eggsCracked,
-          uniformity,
-          bodyWeight,
-          birdAgeWeeks: 18 + s * 2,
-        };
-
-        const calculated = calculateShedMetrics(inputMetrics);
-
-        dailyEntries.push({
-          id: `entry-${dateStr}-${u}-${s}`,
-          date: dateStr,
-          unitId: u,
-          shedNumber: s,
-          weather,
-          temperature: Number(temp.toFixed(1)),
-          humidity: Number(humidity.toFixed(1)),
-          ...inputMetrics,
-          ...calculated,
-          medication,
-          remarks: mortality > 3 ? 'Slightly higher mortality. Initiated preventive antibiotics.' : '',
-        });
-
-        // Add anomaly notifications for Owner dashboard
-        if (d === 12 && u === 3 && s === 2) {
-          notifications.push({
-            id: `notif-${dateStr}-prod-drop`,
-            date: dateStr,
-            role: 'Owner',
-            type: 'Warning',
-            title: 'Significant Production Drop',
-            message: 'Unit 3, Shed 2 reported a production decline below breed standard (HD% fell to 73.1%).',
-            isRead: false,
-            createdAt: new Date(currentDate.getTime() + 18 * 60 * 60 * 1000).toISOString(), // 6PM
-          });
-        }
-        
-        if (mortality > 5) {
-          notifications.push({
-            id: `notif-${dateStr}-mort-spike-${u}-${s}`,
-            date: dateStr,
-            role: 'Owner',
-            type: 'Alert',
-            title: `Mortality Spike in Unit ${u} Shed ${s}`,
-            message: `Mortality spike: ${mortality} birds died in Unit ${u}, Shed ${s} on ${dateStr}.`,
-            isRead: false,
-            createdAt: new Date(currentDate.getTime() + 17 * 60 * 60 * 1000).toISOString(),
-          });
-        }
+      const shedKey = `${u}-${s}`;
+      const opening = currentBirdCounts[shedKey];
+      
+      // Random mortality (usually 0, 1, or 2 birds per day per shed. Occasionally a bit more)
+      let mortality = 0;
+      const randMort = Math.random();
+      if (randMort > 0.96) {
+        mortality = 4 + Math.floor(Math.random() * 4); // Spike!
+      } else if (randMort > 0.85) {
+        mortality = 2;
+      } else if (randMort > 0.5) {
+        mortality = 1;
       }
-    }
+      
+      // Culls
+      const culls = Math.random() > 0.92 ? 1 + Math.floor(Math.random() * 2) : 0;
+      const closing = opening - mortality - culls;
+      currentBirdCounts[shedKey] = closing;
+
+      // Feed consumption in kg (usually ~112 - 120 grams per bird per day)
+      const avgFeedPerBirdG = 112 + Math.random() * 8; // g
+      const feedKg = (closing * avgFeedPerBirdG) / 1000;
+      dailyFeedConsumptionTotal += feedKg;
+
+      // Water consumption in Liters (usually 2 to 2.2 times feed in weight, i.e., ~220 - 250 ml/bird)
+      const waterRatio = 1.9 + Math.random() * 0.3;
+      const waterLiters = feedKg * waterRatio;
+
+      // Egg Production (Hen-day rate usually 88% - 93% in peak, standard aging is fine)
+      // Let's create an production anomaly in Unit 3, Shed 2 around 12 days ago to simulate issues
+      let productionRate = 0.89 + (Math.random() * 0.04); // 89% - 93%
+      
+      if (u === 3 && s === 2 && d < 15 && d > 8) {
+        // Trigger drop: disease or feed issue
+        productionRate = 0.72 + (Math.random() * 0.05); // Drop to 72% - 77%
+      }
+      
+      const eggsCount = Math.floor(closing * productionRate);
+      dailyEggsHarvestedTotal += eggsCount;
+
+      // Egg average weight in grams (~58 - 63 grams)
+      const eggWeightG = 59.5 + Math.random() * 2.5;
+
+      // Egg quality defects
+      const eggsBroken = Math.floor(eggsCount * (0.002 + Math.random() * 0.006));
+      const eggsDirty = Math.floor(eggsCount * (0.005 + Math.random() * 0.012));
+      const eggsCracked = Math.floor(eggsCount * (0.001 + Math.random() * 0.004));
+
+      // Uniformity % (~82 - 88%)
+      const uniformity = 83 + Math.random() * 5;
+
+      // Body Weight in grams (~1620 - 1730g)
+      const bodyWeight = 1640 + Math.floor(Math.random() * 80);
+
+      // Medications
+      let medication = '';
+      if (mortality > 3) {
+        medication = 'Tetracycline HCL (soluble)';
+      }
+
+      // Calculations
+      const inputMetrics: ShedDataInput = {
+        status: 'Active',
+        openingBirds: opening,
+        mortality,
+        culls,
+        closingBirds: closing,
+        feedKg,
+        waterLiters,
+        eggsCount,
+        eggWeightG,
+        eggsBroken,
+        eggsDirty,
+        eggsCracked,
+        uniformity,
+        bodyWeight,
+        birdAgeWeeks: 18 + s * 2,
+      };
+
+      const calculated = calculateShedMetrics(inputMetrics);
+
+      dailyEntries.push({
+        id: `entry-${dateStr}-${u}-${s}`,
+        date: dateStr,
+        unitId: u,
+        shedNumber: s,
+        weather,
+        temperature: Number(temp.toFixed(1)),
+        humidity: Number(humidity.toFixed(1)),
+        ...inputMetrics,
+        ...calculated,
+        medication,
+        remarks: mortality > 3 ? 'Slightly higher mortality. Initiated preventive antibiotics.' : '',
+      });
+
+      const unitName = units.find(unit => unit.id === u)?.name || `Unit ${u}`;
+      const shedName = (u === 4 && s === 8) ? 'Chick Shed' : `Shed ${s}`;
+
+      // Add anomaly notifications for Owner dashboard
+      if (d === 12 && u === 3 && s === 2) {
+        notifications.push({
+          id: `notif-${dateStr}-prod-drop`,
+          date: dateStr,
+          role: 'Owner',
+          type: 'Warning',
+          title: 'Significant Production Drop',
+          message: `${unitName}, ${shedName} reported a production decline below breed standard (HD% fell to 73.1%).`,
+          isRead: false,
+          createdAt: new Date(currentDate.getTime() + 18 * 60 * 60 * 1000).toISOString(), // 6PM
+        });
+      }
+      
+      if (mortality > 5) {
+        notifications.push({
+          id: `notif-${dateStr}-mort-spike-${u}-${s}`,
+          date: dateStr,
+          role: 'Owner',
+          type: 'Alert',
+          title: `Mortality Spike in ${unitName} ${shedName}`,
+          message: `Mortality spike: ${mortality} birds died in ${unitName}, ${shedName} on ${dateStr}.`,
+          isRead: false,
+          createdAt: new Date(currentDate.getTime() + 17 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+    });
 
     // Deduct feed and egg packaging trays daily from inventory
     // 1 egg tray holds 30 eggs
@@ -442,7 +436,7 @@ function generateHistoricalMockData() {
       role: 'Owner',
       type: 'Info',
       title: 'Pending Daily Entry',
-      message: 'Unit 4 daily production entries are pending supervisor approval.',
+      message: 'Kotapadu daily production entries are pending supervisor approval.',
       isRead: false,
       createdAt: new Date().toISOString(),
     },
@@ -490,8 +484,21 @@ export const dbService = {
   init: () => {
     if (typeof window === 'undefined') return;
     
-    // Check if seeded
-    if (!localStorage.getItem(STORAGE_KEYS.UNITS)) {
+    // Check if seeded or if we need to migrate/reseed for 5 units
+    const storedUnitsStr = localStorage.getItem(STORAGE_KEYS.UNITS);
+    let needReset = false;
+    if (storedUnitsStr) {
+      try {
+        const storedUnits = JSON.parse(storedUnitsStr);
+        if (storedUnits.length !== 5 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {
+          needReset = true;
+        }
+      } catch (e) {
+        needReset = true;
+      }
+    }
+    
+    if (!storedUnitsStr || needReset) {
       const seed = generateHistoricalMockData();
       localStorage.setItem(STORAGE_KEYS.UNITS, JSON.stringify(seed.units));
       localStorage.setItem(STORAGE_KEYS.SHEDS, JSON.stringify(seed.sheds));
@@ -530,24 +537,14 @@ export const dbService = {
       localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(seed.notifications));
     } else {
       // Live / Clean slate
-      const units = [
-        { id: 1, name: 'Unit 1', status: 'Active' as const },
-        { id: 2, name: 'Unit 2', status: 'Active' as const },
-        { id: 3, name: 'Unit 3', status: 'Active' as const },
-        { id: 4, name: 'Unit 4', status: 'Active' as const },
-      ];
+      const units = UNIT_CONFIGS.map(uc => ({ id: uc.id, name: uc.name, status: uc.status }));
 
-      const sheds = [];
-      for (let u = 1; u <= 4; u++) {
-        for (let s = 1; s <= 12; s++) {
-          let status: 'Active' | 'Not In Use' = 'Active';
-          if (u === 1 && s > 10) status = 'Not In Use';
-          else if (u === 2 && s > 8) status = 'Not In Use';
-          else if (u === 3 && s > 10) status = 'Not In Use';
-          else if (u === 4 && s > 2) status = 'Not In Use';
-          sheds.push({ unitId: u, shedNumber: s, status });
+      const sheds: DBShed[] = [];
+      UNIT_CONFIGS.forEach(uc => {
+        for (let s = 1; s <= uc.shedsCount; s++) {
+          sheds.push({ unitId: uc.id, shedNumber: s, status: 'Active' as const });
         }
-      }
+      });
 
       const inventory = [
         { id: 'inv-feed-1', category: 'Feed' as const, itemName: 'Layer Feed MaxPlus', stockLevel: 0, reorderLevel: 2000, uom: 'kg', supplier: 'Kargil Poultry Feeds Ltd', expiryDate: null },
@@ -1028,7 +1025,9 @@ export const dbService = {
     const entries = await dbService.getDailyEntries({ date: dateStr });
     const sheds = await dbService.getSheds();
 
-    const unitSummaries = [1, 2, 3, 4].map(unitId => {
+    const units = JSON.parse(localStorage.getItem(STORAGE_KEYS.UNITS) || '[]');
+    const unitSummaries = units.map((unit: any) => {
+      const unitId = unit.id;
       const unitSheds = sheds.filter(s => s.unitId === unitId);
       const unitEntries = entries.filter(e => e.unitId === unitId);
 
@@ -1049,7 +1048,7 @@ export const dbService = {
 
       return {
         unitId,
-        unitName: `Unit ${unitId}`,
+        unitName: unit.name,
         ...metrics,
         activeSheds: activeShedCount,
         inactiveSheds: inactiveShedCount,

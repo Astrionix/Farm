@@ -77,7 +77,7 @@ const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[],
         </View>
         {data.map(item => (
           <View style={pdfStyles.tableRow} key={item.shedNumber}>
-            <Text style={[pdfStyles.td, { flex: 0.8 }]}>Shed {item.shedNumber}</Text>
+            <Text style={[pdfStyles.td, { flex: 0.8 }]}>{unitId === 4 && item.shedNumber === 8 ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
             <Text style={pdfStyles.td}>{item.closingBirds.toLocaleString()}</Text>
             <Text style={pdfStyles.td}>{item.mortality}</Text>
             <Text style={pdfStyles.td}>{Math.round(item.feedKg)}</Text>
@@ -103,6 +103,15 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<DBDailyEntry[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    async function loadUnits() {
+      const u = await dbService.getUnits();
+      setUnitsList(u);
+    }
+    loadUnits();
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -153,7 +162,9 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Poultry_Report_Unit_${selectedUnit}_${reportDate}.csv`);
+    const unitObj = unitsList.find(u => u.id === selectedUnit);
+    const unitLabel = unitObj ? unitObj.name.replace(/\s+/g, '_') : `Unit_${selectedUnit}`;
+    link.setAttribute('download', `Poultry_Report_${unitLabel}_${reportDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -202,8 +213,8 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
               onChange={(e) => setSelectedUnit(Number(e.target.value))}
               className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
             >
-              {[1, 2, 3, 4].map(u => (
-                <option key={u} value={u}>Unit {u}</option>
+              {unitsList.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
           )}

@@ -48,6 +48,23 @@ export default function Sidebar({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [dbMode, setDbMode] = useState<'Demo' | 'Live'>(() => dbService.getDbMode());
   const [showResetModal, setShowResetModal] = useState(false);
+  const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
+
+  React.useEffect(() => {
+    async function loadUnits() {
+      const u = await dbService.getUnits();
+      setUnitsList(u);
+    }
+    loadUnits();
+
+    const handleStorageChange = () => {
+      loadUnits();
+    };
+    window.addEventListener('storage-role-change', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage-role-change', handleStorageChange);
+    };
+  }, []);
   const [targetMode, setTargetMode] = useState<'Demo' | 'Live' | null>(null);
 
   const handleModeSwitch = (mode: 'Demo' | 'Live') => {
@@ -168,18 +185,19 @@ export default function Sidebar({
           <label className="text-[10px] text-emerald-200/60 block font-semibold uppercase tracking-wider">
             Assigned Unit Lock
           </label>
-          <div className="grid grid-cols-4 gap-1">
-            {[1, 2, 3, 4].map(uNum => (
+          <div className="grid grid-cols-5 gap-1">
+            {unitsList.map(u => (
               <button
-                key={uNum}
-                onClick={() => setAssignedUnit(uNum)}
+                key={u.id}
+                onClick={() => setAssignedUnit(u.id)}
                 className={`py-1 rounded text-[10px] font-bold transition ${
-                  assignedUnit === uNum 
+                  assignedUnit === u.id 
                     ? 'bg-secondary text-primary-dark' 
                     : 'bg-primary/20 text-emerald-100 hover:bg-primary-light/20'
                 }`}
+                title={u.name}
               >
-                U{uNum}
+                U{u.id}
               </button>
             ))}
           </div>

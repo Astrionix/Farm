@@ -20,6 +20,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     { email: 'unit2@mahalakshmi.com', password: 'unit2@smp', role: 'Supervisor' as const, unit: 2 },
     { email: 'unit3@mahalakshmi.com', password: 'unit3@smp', role: 'Supervisor' as const, unit: 3 },
     { email: 'unit4@mahalakshmi.com', password: 'unit4@smp', role: 'Supervisor' as const, unit: 4 },
+    { email: 'unit5@mahalakshmi.com', password: 'unit5@smp', role: 'Supervisor' as const, unit: 5 },
   ];
 
   const handleLogin = (e: React.FormEvent) => {
@@ -157,7 +158,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
             {/* Supervisor account prefill */}
             <div className="grid grid-cols-2 gap-2">
-              {[1, 2, 3, 4].map(uNum => (
+              {[1, 2, 3, 4, 5].map(uNum => (
                 <div 
                   key={uNum}
                   onClick={() => prefill(`unit${uNum}@mahalakshmi.com`, `unit${uNum}@smp`)}

@@ -49,6 +49,23 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const [historySearch, setHistorySearch] = useState('');
   const [historyFilterUnit, setHistoryFilterUnit] = useState<number | 'all'>('all');
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    async function loadUnits() {
+      const u = await dbService.getUnits();
+      setUnitsList(u);
+    }
+    loadUnits();
+  }, []);
+
+  const getUnitShortName = (unitId: number) => {
+    const full = unitsList.find(u => u.id === unitId)?.name;
+    if (!full) return `U${unitId}`;
+    if (full.includes('Jaggampeta')) return full.replace('Jaggampeta ', 'Jgp ');
+    if (full.includes('Kotapadu')) return 'Kotapadu';
+    return full;
+  };
 
   const DRAFT_KEY = `smp_draft_${assignedUnit}`;
 
@@ -131,25 +148,28 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             }
           } else {
             // Prefill new entry
-            const prevClosing = yesterdayEntry?.closingBirds ?? 5000;
+            const currentDbMode = dbService.getDbMode();
+            const prevClosing = yesterdayEntry?.closingBirds ?? (currentDbMode === 'Live' ? 0 : 5000);
+            const prevAge = yesterdayEntry?.birdAgeWeeks ?? (currentDbMode === 'Live' ? 0 : (18 + sNum * 2));
+
             inputsMap[sNum] = {
               status: shed.status,
               openingBirds: prevClosing,
               mortality: 0,
               culls: 0,
               closingBirds: prevClosing,
-              feedKg: Math.round((prevClosing * 0.116)), // pre-fill estimated 116g/bird
-              waterLiters: Math.round((prevClosing * 0.116 * 2)), // pre-fill estimated 2.0 ratio
-              eggsCount: Math.round(prevClosing * 0.90), // prefill 90% production
-              eggWeightG: 60.5,
+              feedKg: prevClosing > 0 ? Math.round((prevClosing * 0.116)) : 0,
+              waterLiters: prevClosing > 0 ? Math.round((prevClosing * 0.116 * 2)) : 0,
+              eggsCount: prevClosing > 0 ? Math.round(prevClosing * 0.90) : 0,
+              eggWeightG: prevClosing > 0 ? 60.5 : 0,
               eggsBroken: 0,
               eggsDirty: 0,
               eggsCracked: 0,
-              uniformity: 85,
-              bodyWeight: 1680,
+              uniformity: prevClosing > 0 ? 85 : 0,
+              bodyWeight: prevClosing > 0 ? 1680 : 0,
               medication: '',
               remarks: '',
-              birdAgeWeeks: yesterdayEntry?.birdAgeWeeks ?? (18 + sNum * 2),
+              birdAgeWeeks: prevAge,
             };
           }
         });
@@ -357,7 +377,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         <div className="p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs font-semibold">
             <History className="w-4 h-4" />
-            <span>Unsaved draft found for Unit {assignedUnit}. Restore your previous work?</span>
+            <span>Unsaved draft found for {unitsList.find(u => u.id === assignedUnit)?.name || `Unit ${assignedUnit}`}. Restore your previous work?</span>
           </div>
           <div className="flex gap-2 shrink-0">
             <button onClick={handleRestoreDraft} className="text-[10px] font-bold px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition">Restore</button>
@@ -372,23 +392,23 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             Supervisor Daily Entry Portal
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-            Log birds inventory, feed/water usage, and egg counts for Unit {selectedUnit}
+            Log birds inventory, feed/water usage, and egg counts for {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`}
           </p>
         </div>
 
         {userRole === 'Owner' && (
           <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/50 dark:border-slate-700/50">
-            {[1, 2, 3, 4].map(u => (
+            {unitsList.map(u => (
               <button
-                key={u}
-                onClick={() => setSelectedUnit(u)}
+                key={u.id}
+                onClick={() => setSelectedUnit(u.id)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedUnit === u
+                  selectedUnit === u.id
                     ? 'bg-primary text-white shadow-md'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
               >
-                Unit {u}
+                {u.name}
               </button>
             ))}
           </div>
@@ -537,9 +557,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         {sNum}
                       </span>
                       <div>
-                        <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">Shed {sNum}</h4>
+                         <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">
+                          {selectedUnit === 4 && sNum === 8 ? 'Chick Shed' : `Shed ${sNum}`}
+                        </h4>
                         <span className={`text-[10px] font-bold ${isActive ? 'text-primary' : 'text-slate-400'}`}>
-                          {isActive ? 'Active & Included in Reports' : 'Not In Use — Excluded from Math'}
+                          {isActive ? (selectedUnit === 4 && sNum === 8 ? 'Active Chick Shed' : 'Active & Included in Reports') : 'Not In Use — Excluded from Math'}
                         </span>
                       </div>
                     </div>
@@ -740,7 +762,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                 className="py-1.5 px-2 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary text-slate-700 dark:text-slate-200"
               >
                 <option value="all">All Units</option>
-                {[1,2,3,4].map(u => <option key={u} value={u}>Unit {u}</option>)}
+                {unitsList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             )}
           </div>
@@ -764,8 +786,8 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                 {filteredHistory.slice(0, 50).map(e => (
                   <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
                     <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200">{e.date}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">U{e.unitId}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">S{e.shedNumber}</td>
+                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{getUnitShortName(e.unitId)}</td>
+                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{e.unitId === 4 && e.shedNumber === 8 ? 'Chick' : `Shed ${e.shedNumber}`}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.closingBirds?.toLocaleString()}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.eggsCount?.toLocaleString()}</td>
                     <td className="px-4 py-2.5 font-semibold text-primary">{e.hdPct?.toFixed(1)}%</td>
