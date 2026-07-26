@@ -48,13 +48,13 @@ BEGIN
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (2, s_num, 'Active');
     END LOOP;
 
-    -- Unit 3: 3 sheds
-    FOR s_num IN 1..3 LOOP
+    -- Unit 3: 4 sheds (3 normal sheds + 1 chick shed = 4)
+    FOR s_num IN 1..4 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (3, s_num, 'Active');
     END LOOP;
 
-    -- Unit 4: 8 sheds (Shed 8 is Chick Shed)
-    FOR s_num IN 1..8 LOOP
+    -- Unit 4: 12 sheds (11 normal sheds + 1 chick shed = 12)
+    FOR s_num IN 1..12 LOOP
         INSERT INTO sheds (unit_id, shed_number, status) VALUES (4, s_num, 'Active');
     END LOOP;
 

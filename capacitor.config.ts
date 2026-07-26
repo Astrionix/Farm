@@ -5,8 +5,10 @@ const config: CapacitorConfig = {
   appName: 'FlockMind AI',
   webDir: 'out',
   server: {
+    url: 'https://farm-lac-theta.vercel.app',
     androidScheme: 'https',
-    hostname: 'flockmind.app'
+    hostname: 'farm-lac-theta.vercel.app',
+    cleartext: false
   }
 };
 

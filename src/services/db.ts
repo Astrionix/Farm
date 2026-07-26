@@ -5,9 +5,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { calculateShedMetrics, calculateUnitMetrics, calculateFarmMetrics, ShedDataInput, CalculatedShedMetrics } from '../utils/calculations';
 
 export function isChickShed(unitId: number, shedNumber: number): boolean {
-  return (unitId === 1 && shedNumber === 12) ||
-         (unitId === 3 && shedNumber === 4) ||
-         (unitId === 4 && shedNumber === 8);
+  return (unitId === 3 && shedNumber === 4) ||
+         (unitId === 4 && shedNumber === 12);
 }
 
 // -------------------------------------------------------------
@@ -104,8 +103,8 @@ const STORAGE_KEYS = {
 export const UNIT_CONFIGS = [
   { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 12, status: 'Active' as const },
   { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
-  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 4, status: 'Active' as const }, // 3 sheds + chick shed = 4
-  { id: 4, name: 'Kotapadu', shedsCount: 8, status: 'Active' as const }, // 7 sheds + chick shed = 8
+  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 4, status: 'Active' as const }, // 3 normal + 1 chick shed = 4
+  { id: 4, name: 'Kotapadu', shedsCount: 12, status: 'Active' as const }, // 11 normal + 1 chick shed = 12
   { id: 5, name: 'Chebrolu', shedsCount: 2, status: 'Active' as const },
 ];
 
@@ -491,6 +490,15 @@ export const dbService = {
         const storedUnits = JSON.parse(storedUnitsStr);
         if (storedUnits.length !== 5 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {
           needReset = true;
+        }
+        const storedShedsStr = localStorage.getItem(STORAGE_KEYS.SHEDS);
+        if (storedShedsStr && !needReset) {
+          const storedSheds = JSON.parse(storedShedsStr);
+          const u4Count = storedSheds.filter((s: any) => s.unitId === 4).length;
+          const u3Count = storedSheds.filter((s: any) => s.unitId === 3).length;
+          if (u4Count !== 12 || u3Count !== 4) {
+            needReset = true;
+          }
         }
       } catch (e) {
         needReset = true;
