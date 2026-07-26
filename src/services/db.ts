@@ -811,7 +811,15 @@ export const dbService = {
 
   // 6. SCORES METRICS AGGREGATIONS — Supabase only
   getAggregatedScores: async (dateStr: string) => {
-    const entries = await dbService.getDailyEntries({ date: dateStr });
+    let entries = await dbService.getDailyEntries({ date: dateStr });
+    if (entries.length === 0) {
+      // If no entries logged for target date, fallback to the latest available entries overall
+      const allEntries = await dbService.getDailyEntries();
+      if (allEntries.length > 0) {
+        const latestAvailableDate = allEntries[0].date;
+        entries = allEntries.filter(e => e.date === latestAvailableDate);
+      }
+    }
     const sheds = await dbService.getSheds();
     const units = await dbService.getUnits();
     const unitSummaries = units.map((unit: any) => {
