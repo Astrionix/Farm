@@ -318,33 +318,37 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     setWeatherError('');
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_TOMORROW_API_KEY || 'zMKQ3NtHPI3MWY3wWqJQfAHewuxwNZui';
-      const res = await fetch(`https://api.tomorrow.io/v4/weather/realtime?location=${coords.lat},${coords.lon}&apikey=${apiKey}`);
+      // Query Open-Meteo API (Free, keyless, CORS supported, extremely reliable)
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code`);
       if (!res.ok) throw new Error('Failed to fetch weather');
 
       const resData = await res.json();
-      const data = resData.data?.values || {};
+      const current = resData.current || {};
 
-      if (data.temperature !== undefined) {
-        setTemperature(data.temperature.toFixed(1));
+      if (current.temperature_2m !== undefined) {
+        setTemperature(current.temperature_2m.toFixed(1));
       }
-      if (data.temperatureApparent !== undefined) {
-        setApparentTemperature(data.temperatureApparent.toFixed(1));
+      if (current.apparent_temperature !== undefined) {
+        setApparentTemperature(current.apparent_temperature.toFixed(1));
       }
-      if (data.humidity !== undefined) {
-        setHumidity(Math.round(data.humidity).toString());
+      if (current.relative_humidity_2m !== undefined) {
+        setHumidity(Math.round(current.relative_humidity_2m).toString());
       }
-      if (data.weatherCode !== undefined) {
-        const code = data.weatherCode;
+      if (current.weather_code !== undefined) {
+        const code = current.weather_code;
         let mappedWeather = 'Sunny';
-        if (code === 1000 || code === 1100) {
+        
+        // Open-Meteo WMO weather codes
+        if (code === 0 || code === 1) {
           mappedWeather = 'Sunny';
-        } else if (code >= 1001 && code <= 1102) {
+        } else if (code === 2 || code === 3) {
           mappedWeather = 'Cloudy';
-        } else if ((code >= 4000 && code <= 4201) || code === 8000) {
+        } else if (code >= 51 && code <= 82) {
           mappedWeather = 'Rainy';
-        } else if (code === 2000 || code === 2100) {
-          mappedWeather = 'Humid';
+        } else {
+          // If relative humidity is very high, classify as Humid, otherwise Sunny fallback
+          const rh = current.relative_humidity_2m || 60;
+          mappedWeather = rh > 75 ? 'Humid' : 'Sunny';
         }
         setWeather(mappedWeather);
       }
