@@ -131,8 +131,15 @@ export default function Home() {
         onLogout={handleLogout}
       />
       
-      {/* Main content: proper mobile padding for top header + bottom nav */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden bg-slate-50 dark:bg-slate-900 pt-[72px] pb-[72px] md:pt-0 md:pb-0">
+      {/* Main content: safe-area aware padding for fixed mobile header + bottom nav */}
+      <main
+        className="flex-1 flex flex-col min-w-0 overflow-x-hidden bg-slate-50 dark:bg-slate-900 md:pt-0 md:pb-0"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 62px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 58px)',
+        }}
+      >
+        <style>{`@media (min-width: 768px) { main { padding-top: 0 !important; padding-bottom: 0 !important; } }`}</style>
         {currentTab === 'dashboard' && userRole === 'Owner' && (
           <OwnerDashboard 
             darkMode={darkMode} 

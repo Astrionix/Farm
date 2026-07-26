@@ -428,7 +428,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden max-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Sticky Page Header ─────────────────────── */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 pt-4 pb-0 md:px-6 md:pt-6 shrink-0">
@@ -445,7 +445,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
         {/* Scrollable Unit Tabs */}
         {userRole === 'Owner' && (
-          <div className="flex gap-1 overflow-x-auto pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+          <div className="flex overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide border-t border-slate-100 dark:border-slate-700/50">
             {unitsList.map(u => (
               <button
                 key={u.id}
@@ -467,7 +467,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       </div>
 
       {/* ── Scrollable Content ─────────────────────── */}
-      <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4">
 
       {/* Confirm Save Dialog */}
       {showConfirm && (
