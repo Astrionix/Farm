@@ -496,9 +496,10 @@ export const dbService = {
         const storedShedsStr = localStorage.getItem(STORAGE_KEYS.SHEDS);
         if (storedShedsStr && !needReset) {
           const storedSheds = JSON.parse(storedShedsStr);
+          const u1Count = storedSheds.filter((s: any) => s.unitId === 1).length;
           const u4Count = storedSheds.filter((s: any) => s.unitId === 4).length;
           const u3Count = storedSheds.filter((s: any) => s.unitId === 3).length;
-          if (u4Count !== 12 || u3Count !== 4) {
+          if (u1Count !== 6 || u4Count !== 12 || u3Count !== 4) {
             needReset = true;
           }
         }
