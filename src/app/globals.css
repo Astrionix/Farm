@@ -219,9 +219,17 @@ html {
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
 
-  /* Page setup */
+  /* Page setup (Setting margin to 0 inside page hides default browser date/headers/footers) */
   @page {
-    margin: 1.5cm 1.5cm;
+    margin: 0;
     size: A4 landscape;
+  }
+  
+  body {
+    padding: 1.5cm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    font-family: 'Inter', Arial, sans-serif;
   }
 }

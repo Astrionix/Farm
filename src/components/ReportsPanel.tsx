@@ -592,7 +592,7 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
         {/* Footer */}
         <div className="border-t border-emerald-800/40 pt-4 flex items-center justify-between text-[9px] text-slate-400 font-bold mt-4">
           <div className="flex items-center gap-1">
-            <span>🌐 localhost:3000</span>
+            <span>Sri Mahalakshmi Poultry AI ERP</span>
           </div>
           <div>1/1</div>
         </div>
