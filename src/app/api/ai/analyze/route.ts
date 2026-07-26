@@ -50,7 +50,8 @@ function generateFallbackAnalysis(summary: any) {
       diseaseIndicators: `Jaggampeta Unit 3, Shed 2 logged therapeutic treatment (Tetracycline) for bacterial diarrhea. Mortality has subsided to 1 death/day.`,
       feedIssues: `FCR leakage in Jaggampeta Unit 3, Shed 2 (FCR: 2.45) resulted in excess feed consumption. Feeding troughs should be checked for height alignment.`,
       waterIssues: `Water-to-feed ratio is optimal at 2.05 across active sheds, indicating birds are hydrated during peak summer hours.`,
-      environmentalIssues: `Humidity is averaging 62%. Fans should continue running at full capacity to avoid respiratory heat index complications.`
+      environmentalIssues: `Humidity is averaging 62%. Fans should continue running at full capacity to avoid respiratory heat index complications.`,
+      weatherCorrelation: `Statistical review shows egg production falls by **4.2%** during Humid weather conditions compared to Sunny/Cloudy conditions. Apparent temp levels exceeding 36°C trigger immediate ventilation alerts.`
     },
     recommendations: [
       `Flush water lines in Jaggampeta Unit 3 with sanitizers (chlorine dioxide) to prevent bacterial biofilm build-up.`,
@@ -109,6 +110,9 @@ export async function POST(request: Request) {
 You are given a JSON representing the active database stats:
 ${JSON.stringify(dataSummary)}
 
+Analyze weather patterns and relative humidity stats inside the logs to identify production correlations.
+Identify drops in HD% during humid/rainy/hot days.
+
 Generate a structured analysis in JSON format ONLY. Do not reply with any markdown outside of the JSON block.
 The JSON must strictly match this structure:
 {
@@ -121,7 +125,8 @@ The JSON must strictly match this structure:
     "diseaseIndicators": "string",
     "feedIssues": "string",
     "waterIssues": "string",
-    "environmentalIssues": "string"
+    "environmentalIssues": "string",
+    "weatherCorrelation": "string"
   },
   "recommendations": ["string", "string", ...],
   "priorityActions": ["string", "string", ...],

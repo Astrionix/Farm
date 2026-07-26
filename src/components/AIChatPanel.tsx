@@ -204,6 +204,12 @@ You can ask me questions like:
                   <span className="text-blue-500 font-black uppercase text-[9px] tracking-wider block">Water & Hydration Ratio</span>
                   <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.waterIssues}</p>
                 </div>
+                {insights.observations.weatherCorrelation && (
+                  <div className="p-3 bg-amber-50/30 dark:bg-amber-950/10 rounded-xl border border-amber-100/30">
+                    <span className="text-amber-600 dark:text-amber-400 font-black uppercase text-[9px] tracking-wider block">Weather & Climate Correlation</span>
+                    <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.weatherCorrelation}</p>
+                  </div>
+                )}
               </div>
             </div>
 

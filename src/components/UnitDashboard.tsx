@@ -580,6 +580,41 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                   </div>
                 </div>
               </div>
+
+              {/* Flock / Batch History Log (Non-interactive historical records overview) */}
+              <div className="space-y-2 border-t border-slate-100 dark:border-slate-700 pt-4">
+                <h4 className="font-extrabold text-xs text-primary uppercase flex items-center gap-1.5">
+                  <span>📦 Flock & Batch History Logs</span>
+                </h4>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] font-semibold space-y-2">
+                  {(() => {
+                    const batchDate = dbService.getBatchDate(selectedShedDetails.unitId, selectedShedDetails.shedNumber);
+                    if (!batchDate) {
+                      return (
+                        <div className="text-slate-400 italic py-1">
+                          No active placement record exists for this shed slot. Use the Daily Entry panel to set a batch date.
+                        </div>
+                      );
+                    }
+                    const d = new Date(batchDate);
+                    const label = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-1.5">
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">Active Batch</span>
+                          <span className="bg-emerald-500/10 text-emerald-500 font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase">Running</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-y-1 text-slate-700 dark:text-slate-300">
+                          <div><span className="text-slate-400">Breed Type:</span> BV300 Premium</div>
+                          <div><span className="text-slate-400">Start Date:</span> {label}</div>
+                          <div><span className="text-slate-400">Placement Wk Age:</span> Week 0 (Day 1 chicks)</div>
+                          <div><span className="text-slate-400">Capacity Limit:</span> 5,000 birds</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* Modal Footer */}
