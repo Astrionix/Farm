@@ -486,8 +486,11 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             <h1 className="font-black text-xl tracking-wider text-emerald-800 dark:text-emerald-400 uppercase leading-none">
               SRI MAHALAKSHMI <span className="text-amber-500 font-bold">POULTRY AI ERP</span>
             </h1>
-            <h2 className="text-sm font-extrabold text-slate-800 dark:text-white mt-1.5 leading-none">
-              Sri Mahalakshmi Poultry
+            <h2 className="text-sm font-extrabold text-slate-800 dark:text-white mt-1.5 leading-none flex items-center gap-1.5">
+              <span>Sri Mahalakshmi Poultry</span>
+              <span className="text-xs font-black text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/30">
+                {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`}
+              </span>
             </h2>
             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">
               INTELLIGENT POULTRY MANAGEMENT POWERED BY AI
