@@ -376,6 +376,18 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                         </div>
                         <div>
                           Age: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.birdAgeWeeks ?? 'N/A'} wks</span>
+                          {(() => {
+                            const batchDate = dbService.getBatchDate(selectedUnit, shedNum);
+                            if (!batchDate) return null;
+                            const d = new Date(batchDate);
+                            const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+                            const dateStr = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+                            return (
+                              <span className="block text-[8px] text-amber-600 dark:text-amber-400 font-semibold tracking-tight mt-0.5" title={`Placed on ${dayStr}, ${dateStr}`}>
+                                Pl: {dayStr}, {dateStr}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div>
                           FCR: <span className="font-bold text-slate-700 dark:text-slate-300">{entry.fcr}</span>
