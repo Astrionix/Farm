@@ -819,6 +819,18 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         );
                       })()}
 
+                      {/* Feed Consumed (kg) */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                        <input
+                          type="number"
+                          value={input.feedKg ?? 0}
+                          onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          required
+                        />
+                      </div>
+
                       {/* Eggs Collected */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>

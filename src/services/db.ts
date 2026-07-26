@@ -103,7 +103,7 @@ const STORAGE_KEYS = {
 };
 
 export const UNIT_CONFIGS = [
-  { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 12, status: 'Active' as const },
+  { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 6, status: 'Active' as const },
   { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
   { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 4, status: 'Active' as const }, // 3 normal + 1 chick shed = 4
   { id: 4, name: 'Kotapadu', shedsCount: 12, status: 'Active' as const }, // 11 normal + 1 chick shed = 12
