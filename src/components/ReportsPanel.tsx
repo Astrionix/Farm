@@ -289,9 +289,10 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
     
     // Construct CSV file content
     const headers = 'Shed Number,Opening Birds,Mortality,Closing Birds,Feed Consumed (kg),Water Consumed (L),Eggs Gathered,Egg Weight (g),HD%,FCR,Performance Score\n';
-    const rows = entries.map(e => 
-      `${e.shedNumber},${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.waterLiters},${e.eggsCount},${e.eggWeightG},${e.hdPct},${e.fcr},${e.performanceScore}`
-    ).join('\n');
+    const rows = entries.map(e => {
+      const shedLabel = isChickShed(selectedUnit, e.shedNumber) ? 'Chick Shed' : `Shed ${e.shedNumber}`;
+      return `"${shedLabel}",${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.waterLiters},${e.eggsCount},${e.eggWeightG},${e.hdPct},${e.fcr},${e.performanceScore}`;
+    }).join('\n');
 
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -502,7 +503,9 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 font-semibold text-slate-700 dark:text-slate-300">
               {entries.map(e => (
                 <tr key={e.shedNumber} className="hover:bg-slate-50/40 dark:hover:bg-slate-700/10">
-                  <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-white">Shed {e.shedNumber}</td>
+                  <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-white">
+                    {isChickShed(selectedUnit, e.shedNumber) ? 'Chick Shed' : `Shed ${e.shedNumber}`}
+                  </td>
                   <td className="py-3.5 px-2 text-right">{e.closingBirds.toLocaleString()}</td>
                   <td className="py-3.5 px-2 text-right text-red-500">{e.mortality}</td>
                   <td className="py-3.5 px-2 text-right">{e.feedKg.toFixed(1)}</td>
