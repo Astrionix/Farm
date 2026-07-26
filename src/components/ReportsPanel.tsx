@@ -42,7 +42,7 @@ const pdfStyles = StyleSheet.create({
 });
 
 // PDF Document Component
-const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[], title: string, date: string, unitId: number }) => (
+const PoultryPDFReport = ({ data, title, date, unitId, unitName }: { data: DBDailyEntry[], title: string, date: string, unitId: number, unitName: string }) => (
   <Document>
     <Page size="A4" style={pdfStyles.page}>
       {/* Header */}
@@ -55,7 +55,7 @@ const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[],
       <View style={pdfStyles.metaContainer}>
         <View>
           <Text style={pdfStyles.title}>{title}</Text>
-          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Unit Number: {unitId}</Text>
+          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Unit Name: {unitName}</Text>
         </View>
         <View style={{ textAlign: 'right' }}>
           <Text style={pdfStyles.metaText}>Generated Date: {new Date().toLocaleDateString()}</Text>
@@ -420,6 +420,7 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
                   title="Daily Production Audit Sheet"
                   date={reportDate}
                   unitId={selectedUnit}
+                  unitName={unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`}
                 />
               }
               fileName={`Poultry_Report_Unit_${selectedUnit}_${reportDate}.pdf`}
@@ -461,8 +462,10 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
               </span>
             </div>
             <div>
-              <span className="text-slate-400 font-semibold block">Unit Number:</span>
-              <span className="font-extrabold text-slate-700 dark:text-slate-200">Unit {selectedUnit}</span>
+              <span className="text-slate-400 font-semibold block">Unit Name:</span>
+              <span className="font-extrabold text-slate-700 dark:text-slate-200">
+                {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`}
+              </span>
             </div>
           </div>
         </div>
