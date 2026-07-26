@@ -463,7 +463,7 @@ function generateHistoricalMockData() {
 }
 
 // Promise timeout race wrapper to prevent UI hanging on slow/unresolved network queries
-async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms = 1200): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms = 8000): Promise<T> {
   let timeoutId: any;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
