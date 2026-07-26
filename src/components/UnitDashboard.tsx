@@ -214,11 +214,6 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
 
       {/* AI Gauge Scores Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {renderGauge(scorePerformance, 'Performance Index', Activity, 'text-primary', 'stroke-primary')}
-        {renderGauge(scoreHealth, 'Flock Health Score', HeartPulse, 'text-emerald-500', 'stroke-emerald-500')}
-        {renderGauge(scoreEfficiency, 'Feed/Water Efficiency', Zap, 'text-secondary', 'stroke-secondary')}
-        {renderGauge(scoreRisk, 'Mortality Risk Score', AlertOctagon, 'text-red-500', 'stroke-red-500')}
-        
         {/* Total Eggs Card */}
         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-100/50 dark:border-amber-900/30">
@@ -234,6 +229,11 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             </span>
           </div>
         </div>
+
+        {renderGauge(scorePerformance, 'Performance Index', Activity, 'text-primary', 'stroke-primary')}
+        {renderGauge(scoreHealth, 'Flock Health Score', HeartPulse, 'text-emerald-500', 'stroke-emerald-500')}
+        {renderGauge(scoreEfficiency, 'Feed/Water Efficiency', Zap, 'text-secondary', 'stroke-secondary')}
+        {renderGauge(scoreRisk, 'Mortality Risk Score', AlertOctagon, 'text-red-500', 'stroke-red-500')}
       </div>
 
       {/* Shed Cards Grid */}
