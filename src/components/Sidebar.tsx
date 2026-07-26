@@ -250,22 +250,32 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           MOBILE TOP HEADER BAR
       ═══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
-        <LogoBlock />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onLogout}
-            className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/25 text-red-300 transition active:scale-95"
-            title="Sign Out"
-          >
-            <LogOut className="w-4.5 h-4.5" />
-          </button>
-          <button
-            onClick={() => setMobileDrawerOpen(true)}
-            className="p-2 rounded-xl bg-primary-light/20 hover:bg-primary-light/40 transition active:scale-95"
-          >
-            <Menu className="w-5 h-5 text-white" />
-          </button>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white shadow-lg border-b border-primary-dark/30"
+           style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <LogoBlock />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-xl bg-primary-light/20 hover:bg-primary-light/40 transition active:scale-95"
+              title="Toggle Dark Mode"
+            >
+              <SunMoon className="w-4 h-4 text-white" />
+            </button>
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/30 text-red-300 transition active:scale-95"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="p-2 rounded-xl bg-primary-light/20 hover:bg-primary-light/40 transition active:scale-95"
+            >
+              <Menu className="w-5 h-5 text-white" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -347,7 +357,8 @@ export default function Sidebar({
       </div>
 
       {/* ─── MOBILE BOTTOM NAVIGATION BAR ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center safe-area-inset-bottom">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700/80 shadow-[0_-2px_20px_rgba(0,0,0,0.08)] flex items-stretch"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {bottomNavTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -355,20 +366,22 @@ export default function Sidebar({
             <button
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-all active:scale-95 ${isActive
+              className={`flex-1 flex flex-col items-center justify-center pt-2.5 pb-2 gap-0.5 transition-all active:scale-90 relative ${
+                isActive
                   ? 'text-primary dark:text-secondary'
-                  : 'text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white'
-                }`}
+                  : 'text-slate-400 dark:text-slate-500'
+              }`}
             >
-              <div className={`relative p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10 dark:bg-secondary/20' : ''
-                }`}>
+              {/* Active indicator pill at top */}
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-primary dark:bg-secondary rounded-b-full" />
+              )}
+              <div className={`p-1.5 rounded-xl transition-all ${
+                isActive ? 'bg-primary/10 dark:bg-secondary/15' : ''
+              }`}>
                 <Icon className={`w-5 h-5 transition-all ${isActive ? 'scale-110' : ''}`} />
-                {isActive && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-secondary rounded-full" />
-                )}
               </div>
-              <span className={`text-[9px] font-bold uppercase tracking-wide ${isActive ? 'text-primary dark:text-secondary' : 'text-slate-400 dark:text-slate-500'
-                }`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wide`}>
                 {tab.shortName}
               </span>
             </button>

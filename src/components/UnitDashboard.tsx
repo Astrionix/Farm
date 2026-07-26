@@ -144,21 +144,21 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   // Circular gauge renderer helper
   const renderGauge = (score: number, title: string, icon: any, colorClass: string, trackColor: string) => {
     const Icon = icon;
-    const radius = 32;
+    const radius = 22;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - (score / 100) * circumference;
 
     return (
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
-        <div className="relative w-18 h-18 shrink-0 flex items-center justify-center">
-          <svg className="w-full h-full transform -rotate-90">
-            <circle cx="36" cy="36" r={radius} className="stroke-slate-100 dark:stroke-slate-700" strokeWidth="6" fill="transparent" />
+      <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-3">
+        <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+          <svg viewBox="0 0 56 56" className="w-14 h-14 transform -rotate-90">
+            <circle cx="28" cy="28" r={radius} className="stroke-slate-100 dark:stroke-slate-700" strokeWidth="5" fill="transparent" />
             <circle 
-              cx="36" 
-              cy="36" 
+              cx="28" 
+              cy="28" 
               r={radius} 
               className={trackColor} 
-              strokeWidth="6" 
+              strokeWidth="5" 
               fill="transparent" 
               strokeDasharray={circumference} 
               strokeDashoffset={strokeDashoffset}
@@ -166,13 +166,13 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             />
           </svg>
           <div className="absolute text-center">
-            <span className="text-sm font-black text-slate-800 dark:text-white leading-none">{score}%</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-white leading-none">{score}%</span>
           </div>
         </div>
         <div>
           <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider">{title}</h4>
           <div className="flex items-center gap-1.5 mt-1">
-            <Icon className={`w-4 h-4 ${colorClass}`} />
+            <Icon className={`w-3.5 h-3.5 ${colorClass}`} />
             <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
               {score >= 90 ? 'Excellent' : score >= 80 ? 'Optimal' : score >= 70 ? 'Stable' : score >= 50 ? 'Warning' : 'Critical'}
             </span>
@@ -183,7 +183,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   };
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen">
+    <div className="flex-1 p-4 md:p-6 space-y-5 overflow-y-auto overflow-x-hidden max-h-screen">
       {/* Header Selector */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>

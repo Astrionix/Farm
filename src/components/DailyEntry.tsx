@@ -428,7 +428,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   }
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen">
+    <div className="flex-1 p-4 md:p-6 space-y-5 overflow-y-auto overflow-x-hidden max-h-screen">
 
       {/* Confirm Save Dialog */}
       {showConfirm && (

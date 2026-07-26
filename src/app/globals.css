@@ -35,8 +35,36 @@ body {
   color: var(--foreground);
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
-  /* Smooth momentum scrolling on iOS */
+  /* Smooth momentum scrolling on iOS/Android */
   -webkit-overflow-scrolling: touch;
+  /* Prevent text size adjust on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Ensure all containers are bounded */
+*, *::before, *::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Safe area padding utilities */
+.safe-top    { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Remove tap highlight on mobile */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better touch targets */
+button {
+  touch-action: manipulation;
+}
+
+/* Prevent horizontal scroll on entire page */
+html {
+  overflow-x: hidden;
 }
 
 /* Glassmorphism helpers */
