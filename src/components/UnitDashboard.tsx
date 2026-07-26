@@ -183,82 +183,89 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   };
 
   return (
-    <div className="flex-1 p-4 md:p-6 space-y-5 overflow-y-auto overflow-x-hidden max-h-screen">
-      {/* Header Selector */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
-            Unit & Shed Dashboard
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-            Real-time shed performance metrics, status configurations, and score breakdowns
-          </p>
+    <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden max-h-screen bg-slate-50 dark:bg-slate-900">
+
+      {/* ── Sticky Page Header ─────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 pt-4 pb-0 md:px-6 md:pt-6 shrink-0">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h2 className="text-lg md:text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white leading-tight">
+              Unit &amp; Shed Dashboard
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 hidden md:block">
+              Real-time shed performance metrics, status configurations, and score breakdowns
+            </p>
+          </div>
+          {userRole === 'Supervisor' && (
+            <span className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-extrabold uppercase tracking-wide shrink-0">
+              {unitsList.find(u => u.id === selectedUnit)?.name?.replace('Jaggampeta ', 'J. ') || `Unit ${selectedUnit}`}
+            </span>
+          )}
         </div>
 
-        {/* Unit Selector */}
+        {/* Scrollable Unit Tabs */}
         {userRole === 'Owner' && (
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/50 dark:border-slate-700/50">
+          <div className="flex gap-1 overflow-x-auto pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
             {unitsList.map(u => (
               <button
                 key={u.id}
                 onClick={() => setSelectedUnit(u.id)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`flex-shrink-0 px-3.5 py-2.5 text-xs font-bold transition-all relative ${
                   selectedUnit === u.id
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                    ? 'text-primary dark:text-secondary'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
               >
-                {u.name}
+                {u.name.replace('Jaggampeta ', 'J. ')}
+                {selectedUnit === u.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-primary dark:bg-secondary rounded-t-full" />
+                )}
               </button>
             ))}
           </div>
         )}
-        {userRole === 'Supervisor' && (
-          <span className="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-xs font-extrabold uppercase tracking-wide">
-            Supervisor: {unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`} Only
-          </span>
-        )}
       </div>
 
-      {/* AI Gauge Scores Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Total Eggs Card */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-100/50 dark:border-amber-900/30">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider leading-none">Total Eggs Collected</h4>
-            <span className="text-base font-black text-slate-800 dark:text-white block mt-1.5 leading-none">
-              {totalEggs.toLocaleString()}
-            </span>
-            <span className="text-[10px] text-primary font-bold mt-1 block">
-              Avg {unitHDPct.toFixed(1)}% HD Production
-            </span>
-          </div>
-        </div>
+      {/* ── Scrollable Content ─────────────────────── */}
+      <div className="flex-1 p-4 md:p-6 space-y-4">
 
-        {/* Average Flock Age Card */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-500 shrink-0 border border-blue-100/50 dark:border-blue-900/30">
-            <Calendar className="w-6 h-6" />
+        {/* Metrics Grid — 2 cols on mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Total Eggs Card */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium flex flex-col gap-2">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/15 flex items-center justify-center text-amber-500 border border-amber-100/50 dark:border-amber-900/30">
+              <TrendingUp className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase tracking-wider leading-none">Total Eggs</h4>
+              <span className="text-base font-black text-slate-800 dark:text-white block mt-1 leading-none">
+                {totalEggs.toLocaleString()}
+              </span>
+              <span className="text-[9px] text-primary font-bold mt-1 block">
+                {unitHDPct.toFixed(1)}% HD Avg
+              </span>
+            </div>
           </div>
-          <div>
-            <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider leading-none">Average Flock Age</h4>
-            <span className="text-base font-black text-slate-800 dark:text-white block mt-1.5 leading-none font-sans">
-              {avgBirdAge > 0 ? `${avgBirdAge.toFixed(1)} Weeks` : '0.0 Weeks'}
-            </span>
-            <span className="text-[10px] text-blue-500 font-bold mt-1 block">
-              Active Unit Lifecycle
-            </span>
-          </div>
-        </div>
 
-        {renderGauge(scorePerformance, 'Performance Index', Activity, 'text-primary', 'stroke-primary')}
-        {renderGauge(scoreHealth, 'Flock Health Score', HeartPulse, 'text-emerald-500', 'stroke-emerald-500')}
-        {renderGauge(scoreEfficiency, 'Feed/Water Efficiency', Zap, 'text-secondary', 'stroke-secondary')}
-        {renderGauge(scoreRisk, 'Mortality Risk Score', AlertOctagon, 'text-red-500', 'stroke-red-500')}
-      </div>
+          {/* Average Flock Age Card */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium flex flex-col gap-2">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/15 flex items-center justify-center text-blue-500 border border-blue-100/50 dark:border-blue-900/30">
+              <Calendar className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase tracking-wider leading-none">Flock Age</h4>
+              <span className="text-base font-black text-slate-800 dark:text-white block mt-1 leading-none">
+                {avgBirdAge > 0 ? `${avgBirdAge.toFixed(1)}w` : '0.0w'}
+              </span>
+              <span className="text-[9px] text-blue-500 font-bold mt-1 block">Active Lifecycle</span>
+            </div>
+          </div>
+
+          {renderGauge(scorePerformance, 'Performance', Activity, 'text-primary', 'stroke-primary')}
+          {renderGauge(scoreHealth, 'Health Score', HeartPulse, 'text-emerald-500', 'stroke-emerald-500')}
+          {renderGauge(scoreEfficiency, 'Efficiency', Zap, 'text-secondary', 'stroke-secondary')}
+          {renderGauge(scoreRisk, 'Risk Score', AlertOctagon, 'text-red-500', 'stroke-red-500')}
+        </div>
 
       {/* Shed Cards Grid */}
       <div className="space-y-4">
@@ -277,7 +284,8 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        {/* Shed Slot Grid — 2 col on mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
           {Array.from({ length: Object.keys(shedStatusMap).length }, (_, i) => i + 1).map(shedNum => {
             const status = shedStatusMap[shedNum] || 'Active';
             const isActive = status === 'Active';
@@ -402,6 +410,9 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             );
           })}
         </div>
+      </div>
+
+      {/* Close flex-1 p-4 content wrapper */}
       </div>
 
       {/* Shed Details Modal */}

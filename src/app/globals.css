@@ -123,6 +123,10 @@ html {
   background: #475569;
 }
 
+/* Scrollbar hide utility for tab bars */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ─── Print-Friendly Styles for Reports ─── */
 @media print {
   /* Hide non-essential chrome */
