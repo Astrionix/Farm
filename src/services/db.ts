@@ -99,6 +99,7 @@ const STORAGE_KEYS = {
   ASSIGNED_UNIT: 'smp_assigned_unit',
   DB_MODE: 'smp_db_mode',
   BATCH_DATES: 'smp_batch_dates', // { "unitId-shedNumber": "YYYY-MM-DD" }
+  SYNC_QUEUE: 'smp_sync_queue', // Array of Omit<DBDailyEntry, 'id'>[]
 };
 
 export const UNIT_CONFIGS = [
@@ -720,6 +721,100 @@ export const dbService = {
     return Math.max(0, Math.floor(diffDays / 7));
   },
 
+  // ─── OFFLINE STATUS & SYNC QUEUE ────────────────────────────
+  isOnline: (): boolean => {
+    if (typeof window === 'undefined') return true;
+    return navigator.onLine;
+  },
+
+  getSyncQueueLength: (): number => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE) || '[]');
+      return queue.length;
+    } catch {
+      return 0;
+    }
+  },
+
+  addToSyncQueue: (entries: any[]): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE) || '[]');
+      queue.push(...entries);
+      localStorage.setItem(STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
+      window.dispatchEvent(new Event('sync-queue-updated'));
+    } catch (e) {
+      console.error('Failed to append to sync queue:', e);
+    }
+  },
+
+  syncPendingEntries: async (): Promise<void> => {
+    if (typeof window === 'undefined' || !navigator.onLine || !supabaseClient) return;
+    
+    const queueStr = localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE);
+    if (!queueStr) return;
+    
+    let queue: any[] = [];
+    try {
+      queue = JSON.parse(queueStr);
+    } catch {
+      localStorage.removeItem(STORAGE_KEYS.SYNC_QUEUE);
+      return;
+    }
+    
+    if (queue.length === 0) return;
+    
+    console.log(`Starting background sync of ${queue.length} pending daily entries to Supabase...`);
+    
+    try {
+      const records = queue.map(e => ({
+        date: e.date,
+        unit_id: e.unitId,
+        shed_number: e.shedNumber,
+        weather: e.weather,
+        temperature: e.temperature,
+        humidity: e.humidity,
+        opening_birds: e.openingBirds,
+        mortality: e.mortality,
+        culls: e.culls,
+        closing_birds: e.closingBirds,
+        uniformity: e.uniformity,
+        body_weight: e.bodyWeight,
+        bird_age_weeks: e.birdAgeWeeks || 20,
+        feed_kg: e.feedKg,
+        water_liters: e.waterLiters,
+        eggs_count: e.eggsCount,
+        egg_weight_g: e.eggWeightG,
+        medication: e.medication || '',
+        remarks: e.remarks || '',
+        hd_pct: e.hdPct,
+        mortality_pct: e.mortalityPct,
+        feed_per_bird_g: e.feedPerBirdG,
+        water_per_bird_ml: e.waterPerBirdMl,
+        fcr: e.fcr,
+        water_to_feed_ratio: e.waterToFeedRatio,
+        egg_mass_kg: e.eggMassKg,
+        performance_score: e.performanceScore,
+      }));
+
+      // Upsert in batches
+      const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
+      if (error) {
+        console.error('Sync to Supabase failed:', error);
+        return;
+      }
+      
+      // Successfully synced! Clear the queue
+      localStorage.setItem(STORAGE_KEYS.SYNC_QUEUE, '[]');
+      supabaseActive = true;
+      window.dispatchEvent(new Event('sync-queue-updated'));
+      console.log('Background sync completed successfully!');
+    } catch (e) {
+      console.error('Error during database sync transaction:', e);
+    }
+  },
+
   // 3. DAILY ENTRIES
   getDailyEntries: async (filters?: { date?: string; unitId?: number; dateStart?: string; dateEnd?: string }): Promise<DBDailyEntry[]> => {
     try {
@@ -819,7 +914,9 @@ export const dbService = {
     });
 
     // 2. Perform DB insert
-    if (supabaseActive && supabaseClient) {
+    let saveDirectlyToSupabase = supabaseActive && supabaseClient && navigator.onLine;
+
+    if (saveDirectlyToSupabase && supabaseClient) {
       try {
         const records = processedEntries.map(e => ({
           date: e.date,
@@ -853,12 +950,17 @@ export const dbService = {
 
         const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
         if (error) {
-          console.error('Supabase save failed:', error);
+          console.error('Supabase save failed, queuing for offline sync:', error);
+          dbService.addToSyncQueue(processedEntries);
         }
       } catch (e) {
-        console.warn('Supabase connection failed in saveDailyEntries. Switching to offline mode.', e);
-        supabaseActive = false;
+        console.warn('Supabase save failed with error, queuing for offline sync:', e);
+        dbService.addToSyncQueue(processedEntries);
       }
+    } else {
+      // Offline: Add entries to local sync queue
+      console.log('App is offline or database unavailable. Queuing entries for auto-sync.');
+      dbService.addToSyncQueue(processedEntries);
     }
 
     // Local Storage save

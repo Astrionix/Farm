@@ -48,6 +48,9 @@ export default function Sidebar({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
 
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [syncQueueCount, setSyncQueueCount] = useState<number>(0);
+
   React.useEffect(() => {
     async function loadUnits() {
       const u = await dbService.getUnits();
@@ -55,29 +58,62 @@ export default function Sidebar({
     }
     loadUnits();
 
-    const handleStorageChange = () => {
-      loadUnits();
+    // Check offline status & queue length
+    setIsOnline(dbService.isOnline());
+    setSyncQueueCount(dbService.getSyncQueueLength());
+
+    const updateConnectionState = () => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+      if (online) {
+        // Trigger auto background sync when returning online
+        dbService.syncPendingEntries();
+      }
     };
-    window.addEventListener('storage-role-change', handleStorageChange);
+
+    const updateQueueCount = () => {
+      setSyncQueueCount(dbService.getSyncQueueLength());
+    };
+
+    window.addEventListener('online', updateConnectionState);
+    window.addEventListener('offline', updateConnectionState);
+    window.addEventListener('sync-queue-updated', updateQueueCount);
+    window.addEventListener('storage-role-change', loadUnits);
+
     return () => {
-      window.removeEventListener('storage-role-change', handleStorageChange);
+      window.removeEventListener('online', updateConnectionState);
+      window.removeEventListener('offline', updateConnectionState);
+      window.removeEventListener('sync-queue-updated', updateQueueCount);
+      window.removeEventListener('storage-role-change', loadUnits);
     };
   }, []);
 
-
   // ─── Database Control Block ──────────────────────────────────────
   const DatabaseControlBlock = () => {
-    if (userRole !== 'Owner') return null;
     return (
       <div className="bg-primary-dark/40 rounded-xl p-3 border border-primary-light/5 text-xs space-y-2.5">
-        <div className="flex items-center gap-1.5 text-emerald-200/80 font-medium">
-          <Database className="w-3.5 h-3.5 text-secondary" />
-          <span>Database Connection:</span>
+        <div className="flex items-center justify-between text-emerald-200/80 font-medium">
+          <span className="flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-secondary" />
+            <span>Connection status:</span>
+          </span>
+          {syncQueueCount > 0 && (
+            <span className="bg-amber-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase animate-pulse">
+              {syncQueueCount} Pending
+            </span>
+          )}
         </div>
-        <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Live (Supabase Connected)</span>
-        </div>
+        {isOnline ? (
+          <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Connected (Supabase Live)</span>
+          </div>
+        ) : (
+          <div className="text-[11px] font-semibold text-amber-400 flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Offline (Saving Entries Locally)</span>
+          </div>
+        )}
       </div>
     );
   };
