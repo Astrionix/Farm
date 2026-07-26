@@ -377,17 +377,17 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       {/* Main Charts & Leaderboards section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recharts Analytics Charts Panel (Takes 2 columns) */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 space-y-6 self-start">
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-black text-slate-800 dark:text-white text-base">Production & Performance Charts</h3>
               <p className="text-slate-400 text-xs font-semibold">Graphical representation of key indicators</p>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="flex-1 flex flex-col justify-between">
             {chartData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[20rem] space-y-3">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[20rem] flex-1 space-y-3">
                 <div className="p-4 bg-primary/5 rounded-full text-primary">
                   <Activity className="w-8 h-8" />
                 </div>
@@ -398,30 +398,32 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               </div>
             ) : (
               /* Chart 1: Eggs Produced vs HD% */
-              <div className="h-[20rem]">
+              <div className="flex-1 min-h-[20rem] flex flex-col justify-between">
                 <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.25}/>
-                        <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#F9A825" stopOpacity={0.25}/>
-                        <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                    <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                    <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                    <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
-                    <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                    <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
-                    <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div className="flex-1 h-full min-h-[16rem]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorEggs" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.25}/>
+                          <stop offset="95%" stopColor="#1B5E20" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorHd" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F9A825" stopOpacity={0.25}/>
+                          <stop offset="95%" stopColor="#F9A825" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
+                      <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
+                      <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
+                      <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                      <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
+                      <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
           </div>
