@@ -24,83 +24,166 @@ interface ReportsPanelProps {
 // -------------------------------------------------------------
 // PDF REPORT STYLE SHEET
 // -------------------------------------------------------------
+// -------------------------------------------------------------
+// PDF REPORT STYLE SHEET
+// -------------------------------------------------------------
 const pdfStyles = StyleSheet.create({
-  page: { padding: 30, backgroundColor: '#ffffff', fontFamily: 'Helvetica' },
-  header: { borderBottomWidth: 2, borderBottomColor: '#1B5E20', pb: 10, mb: 20 },
-  brand: { fontSize: 18, fontWeight: 'bold', color: '#1B5E20' },
-  tagline: { fontSize: 8, color: '#F9A825', marginTop: 2, fontWeight: 'bold', textTransform: 'uppercase' },
-  title: { fontSize: 12, marginTop: 15, fontWeight: 'bold', color: '#334155' },
-  metaContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, mb: 20 },
-  metaText: { fontSize: 9, color: '#64748b' },
-  table: { width: '100%', borderCollapse: 'collapse', marginTop: 15 },
-  tableHeader: { flexDirection: 'row', backgroundColor: '#1B5E20', color: '#ffffff', padding: 6 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', padding: 6 },
-  th: { fontSize: 8, fontWeight: 'bold', flex: 1 },
+  page: { padding: 40, backgroundColor: '#ffffff', fontFamily: 'Helvetica' },
+  canvasHeader: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 8, marginBottom: 15 },
+  canvasHeaderText: { fontSize: 8, color: '#94a3b8', fontWeight: 'bold' },
+  canvasHeaderTitle: { fontSize: 8, color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
+  canvasHeaderRight: { flexDirection: 'row', gap: 15 },
+  canvasHeaderMeta: { fontSize: 8, color: '#64748b', fontWeight: 'bold' },
+  
+  // Branding
+  brandingContainer: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 2, borderBottomColor: '#1B5E20', paddingBottom: 15, marginBottom: 20 },
+  logoContainer: { width: 45, height: 45, backgroundColor: '#ffffff', borderRadius: 8, marginRight: 15, padding: 5, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontSize: 16, color: '#1B5E20', fontWeight: 'bold' },
+  brandTitle: { fontSize: 15, fontWeight: 'black', color: '#1B5E20', letterSpacing: 0.5 },
+  brandTitleHighlight: { color: '#F9A825' },
+  companyLabel: { fontSize: 10, fontWeight: 'bold', color: '#334155', marginTop: 2 },
+  brandSubtitle: { fontSize: 7, color: '#94a3b8', fontWeight: 'bold', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
+  
+  // Summary KPIs Container
+  kpiContainer: { flexDirection: 'row', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: 20 },
+  kpiCard: { flex: 1, padding: 12, flexDirection: 'row', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#e2e8f0' },
+  kpiCardLast: { flex: 1, padding: 12, flexDirection: 'row', alignItems: 'center' },
+  kpiIcon: { fontSize: 16, marginRight: 10 },
+  kpiTitle: { fontSize: 7, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
+  kpiValue: { fontSize: 14, fontWeight: 'black', marginTop: 2 },
+  
+  // Table
+  table: { width: '100%', marginTop: 5 },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#1B5E20', padding: 8 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', padding: 8, alignItems: 'center' },
+  th: { fontSize: 8, fontWeight: 'bold', color: '#ffffff', flex: 1, textTransform: 'uppercase' },
   td: { fontSize: 8, flex: 1, color: '#334155' },
-  footer: { position: 'absolute', bottom: 30, left: 30, right: 30, borderTopWidth: 1, borderTopColor: '#e2e8f0', pt: 10, textAlign: 'center' },
-  footerText: { fontSize: 8, color: '#94a3b8' }
+  tdShed: { fontSize: 8, flex: 1.2, color: '#0f172a', fontWeight: 'bold' },
+  
+  // Footer
+  footer: { position: 'absolute', bottom: 30, left: 40, right: 40, borderTopWidth: 1, borderTopColor: '#e2e8f0', pt: 10, flexDirection: 'row', justifyContent: 'space-between' },
+  footerText: { fontSize: 7, color: '#94a3b8', fontWeight: 'bold' }
 });
 
 // PDF Document Component (Landscape layout, custom columns, matching specification)
-const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[], title: string, date: string, unitId: number }) => (
-  <Document>
-    <Page size="A4" orientation="landscape" style={pdfStyles.page}>
-      {/* Header */}
-      <View style={pdfStyles.header}>
-        <Text style={pdfStyles.brand}>Sri Mahalakshmi Poultry</Text>
-        <Text style={pdfStyles.tagline}>Intelligent Poultry Management Powered by AI</Text>
-      </View>
+const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[], title: string, date: string, unitId: number }) => {
+  // Calculations for summary boxes
+  const totalEggs = data.reduce((sum, e) => sum + e.eggsCount, 0);
+  const totalMortality = data.reduce((sum, e) => sum + e.mortality, 0);
+  const totalFeed = data.reduce((sum, e) => sum + e.feedKg, 0);
+  const avgShedScore = data.length > 0
+    ? Math.round(data.reduce((sum, e) => sum + e.performanceScore, 0) / data.length)
+    : 0;
 
-      {/* Meta info */}
-      <View style={pdfStyles.metaContainer}>
-        <View>
-          <Text style={pdfStyles.title}>{title}</Text>
-          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Unit Number: Unit {unitId}</Text>
-        </View>
-        <View style={{ textAlign: 'right' }}>
-          <Text style={pdfStyles.metaText}>Generated Date: {new Date().toLocaleDateString()}</Text>
-          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Reporting Period: {date}</Text>
-        </View>
-      </View>
-
-      {/* Table */}
-      <View style={pdfStyles.table}>
-        <View style={[pdfStyles.tableHeader, { backgroundColor: '#1B5E20' }]}>
-          <Text style={[pdfStyles.th, { flex: 1.2 }]}>SHED SLOT</Text>
-          <Text style={pdfStyles.th}>BIRDS</Text>
-          <Text style={pdfStyles.th}>MORTALITY</Text>
-          <Text style={pdfStyles.th}>FEED (KG)</Text>
-          <Text style={pdfStyles.th}>TOTAL EGGS</Text>
-          <Text style={pdfStyles.th}>HD %</Text>
-          <Text style={pdfStyles.th}>FCR</Text>
-          <Text style={pdfStyles.th}>SCORE</Text>
-        </View>
-        {data.map(item => (
-          <View style={pdfStyles.tableRow} key={item.shedNumber}>
-            <Text style={[pdfStyles.td, { flex: 1.2, fontWeight: 'bold' }]}>{isChickShed(unitId, item.shedNumber) ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
-            <Text style={pdfStyles.td}>{item.closingBirds.toLocaleString()}</Text>
-            <Text style={pdfStyles.td}>{item.mortality}</Text>
-            <Text style={pdfStyles.td}>{Math.round(item.feedKg)}</Text>
-            <Text style={pdfStyles.td}>{item.eggsCount.toLocaleString()}</Text>
-            <Text style={pdfStyles.td}>{item.hdPct}%</Text>
-            <Text style={pdfStyles.td}>{item.fcr}</Text>
-            <Text style={pdfStyles.td}>{item.performanceScore}</Text>
+  return (
+    <Document>
+      <Page size="A4" orientation="landscape" style={pdfStyles.page}>
+        {/* Mockup Canvas Header */}
+        <View style={pdfStyles.canvasHeader}>
+          <Text style={pdfStyles.canvasHeaderText}>
+            {new Date().toLocaleDateString('en-GB')}, {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </Text>
+          <Text style={pdfStyles.canvasHeaderTitle}>Sri Mahalakshmi Poultry AI ERP</Text>
+          <View style={pdfStyles.canvasHeaderRight}>
+            <Text style={pdfStyles.canvasHeaderMeta}>Reporting Period: {date}</Text>
+            <Text style={pdfStyles.canvasHeaderMeta}>Unit Number: Unit {unitId}</Text>
           </View>
-        ))}
-        {data.length === 0 && (
-          <View style={{ padding: 30, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>No data reported for this date.</Text>
-          </View>
-        )}
-      </View>
+        </View>
 
-      {/* Footer */}
-      <View style={pdfStyles.footer}>
-        <Text style={pdfStyles.footerText}>localhost:3000</Text>
-      </View>
-    </Page>
-  </Document>
-);
+        {/* Branding Section */}
+        <View style={pdfStyles.brandingContainer}>
+          <View style={pdfStyles.logoContainer}>
+            <Text style={pdfStyles.logoText}>🐔</Text>
+          </View>
+          <View>
+            <Text style={pdfStyles.brandTitle}>
+              SRI MAHALAKSHMI <Text style={pdfStyles.brandTitleHighlight}>POULTRY AI ERP</Text>
+            </Text>
+            <Text style={pdfStyles.companyLabel}>Sri Mahalakshmi Poultry</Text>
+            <Text style={pdfStyles.brandSubtitle}>INTELLIGENT POULTRY MANAGEMENT POWERED BY AI</Text>
+          </View>
+        </View>
+
+        {/* 4-Column KPI Stats Grid Container */}
+        <View style={pdfStyles.kpiContainer}>
+          {/* Card 1 */}
+          <View style={pdfStyles.kpiCard}>
+            <Text style={pdfStyles.kpiIcon}>🥚</Text>
+            <View>
+              <Text style={pdfStyles.kpiTitle}>TOTAL EGGS GATHERED</Text>
+              <Text style={[pdfStyles.kpiValue, { color: '#1B5E20' }]}>{totalEggs.toLocaleString()}</Text>
+            </View>
+          </View>
+
+          {/* Card 2 */}
+          <View style={pdfStyles.kpiCard}>
+            <Text style={pdfStyles.kpiIcon}>🐔</Text>
+            <View>
+              <Text style={pdfStyles.kpiTitle}>DAILY MORTALITY COUNT</Text>
+              <Text style={[pdfStyles.kpiValue, { color: '#D97706' }]}>{totalMortality} birds</Text>
+            </View>
+          </View>
+
+          {/* Card 3 */}
+          <View style={pdfStyles.kpiCard}>
+            <Text style={pdfStyles.kpiIcon}>🏠</Text>
+            <View>
+              <Text style={pdfStyles.kpiTitle}>AVERAGE FEED / SHED</Text>
+              <Text style={[pdfStyles.kpiValue, { color: '#2563EB' }]}>{Math.round(totalFeed / (data.length || 1))} kg</Text>
+            </View>
+          </View>
+
+          {/* Card 4 */}
+          <View style={pdfStyles.kpiCardLast}>
+            <Text style={pdfStyles.kpiIcon}>⭐</Text>
+            <View>
+              <Text style={pdfStyles.kpiTitle}>UNIT PERFORMANCE RATING</Text>
+              <Text style={[pdfStyles.kpiValue, { color: '#15803D' }]}>{avgShedScore} Score</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Data Table */}
+        <View style={pdfStyles.table}>
+          <View style={pdfStyles.tableHeader}>
+            <Text style={[pdfStyles.th, { flex: 1.2 }]}>SHED SLOT</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right', marginRight: 10 }]}>BIRDS</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right', marginRight: 10 }]}>MORTALITY</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right', marginRight: 10 }]}>FEED (KG)</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right', marginRight: 10 }]}>TOTAL EGGS</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'center', marginRight: 10 }]}>HD %</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right', marginRight: 10 }]}>FCR</Text>
+            <Text style={[pdfStyles.th, { textAlign: 'right' }]}>SCORE</Text>
+          </View>
+          {data.map(item => (
+            <View style={pdfStyles.tableRow} key={item.shedNumber}>
+              <Text style={pdfStyles.tdShed}>{isChickShed(unitId, item.shedNumber) ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', marginRight: 10 }]}>{item.closingBirds.toLocaleString()}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', marginRight: 10, color: '#EF4444' }]}>{item.mortality}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', marginRight: 10 }]}>{Math.round(item.feedKg)}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', marginRight: 10, color: '#0f172a', fontWeight: 'bold' }]}>{item.eggsCount.toLocaleString()}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'center', marginRight: 10 }]}>{item.hdPct}%</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', marginRight: 10, color: '#1B5E20', fontWeight: 'bold' }]}>{item.fcr}</Text>
+              <Text style={[pdfStyles.td, { textAlign: 'right', fontWeight: 'bold' }]}>{item.performanceScore}</Text>
+            </View>
+          ))}
+          {data.length === 0 && (
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, marginBottom: 5 }}>📦</Text>
+              <Text style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>No data reported for this date.</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Footer */}
+        <View style={pdfStyles.footer}>
+          <Text style={pdfStyles.footerText}>Generated by Sri Mahalakshmi Poultry AI ERP</Text>
+          <Text style={pdfStyles.footerText}>Page 1 / 1</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelProps) {
   const [selectedUnit, setSelectedUnit] = useState<number>(1);
