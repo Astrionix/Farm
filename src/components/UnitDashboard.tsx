@@ -13,9 +13,10 @@ import {
   ChevronRight, 
   TrendingUp,
   Star,
-  Sparkles
+  Sparkles,
+  Calendar
 } from 'lucide-react';
-import { dbService, DBDailyEntry, DBShed } from '../services/db';
+import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
 
 interface UnitDashboardProps {
   userRole: 'Owner' | 'Supervisor';
@@ -117,6 +118,13 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const unitHDPct = totalClosingBirds > 0 ? (totalEggs / totalClosingBirds) * 100 : 0;
   const unitMortPct = totalOpeningBirds > 0 ? (totalMortality / totalOpeningBirds) * 100 : 0;
 
+  // Calculate unit-wise average bird age for active sheds
+  const activeShedEntries = latestEntries.filter(e => shedStatusMap[e.shedNumber] === 'Active');
+  const totalActiveAge = activeShedEntries.reduce((sum, e) => sum + (e.birdAgeWeeks || 0), 0);
+  const avgBirdAge = activeShedEntries.length > 0 
+    ? (totalActiveAge / activeShedEntries.length) 
+    : 0;
+
   // AI Score calculations (Performance, Health, Efficiency, Risk)
   const averageShedScore = latestEntries.length > 0 
     ? latestEntries.reduce((sum, e) => sum + e.performanceScore, 0) / latestEntries.length
@@ -213,7 +221,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
       </div>
 
       {/* AI Gauge Scores Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Total Eggs Card */}
         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-100/50 dark:border-amber-900/30">
@@ -226,6 +234,22 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             </span>
             <span className="text-[10px] text-primary font-bold mt-1 block">
               Avg {unitHDPct.toFixed(1)}% HD Production
+            </span>
+          </div>
+        </div>
+
+        {/* Average Flock Age Card */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-500 shrink-0 border border-blue-100/50 dark:border-blue-900/30">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider leading-none">Average Flock Age</h4>
+            <span className="text-base font-black text-slate-800 dark:text-white block mt-1.5 leading-none font-sans">
+              {avgBirdAge > 0 ? `${avgBirdAge.toFixed(1)} Weeks` : '0.0 Weeks'}
+            </span>
+            <span className="text-[10px] text-blue-500 font-bold mt-1 block">
+              Active Unit Lifecycle
             </span>
           </div>
         </div>
@@ -295,7 +319,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-extrabold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                      {selectedUnit === 4 && shedNum === 8 ? 'Chick Shed' : `Shed ${shedNum}`}
+                      {isChickShed(selectedUnit, shedNum) ? 'Chick Shed' : `Shed ${shedNum}`}
                     </h4>
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase mt-1 ${
                       isActive ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
@@ -389,7 +413,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
               <div>
                 <span className="text-[10px] text-secondary font-black uppercase tracking-widest">Inspection Sheet</span>
                 <h3 className="text-lg font-extrabold mt-0.5">
-                  {unitsList.find(u => u.id === selectedShedDetails.unitId)?.name || `Unit ${selectedShedDetails.unitId}`} — {selectedShedDetails.unitId === 4 && selectedShedDetails.shedNumber === 8 ? 'Chick Shed' : `Shed ${selectedShedDetails.shedNumber}`}
+                  {unitsList.find(u => u.id === selectedShedDetails.unitId)?.name || `Unit ${selectedShedDetails.unitId}`} — {isChickShed(selectedShedDetails.unitId, selectedShedDetails.shedNumber) ? 'Chick Shed' : `Shed ${selectedShedDetails.shedNumber}`}
                 </h3>
               </div>
               <button 

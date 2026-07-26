@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Grid3X3, 
-  ClipboardPen, 
-  Package, 
-  MessageSquareText, 
-  FilePieChart, 
-  UserSquare2, 
-  UserCheck, 
+import {
+  LayoutDashboard,
+  Grid3X3,
+  ClipboardPen,
+  Package,
+  MessageSquareText,
+  FilePieChart,
+  UserSquare2,
+  UserCheck,
   ChevronRight,
   SunMoon,
   Home,
@@ -74,11 +74,8 @@ export default function Sidebar({
           <Database className="w-3.5 h-3.5 text-secondary" />
           <span>Database Connection:</span>
         </div>
-        <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-2">
-          <div className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </div>
+        <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Live (Supabase Connected)</span>
         </div>
       </div>
@@ -93,9 +90,9 @@ export default function Sidebar({
     { id: 'reports', name: 'Reports Generator', shortName: 'Reports', icon: FilePieChart, roles: ['Owner', 'Supervisor'] },
   ];
 
-  const visibleTabs = tabs.filter(t => t.roles.includes(userRole));
-
-  const bottomNavTabs = tabs.filter(t => t.roles.includes(userRole));
+  const visibleTabs = tabs.filter(tab => tab.roles.includes(userRole));
+  // Bottom nav: max 5 tabs + settings icon
+  const bottomNavTabs = visibleTabs.slice(0, 5);
 
   const handleTabChange = (tabId: string) => {
     setCurrentTab(tabId);
@@ -148,7 +145,7 @@ export default function Sidebar({
           Toggle
         </button>
       </div>
-      
+
       <div className="text-[11px] font-semibold text-white flex items-center gap-1">
         <span>Role:</span>
         <span className="text-secondary">{userRole}</span>
@@ -164,11 +161,10 @@ export default function Sidebar({
               <button
                 key={u.id}
                 onClick={() => setAssignedUnit(u.id)}
-                className={`py-1 rounded text-[10px] font-bold transition ${
-                  assignedUnit === u.id 
-                    ? 'bg-secondary text-primary-dark' 
+                className={`py-1 rounded text-[10px] font-bold transition ${assignedUnit === u.id
+                    ? 'bg-secondary text-primary-dark'
                     : 'bg-primary/20 text-emerald-100 hover:bg-primary-light/20'
-                }`}
+                  }`}
                 title={u.name}
               >
                 U{u.id}
@@ -193,7 +189,7 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           DESKTOP SIDEBAR (hidden on mobile)
       ═══════════════════════════════════════════ */}
-      <aside className="hidden md:flex w-64 min-h-screen bg-gradient-to-b from-slate-900 via-primary-dark to-slate-950 text-white flex-col justify-between border-r border-slate-800 shadow-premium shrink-0">
+      <aside className="hidden md:flex w-64 min-h-screen bg-primary text-white flex-col justify-between border-r border-primary-dark/30 shadow-premium shrink-0">
         <div className="flex flex-col">
           {/* Logo */}
           <div className="p-6 border-b border-primary-light/10">
@@ -209,17 +205,16 @@ export default function Sidebar({
                 <button
                   key={tab.id}
                   onClick={() => setCurrentTab(tab.id)}
-                  className={`w-full flex items-center justify-between py-3 pr-4 transition-all duration-200 group border-l-4 ${
-                    isActive 
-                      ? 'bg-white/10 text-white font-bold border-l-secondary rounded-r-xl pl-3 shadow-inner' 
-                      : 'text-emerald-100/80 hover:bg-white/5 hover:text-white border-l-transparent rounded-r-xl pl-4'
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
+                      ? 'bg-secondary text-primary-dark shadow-md font-semibold'
+                      : 'text-emerald-100 hover:bg-primary-light/30 hover:text-white'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
                     <span>{tab.name}</span>
                   </div>
-                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-secondary' : 'group-hover:translate-x-1'}`} />
+                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-primary-dark' : 'group-hover:translate-x-1'}`} />
                 </button>
               );
             })}
@@ -233,14 +228,14 @@ export default function Sidebar({
           <div className="flex items-center justify-between text-xs text-emerald-200/50 px-1">
             <span>v1.2.0 (AI Enabled)</span>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-1.5 rounded-lg hover:bg-primary-light/30 text-emerald-200 hover:text-white transition"
                 title="Toggle Dark Mode"
               >
                 <SunMoon className="w-4 h-4" />
               </button>
-              <button 
+              <button
                 onClick={onLogout}
                 className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-300 hover:text-red-100 transition"
                 title="Sign Out"
@@ -255,10 +250,10 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           MOBILE TOP HEADER BAR
       ═══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-slate-900 to-primary-dark text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white flex items-center justify-between px-4 pt-9 pb-3 shadow-lg border-b border-primary-dark/30">
         <LogoBlock />
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={onLogout}
             className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/25 text-red-300 transition active:scale-95"
             title="Sign Out"
@@ -285,9 +280,8 @@ export default function Sidebar({
         />
       )}
       {/* Drawer Panel */}
-      <div className={`md:hidden fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900 via-primary-dark to-slate-950 text-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
-        mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`md:hidden fixed top-0 left-0 h-full w-72 bg-primary text-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         {/* Drawer Header */}
         <div className="p-5 border-b border-primary-light/10 flex items-center justify-between shrink-0">
           <LogoBlock />
@@ -310,17 +304,16 @@ export default function Sidebar({
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center justify-between py-3.5 pr-4 transition-all duration-200 group border-l-4 ${
-                    isActive 
-                      ? 'bg-white/10 text-white font-bold border-l-secondary rounded-r-xl pl-3 shadow-inner' 
-                      : 'text-emerald-100/80 hover:bg-white/5 hover:text-white border-l-transparent rounded-r-xl pl-4'
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all group ${isActive
+                      ? 'bg-secondary text-primary-dark shadow-md font-bold'
+                      : 'text-emerald-100 hover:bg-primary-light/30 hover:text-white'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
+                    <Icon className="w-5 h-5" />
                     <span>{tab.name}</span>
                   </div>
-                  <ChevronRight className={`w-4 h-4 opacity-50 transition-transform ${isActive ? 'rotate-90 text-secondary' : 'group-hover:translate-x-1'}`} />
+                  {isActive && <ChevronRight className="w-4 h-4 opacity-50 rotate-90" />}
                 </button>
               );
             })}
@@ -333,14 +326,14 @@ export default function Sidebar({
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] text-emerald-200/50">v1.2.0 · AI Enabled</span>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setDarkMode(!darkMode)}
                   className="p-2 rounded-lg bg-primary-light/20 hover:bg-primary-light/40 text-emerald-200 transition active:scale-95"
                   title="Toggle Dark Mode"
                 >
                   <SunMoon className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={onLogout}
                   className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-300 transition active:scale-95"
                   title="Sign Out"
@@ -362,23 +355,20 @@ export default function Sidebar({
             <button
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-all active:scale-95 ${
-                isActive 
-                  ? 'text-primary dark:text-secondary' 
+              className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-all active:scale-95 ${isActive
+                  ? 'text-primary dark:text-secondary'
                   : 'text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white'
-              }`}
+                }`}
             >
-              <div className={`relative p-1.5 rounded-xl transition-all ${
-                isActive ? 'bg-primary/10 dark:bg-secondary/20' : ''
-              }`}>
+              <div className={`relative p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10 dark:bg-secondary/20' : ''
+                }`}>
                 <Icon className={`w-5 h-5 transition-all ${isActive ? 'scale-110' : ''}`} />
                 {isActive && (
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-secondary rounded-full" />
                 )}
               </div>
-              <span className={`text-[9px] font-bold uppercase tracking-wide ${
-                isActive ? 'text-primary dark:text-secondary' : 'text-slate-400 dark:text-slate-500'
-              }`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wide ${isActive ? 'text-primary dark:text-secondary' : 'text-slate-400 dark:text-slate-500'
+                }`}>
                 {tab.shortName}
               </span>
             </button>

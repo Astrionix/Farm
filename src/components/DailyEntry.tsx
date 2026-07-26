@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Save, 
-  Calendar, 
-  CloudSun, 
-  Thermometer, 
-  Droplet, 
+import {
+  Save,
+  Calendar,
+  CloudSun,
+  Thermometer,
+  Droplet,
   Plus,
   History,
   CheckCircle2,
@@ -16,7 +16,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { dbService, DBDailyEntry, DBShed } from '../services/db';
+import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
 import { calculateShedMetrics, ShedDataInput } from '../utils/calculations';
 import { SkeletonDailyEntry } from './SkeletonLoader';
 
@@ -36,7 +36,7 @@ const UNIT_COORDINATES: Record<number, { lat: number; lon: number }> = {
 export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) {
   const [selectedUnit, setSelectedUnit] = useState<number>(1);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  
+
   // Environmental stats
   const [weather, setWeather] = useState<string>('Sunny');
   const [temperature, setTemperature] = useState<string>('31.5');
@@ -49,7 +49,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
   const [shedsList, setShedsList] = useState<DBShed[]>([]);
   const [shedInputs, setShedInputs] = useState<Record<number, Partial<ShedDataInput>>>({});
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
@@ -110,9 +110,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         setShedsList(unitSheds);
 
         // Try to fetch existing entries for this date
-        const existingEntries = await dbService.getDailyEntries({ 
-          date: selectedDate, 
-          unitId: selectedUnit 
+        const existingEntries = await dbService.getDailyEntries({
+          date: selectedDate,
+          unitId: selectedUnit
         });
 
         // Get entries from the day before (for opening birds prefill)
@@ -202,7 +202,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     setShedInputs(prev => {
       const inputs = { ...prev };
       const oldVal = inputs[shedNum] || {};
-      
+
       const updated = {
         ...oldVal,
         [field]: value,
@@ -253,7 +253,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
     try {
       const inputsArray: { shedNumber: number; input: ShedDataInput }[] = [];
-      
+
       for (const [shedNumStr, input] of Object.entries(shedInputs)) {
         const sNum = Number(shedNumStr);
         const closing = Number(input.closingBirds ?? (Number(input.openingBirds || 0) - Number(input.mortality || 0) - Number(input.culls || 0)));
@@ -310,18 +310,18 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const handleAutoDetectWeather = async () => {
     const coords = UNIT_COORDINATES[selectedUnit];
     if (!coords) return;
-    
+
     setFetchingWeather(true);
     setWeatherError('');
-    
+
     try {
       const apiKey = process.env.NEXT_PUBLIC_TOMORROW_API_KEY || 'zMKQ3NtHPI3MWY3wWqJQfAHewuxwNZui';
       const res = await fetch(`https://api.tomorrow.io/v4/weather/realtime?location=${coords.lat},${coords.lon}&apikey=${apiKey}`);
       if (!res.ok) throw new Error('Failed to fetch weather');
-      
+
       const resData = await res.json();
       const data = resData.data?.values || {};
-      
+
       if (data.temperature !== undefined) {
         setTemperature(data.temperature.toFixed(1));
       }
@@ -356,7 +356,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   // Trigger weather auto-detection for today's new entry
   useEffect(() => {
     if (!selectedDate) return;
-    
+
     const todayStr = new Date().toISOString().split('T')[0];
     if (selectedDate === todayStr) {
       dbService.getDailyEntries({ date: selectedDate, unitId: selectedUnit })
@@ -386,7 +386,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                     setWeather(mappedWeather);
                   }
                 })
-                .catch(() => {})
+                .catch(() => { })
                 .finally(() => setFetchingWeather(false));
             }
           }
@@ -405,7 +405,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       if (draft.humidity) setHumidity(draft.humidity);
       if (draft.generalRemarks) setGeneralRemarks(draft.generalRemarks);
       if (draft.shedInputs) setShedInputs(draft.shedInputs);
-    } catch {}
+    } catch { }
   };
 
   const handleDiscardDraft = () => {
@@ -492,11 +492,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               <button
                 key={u.id}
                 onClick={() => setSelectedUnit(u.id)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedUnit === u.id
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${selectedUnit === u.id
                     ? 'bg-primary text-white shadow-md'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {u.name}
               </button>
@@ -531,11 +530,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               {fetchingWeather ? 'Detecting...' : 'Auto-detect Weather'}
             </button>
           </div>
-          
+
           {weatherError && (
             <p className="text-[10px] text-red-500 font-bold mb-3">{weatherError}</p>
           )}
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
             {/* Date Pick */}
             <div className="space-y-1.5">
@@ -653,13 +652,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               }
 
               return (
-                <div 
+                <div
                   key={sNum}
-                  className={`bg-white dark:bg-slate-800 rounded-2xl border-l-4 ${
-                    isActive 
-                      ? 'border-l-primary border-t-slate-100 border-r-slate-100 border-b-slate-100 dark:border-t-slate-800/50 dark:border-r-slate-800/50 dark:border-b-slate-800/50 shadow-premium' 
-                      : 'border-l-slate-300 border-dashed border-t-slate-200 border-r-slate-200 border-b-slate-200 dark:border-l-slate-700 dark:border-t-slate-700/30 dark:border-r-slate-700/30 dark:border-b-slate-700/30 opacity-60'
-                  } p-5 transition-all duration-300 hover:shadow-lg relative`}
+                  className={`bg-white dark:bg-slate-800 rounded-2xl border ${isActive ? 'border-slate-100 dark:border-slate-800' : 'border-dashed border-slate-200 dark:border-slate-700 opacity-60'
+                    } p-5 shadow-premium transition-all relative`}
                 >
                   {/* Top Bar for Card */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-3.5 mb-4">
@@ -668,11 +664,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         {sNum}
                       </span>
                       <div>
-                         <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">
-                          {selectedUnit === 4 && sNum === 8 ? 'Chick Shed' : `Shed ${sNum}`}
+                        <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">
+                          {isChickShed(selectedUnit, sNum) ? 'Chick Shed' : `Shed ${sNum}`}
                         </h4>
                         <span className={`text-[10px] font-bold ${isActive ? 'text-primary' : 'text-slate-400'}`}>
-                          {isActive ? (selectedUnit === 4 && sNum === 8 ? 'Active Chick Shed' : 'Active & Included in Reports') : 'Not In Use — Excluded from Math'}
+                          {isActive ? (isChickShed(selectedUnit, sNum) ? 'Active Chick Shed' : 'Active & Included in Reports') : 'Not In Use — Excluded from Math'}
                         </span>
                       </div>
                     </div>
@@ -680,31 +676,26 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                     {/* Active Checkbox */}
                     <div className="flex items-center gap-4">
                       {isActive && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="bg-emerald-50/50 dark:bg-emerald-950/20 px-2.5 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-950/30 text-[10px] font-black text-slate-500">
-                            HD%: <span className="text-primary font-black ml-0.5">{previewHDPct}%</span>
+                        <div className="bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex items-center gap-4 text-[11px] font-extrabold text-slate-500">
+                          <div>
+                            HD%: <span className="text-slate-700 dark:text-slate-200 font-black">{previewHDPct}%</span>
                           </div>
-                          <div className="bg-primary/5 dark:bg-primary-dark/20 px-2.5 py-1 rounded-lg border border-primary/10 dark:border-primary/5 text-[10px] font-black text-slate-500">
-                            FCR: <span className="text-primary font-black ml-0.5">{previewFCR}</span>
+                          <div>
+                            FCR: <span className="text-primary font-black">{previewFCR}</span>
                           </div>
-                          <div className={`px-2.5 py-1 rounded-lg border text-[10px] font-black ${
-                            previewScore >= 90 
-                              ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100/50 dark:border-emerald-950/30 text-emerald-600' 
-                              : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-100/50 dark:border-amber-950/30 text-amber-600'
-                          }`}>
-                            Shed Score: <span className="font-black ml-0.5">{previewScore} ({scoreLabel})</span>
+                          <div>
+                            Shed Score: <span className={`font-black ${previewScore >= 90 ? 'text-primary' : 'text-amber-500'}`}>{previewScore} ({scoreLabel})</span>
                           </div>
                         </div>
                       )}
-                      
+
                       <button
                         type="button"
                         onClick={() => handleStatusToggle(sNum)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border ${
-                          isActive 
-                            ? 'bg-red-50 hover:bg-red-100 text-red-500 border-red-200' 
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border ${isActive
+                            ? 'bg-red-50 hover:bg-red-100 text-red-500 border-red-200'
                             : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20'
-                        }`}
+                          }`}
                       >
                         {isActive ? 'Disable Shed' : 'Enable Shed'}
                       </button>
@@ -721,11 +712,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.openingBirds ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'openingBirds', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                           required
                         />
                       </div>
- 
+
                       {/* Mortality */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Mortality</label>
@@ -733,11 +724,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.mortality ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'mortality', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                          required
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
- 
+
                       {/* Culls */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Culls</label>
@@ -745,20 +735,16 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.culls ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'culls', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                          required
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                         />
                       </div>
- 
+
                       {/* Closing Birds (Calculated Indicator) */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
-                        <input
-                          type="number"
-                          value={input.closingBirds ?? (Number(input.openingBirds || 0) - Number(input.mortality || 0) - Number(input.culls || 0))}
-                          disabled
-                          className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                        />
+                        <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {input.closingBirds ?? 0}
+                        </div>
                       </div>
 
                       {/* Bird Age (Weeks) */}
@@ -768,11 +754,11 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.birdAgeWeeks ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                           required
                         />
                       </div>
- 
+
                       {/* Eggs Collected */}
                       <div className="space-y-1">
                         <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>
@@ -780,7 +766,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           type="number"
                           value={input.eggsCount ?? 0}
                           onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                           required
                         />
                       </div>
@@ -864,7 +850,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/50">
-                  {['Date','Unit','Shed','Birds','Eggs','HD%','FCR','Mortality','Score'].map(h => (
+                  {['Date', 'Unit', 'Shed', 'Birds', 'Eggs', 'HD%', 'FCR', 'Mortality', 'Score'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -874,19 +860,18 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                   <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
                     <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200">{e.date}</td>
                     <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{getUnitShortName(e.unitId)}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{e.unitId === 4 && e.shedNumber === 8 ? 'Chick' : `Shed ${e.shedNumber}`}</td>
+                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{isChickShed(e.unitId, e.shedNumber) ? 'Chick' : `Shed ${e.shedNumber}`}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.closingBirds?.toLocaleString()}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.eggsCount?.toLocaleString()}</td>
                     <td className="px-4 py-2.5 font-semibold text-primary">{e.hdPct?.toFixed(1)}%</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.fcr?.toFixed(2)}</td>
                     <td className={`px-4 py-2.5 font-bold ${e.mortality > 5 ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>{e.mortality}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        e.performanceScore >= 90 ? 'bg-emerald-100 text-emerald-700' :
-                        e.performanceScore >= 70 ? 'bg-blue-100 text-blue-700' :
-                        e.performanceScore >= 50 ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>{e.performanceScore}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${e.performanceScore >= 90 ? 'bg-emerald-100 text-emerald-700' :
+                          e.performanceScore >= 70 ? 'bg-blue-100 text-blue-700' :
+                            e.performanceScore >= 50 ? 'bg-amber-100 text-amber-700' :
+                              'bg-red-100 text-red-700'
+                        }`}>{e.performanceScore}</span>
                     </td>
                   </tr>
                 ))}

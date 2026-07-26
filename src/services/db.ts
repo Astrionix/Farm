@@ -4,6 +4,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { calculateShedMetrics, calculateUnitMetrics, calculateFarmMetrics, ShedDataInput, CalculatedShedMetrics } from '../utils/calculations';
 
+export function isChickShed(unitId: number, shedNumber: number): boolean {
+  return (unitId === 1 && shedNumber === 12) ||
+         (unitId === 3 && shedNumber === 4) ||
+         (unitId === 4 && shedNumber === 8);
+}
+
 // -------------------------------------------------------------
 // ENVIRONMENT & CREDENTIALS
 // -------------------------------------------------------------
@@ -98,7 +104,7 @@ const STORAGE_KEYS = {
 export const UNIT_CONFIGS = [
   { id: 1, name: 'Jaggampeta Unit 1', shedsCount: 12, status: 'Active' as const },
   { id: 2, name: 'Jaggampeta Unit 2', shedsCount: 7, status: 'Active' as const },
-  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 3, status: 'Active' as const },
+  { id: 3, name: 'Jaggampeta Unit 3', shedsCount: 4, status: 'Active' as const }, // 3 sheds + chick shed = 4
   { id: 4, name: 'Kotapadu', shedsCount: 8, status: 'Active' as const }, // 7 sheds + chick shed = 8
   { id: 5, name: 'Chebrolu', shedsCount: 2, status: 'Active' as const },
 ];
@@ -355,7 +361,7 @@ function generateHistoricalMockData() {
       });
 
       const unitName = units.find(unit => unit.id === u)?.name || `Unit ${u}`;
-      const shedName = (u === 4 && s === 8) ? 'Chick Shed' : `Shed ${s}`;
+      const shedName = isChickShed(u, s) ? 'Chick Shed' : `Shed ${s}`;
 
       // Add anomaly notifications for Owner dashboard
       if (d === 12 && u === 3 && s === 2) {
@@ -477,9 +483,10 @@ export const dbService = {
     if (typeof window === 'undefined') return;
     
     // Check if seeded or if we need to migrate/reseed for 5 units
+    const storedDbMode = localStorage.getItem(STORAGE_KEYS.DB_MODE);
     const storedUnitsStr = localStorage.getItem(STORAGE_KEYS.UNITS);
-    let needReset = false;
-    if (storedUnitsStr) {
+    let needReset = storedDbMode !== 'Live';
+    if (storedUnitsStr && !needReset) {
       try {
         const storedUnits = JSON.parse(storedUnitsStr);
         if (storedUnits.length !== 5 || !storedUnits.some((u: any) => u.name.includes('Jaggampeta')) || storedUnits.some((u: any) => u.name.includes('Kkd Peddanana') || u.name.startsWith(' ') || u.name.includes(' Kotapadu'))) {

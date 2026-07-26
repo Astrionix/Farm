@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isChickShed } from '@/services/db';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
@@ -20,7 +21,7 @@ function generateFallbackAnalysis(summary: any) {
   };
 
   const getShedName = (unitId: number, num: number) => {
-    if (unitId === 4 && num === 8) return 'Chick Shed';
+    if (isChickShed(unitId, num)) return 'Chick Shed';
     return `Shed ${num}`;
   };
 

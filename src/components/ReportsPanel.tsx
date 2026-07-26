@@ -11,7 +11,7 @@ import {
   CheckCircle,
   FileSpreadsheet
 } from 'lucide-react';
-import { dbService, DBDailyEntry } from '../services/db';
+import { dbService, DBDailyEntry, isChickShed } from '../services/db';
 
 // React PDF client components
 import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
@@ -77,7 +77,7 @@ const PoultryPDFReport = ({ data, title, date, unitId }: { data: DBDailyEntry[],
         </View>
         {data.map(item => (
           <View style={pdfStyles.tableRow} key={item.shedNumber}>
-            <Text style={[pdfStyles.td, { flex: 0.8 }]}>{unitId === 4 && item.shedNumber === 8 ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
+            <Text style={[pdfStyles.td, { flex: 0.8 }]}>{isChickShed(unitId, item.shedNumber) ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
             <Text style={pdfStyles.td}>{item.closingBirds.toLocaleString()}</Text>
             <Text style={pdfStyles.td}>{item.mortality}</Text>
             <Text style={pdfStyles.td}>{Math.round(item.feedKg)}</Text>
