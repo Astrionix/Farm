@@ -177,23 +177,32 @@ html {
   /* Flatten cards to simple bordered boxes */
   .bg-white,
   .dark\:bg-slate-800,
-  [class*="bg-slate-"],
-  [class*="bg-primary"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"],
-  [class*="rounded-xl"],
   [class*="shadow"] {
     background: #ffffff !important;
     border-color: #cbd5e1 !important;
     box-shadow: none !important;
+  }
+
+  /* Remove rounded on block containers only, not inline badges */
+  .rounded-2xl,
+  .rounded-3xl {
     border-radius: 4px !important;
-    padding: 12px !important;
   }
 
   /* Force text colors visible on paper */
   [class*="text-slate-"],
   [class*="dark:text-"] {
     color: #0f172a !important;
+  }
+
+  /* Preserve emerald colors for branding and unit badge on paper */
+  [class*="text-emerald-"] {
+    color: #15803d !important;
+  }
+
+  /* Preserve amber colors for logo/brand on paper */
+  [class*="text-amber-"] {
+    color: #b45309 !important;
   }
 
   /* Restore primary colors for logo, ratings, and stats metrics on paper */
