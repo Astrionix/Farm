@@ -541,6 +541,27 @@ export const dbService = {
     if (!supabaseClient) return [];
     const { data, error } = await supabaseClient.from('sheds').select('*').order('unit_id', { ascending: true }).order('shed_number', { ascending: true });
     if (error) { console.error('getSheds failed:', error.message); return []; }
+    
+    // Sync batch details to localStorage so synchronous age calculations work across devices
+    if (typeof window !== 'undefined') {
+      const allBatchDates = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+      let updated = false;
+      data.forEach((s: any) => {
+        if (s.batch_start_date) {
+          allBatchDates[`${s.unit_id}-${s.shed_number}`] = {
+            startDate: s.batch_start_date,
+            breedType: s.batch_breed_type || 'BV300 Premium',
+            placementAgeWeeks: s.batch_placement_age_weeks || 0,
+            capacity: s.batch_capacity || 5000
+          };
+          updated = true;
+        }
+      });
+      if (updated) {
+        localStorage.setItem(STORAGE_KEYS.BATCH_DATES, JSON.stringify(allBatchDates));
+      }
+    }
+
     return (data || []).map((s: any) => ({ unitId: s.unit_id, shedNumber: s.shed_number, status: s.status }));
   },
 
@@ -555,7 +576,7 @@ export const dbService = {
   // Once set, birdAgeWeeks auto-calculates every day until changed.
 
   /** Store batch details for a specific shed */
-  setBatchDetails: (unitId: number, shedNumber: number, details: Partial<DBShedBatchDetails>): void => {
+  setBatchDetails: async (unitId: number, shedNumber: number, details: Partial<DBShedBatchDetails>): Promise<void> => {
     if (typeof window === 'undefined') return;
     const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
     const existing = all[`${unitId}-${shedNumber}`];
@@ -575,6 +596,18 @@ export const dbService = {
     const updated = { ...current, ...details };
     all[`${unitId}-${shedNumber}`] = updated;
     localStorage.setItem(STORAGE_KEYS.BATCH_DATES, JSON.stringify(all));
+
+    // Persist to Supabase so it syncs across all devices
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from('sheds').update({
+        batch_start_date: updated.startDate || null,
+        batch_breed_type: updated.breedType,
+        batch_placement_age_weeks: updated.placementAgeWeeks,
+        batch_capacity: updated.capacity
+      }).eq('unit_id', unitId).eq('shed_number', shedNumber);
+      
+      if (error) console.error('Failed to sync batch details to Supabase:', error.message);
+    }
   },
 
   /** Get batch details for a specific shed (returns null if not set) */
@@ -600,8 +633,8 @@ export const dbService = {
   },
 
   /** Store a batch placement date for a specific shed */
-  setBatchDate: (unitId: number, shedNumber: number, dateISO: string): void => {
-    dbService.setBatchDetails(unitId, shedNumber, { startDate: dateISO });
+  setBatchDate: async (unitId: number, shedNumber: number, dateISO: string): Promise<void> => {
+    await dbService.setBatchDetails(unitId, shedNumber, { startDate: dateISO });
   },
 
   /** Get batch placement date for a specific shed (returns null if not set) */

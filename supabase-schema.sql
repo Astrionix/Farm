@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS sheds (
     unit_id INT REFERENCES units(id) ON DELETE CASCADE,
     shed_number INT NOT NULL CHECK (shed_number BETWEEN 1 AND 12),
     status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Not In Use')),
+    
+    -- Batch / Flock Placement Details
+    batch_start_date DATE,
+    batch_breed_type VARCHAR(50) DEFAULT 'BV300 Premium',
+    batch_placement_age_weeks INT DEFAULT 0,
+    batch_capacity INT DEFAULT 5000,
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(unit_id, shed_number)
 );
