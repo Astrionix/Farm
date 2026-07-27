@@ -34,6 +34,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
   const [liveEggRate, setLiveEggRate] = useState<number>(6.86);
   const [yesterdayEggRate, setYesterdayEggRate] = useState<number>(7.16);
 
