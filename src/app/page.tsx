@@ -95,13 +95,47 @@ export default function Home() {
 
   const handleTabChange = (tab: string) => {
     if (tab === currentTab) return;
+    
+    // Trigger quick transition loading animation
+    setDbReady(false);
+    setLoadingProgress(0);
+    
+    let prog = 0;
+    const quickInterval = setInterval(() => {
+      prog += 20;
+      setLoadingProgress(prog > 100 ? 100 : prog);
+      if (prog >= 100) clearInterval(quickInterval);
+    }, 60);
+
     setCurrentTab(tab);
+    
+    // Hide loading screen after 400ms
+    setTimeout(() => {
+      setDbReady(true);
+    }, 400);
   };
 
   const handleNavigateToUnit = (unitId: number) => {
     if (userRole === 'Supervisor' && assignedUnit !== unitId) return; // Prevent supervisor routing leak
+    
+    // Trigger quick transition loading animation
+    setDbReady(false);
+    setLoadingProgress(0);
+    
+    let prog = 0;
+    const quickInterval = setInterval(() => {
+      prog += 20;
+      setLoadingProgress(prog > 100 ? 100 : prog);
+      if (prog >= 100) clearInterval(quickInterval);
+    }, 60);
+
     handleUnitSelect(unitId);
     setCurrentTab('unit-dashboard');
+    
+    // Hide loading screen after 400ms
+    setTimeout(() => {
+      setDbReady(true);
+    }, 400);
   };
 
   const handleLoginSuccess = (role: 'Owner' | 'Supervisor', unit: number) => {
@@ -109,6 +143,17 @@ export default function Home() {
     dbService.setUserRole(role);
     dbService.setAssignedUnit(unit);
     
+    // Trigger quick transition loading animation
+    setDbReady(false);
+    setLoadingProgress(0);
+    
+    let prog = 0;
+    const quickInterval = setInterval(() => {
+      prog += 20;
+      setLoadingProgress(prog > 100 ? 100 : prog);
+      if (prog >= 100) clearInterval(quickInterval);
+    }, 60);
+
     setUserRole(role);
     setAssignedUnit(unit);
     setIsAuthenticated(true);
@@ -118,6 +163,11 @@ export default function Home() {
     } else {
       setCurrentTab('dashboard');
     }
+    
+    // Hide loading screen after 400ms
+    setTimeout(() => {
+      setDbReady(true);
+    }, 400);
   };
 
   const handleLogout = () => {
