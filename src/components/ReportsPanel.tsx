@@ -41,61 +41,125 @@ const pdfStyles = StyleSheet.create({
   footerText: { fontSize: 8, color: '#94a3b8' }
 });
 
-// PDF Document Component
-const PoultryPDFReport = ({ data, title, date, unitId, unitName }: { data: DBDailyEntry[], title: string, date: string, unitId: number, unitName: string }) => (
-  <Document>
-    <Page size="A4" style={pdfStyles.page}>
-      {/* Header */}
-      <View style={pdfStyles.header}>
-        <Text style={pdfStyles.brand}>Sri Mahalakshmi Poultry</Text>
-        <Text style={pdfStyles.tagline}>Intelligent Poultry Management Powered by AI</Text>
-      </View>
+// PDF Document Component with support for Today, 7D, 30D, 90D
+const PoultryPDFReport = ({
+  data,
+  title,
+  date,
+  unitId,
+  unitName,
+  dateRange,
+  startDate,
+}: {
+  data: DBDailyEntry[];
+  title: string;
+  date: string;
+  unitId: number;
+  unitName: string;
+  dateRange: 'today' | '7d' | '30d' | '90d';
+  startDate: string;
+}) => {
+  const rangeLabel =
+    dateRange === 'today'
+      ? 'Today'
+      : dateRange === '7d'
+      ? '7-Day Performance Audit'
+      : dateRange === '30d'
+      ? '30-Day Executive Report'
+      : '90-Day Bank / Operational Audit';
 
-      {/* Meta info */}
-      <View style={pdfStyles.metaContainer}>
-        <View>
-          <Text style={pdfStyles.title}>{title}</Text>
-          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Unit Name: {unitName}</Text>
-        </View>
-        <View style={{ textAlign: 'right' }}>
-          <Text style={pdfStyles.metaText}>Generated Date: {new Date().toLocaleDateString()}</Text>
-          <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Reporting Date: {date}</Text>
-        </View>
-      </View>
+  const periodDisplay = dateRange === 'today' ? date : `${startDate} to ${date}`;
 
-      {/* Table */}
-      <View style={pdfStyles.table}>
-        <View style={pdfStyles.tableHeader}>
-          <Text style={[pdfStyles.th, { flex: 0.8 }]}>Shed</Text>
-          <Text style={pdfStyles.th}>Birds</Text>
-          <Text style={pdfStyles.th}>Mortality</Text>
-          <Text style={pdfStyles.th}>Feed (kg)</Text>
-          <Text style={pdfStyles.th}>Eggs</Text>
-          <Text style={pdfStyles.th}>HD%</Text>
-          <Text style={pdfStyles.th}>FCR</Text>
-          <Text style={pdfStyles.th}>Score</Text>
+  // Summary KPIs
+  const totalEggs = data.reduce((s, e) => s + e.eggsCount, 0);
+  const totalMortality = data.reduce((s, e) => s + e.mortality, 0);
+  const totalFeed = data.reduce((s, e) => s + e.feedKg, 0);
+  const avgFCR = data.length > 0 ? (data.reduce((s, e) => s + e.fcr, 0) / data.length).toFixed(2) : '0';
+  const avgHD = data.length > 0 ? (data.reduce((s, e) => s + e.hdPct, 0) / data.length).toFixed(1) : '0';
+  const avgScore = data.length > 0 ? Math.round(data.reduce((s, e) => s + e.performanceScore, 0) / data.length) : 0;
+
+  return (
+    <Document>
+      <Page size="A4" orientation="landscape" style={pdfStyles.page}>
+        {/* Header */}
+        <View style={pdfStyles.header}>
+          <Text style={pdfStyles.brand}>Sri Mahalakshmi Poultry AI ERP</Text>
+          <Text style={pdfStyles.tagline}>Intelligent Poultry Management • Executive Audit Report</Text>
         </View>
-        {data.map(item => (
-          <View style={pdfStyles.tableRow} key={item.shedNumber}>
-            <Text style={[pdfStyles.td, { flex: 0.8 }]}>{isChickShed(unitId, item.shedNumber) ? 'Chick Shed' : `Shed ${item.shedNumber}`}</Text>
-            <Text style={pdfStyles.td}>{item.closingBirds.toLocaleString()}</Text>
-            <Text style={pdfStyles.td}>{item.mortality}</Text>
-            <Text style={pdfStyles.td}>{Math.round(item.feedKg)}</Text>
-            <Text style={pdfStyles.td}>{item.eggsCount.toLocaleString()}</Text>
-            <Text style={pdfStyles.td}>{item.hdPct}%</Text>
-            <Text style={pdfStyles.td}>{item.fcr}</Text>
-            <Text style={pdfStyles.td}>{item.performanceScore}</Text>
+
+        {/* Meta & Period Banner */}
+        <View style={pdfStyles.metaContainer}>
+          <View>
+            <Text style={pdfStyles.title}>{title} ({rangeLabel})</Text>
+            <Text style={[pdfStyles.metaText, { marginTop: 4 }]}>Unit: {unitName}</Text>
+            <Text style={[pdfStyles.metaText, { marginTop: 2 }]}>Reporting Period: {periodDisplay}</Text>
           </View>
-        ))}
-      </View>
+          <View style={{ textAlign: 'right' }}>
+            <Text style={pdfStyles.metaText}>Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</Text>
+            <Text style={[pdfStyles.metaText, { marginTop: 4, fontWeight: 'bold' }]}>Overall Score: {avgScore} / 100</Text>
+          </View>
+        </View>
 
-      {/* Footer */}
-      <View style={pdfStyles.footer}>
-        <Text style={pdfStyles.footerText}>Sri Mahalakshmi Poultry AI ERP — Confidentially Generated Report</Text>
-      </View>
-    </Page>
-  </Document>
-);
+        {/* Executive Summary Box */}
+        <View style={{ flexDirection: 'row', backgroundColor: '#f8fafc', borderRadius: 6, border: '1 border-slate-200', padding: 8, marginBottom: 14 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>TOTAL EGGS</Text>
+            <Text style={{ fontSize: 11, color: '#166534', fontWeight: 'bold', marginTop: 2 }}>{totalEggs.toLocaleString()}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>TOTAL MORTALITY</Text>
+            <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: 'bold', marginTop: 2 }}>{totalMortality} birds</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>FEED CONSUMED</Text>
+            <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold', marginTop: 2 }}>{Math.round(totalFeed).toLocaleString()} kg</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>AVG HD%</Text>
+            <Text style={{ fontSize: 11, color: '#166534', fontWeight: 'bold', marginTop: 2 }}>{avgHD}%</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>AVG FCR</Text>
+            <Text style={{ fontSize: 11, color: '#15803d', fontWeight: 'bold', marginTop: 2 }}>{avgFCR}</Text>
+          </View>
+        </View>
+
+        {/* Table */}
+        <View style={pdfStyles.table}>
+          <View style={pdfStyles.tableHeader}>
+            <Text style={[pdfStyles.th, { flex: 1 }]}>Shed Slot</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>Birds</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>Mortality</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>Feed (kg)</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>Eggs Gathered</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>HD %</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>FCR</Text>
+            <Text style={[pdfStyles.th, { flex: 1, textAlign: 'right' }]}>Score</Text>
+          </View>
+          {data.map(item => (
+            <View style={pdfStyles.tableRow} key={item.shedNumber}>
+              <Text style={[pdfStyles.td, { flex: 1, fontWeight: 'bold' }]}>
+                {isChickShed(unitId, item.shedNumber) ? 'Chick Shed' : `Shed ${item.shedNumber}`}
+              </Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right' }]}>{item.closingBirds.toLocaleString()}</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right', color: item.mortality > 0 ? '#dc2626' : '#334155' }]}>{item.mortality}</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right' }]}>{Math.round(item.feedKg).toLocaleString()}</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right', fontWeight: 'bold' }]}>{item.eggsCount.toLocaleString()}</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right' }]}>{item.hdPct}%</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right', fontWeight: 'bold', color: '#166534' }]}>{item.fcr}</Text>
+              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'right', fontWeight: 'bold' }]}>{item.performanceScore}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Footer */}
+        <View style={pdfStyles.footer}>
+          <Text style={pdfStyles.footerText}>Sri Mahalakshmi Poultry AI ERP — Official Audit Document • Generated {new Date().toISOString()}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelProps) {
   const [selectedUnit, setSelectedUnit] = useState<number>(1);
@@ -302,19 +366,35 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
   const handleCSVExport = () => {
     if (entries.length === 0) return;
 
-    // Construct CSV file content
-    const headers = 'Shed Number,Opening Birds,Mortality,Closing Birds,Feed Consumed (kg),Water Consumed (L),Eggs Gathered,Egg Weight (g),HD%,FCR,Performance Score\n';
-    const rows = entries.map(e =>
-      `${e.shedNumber},${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.waterLiters},${e.eggsCount},${e.eggWeightG},${e.hdPct},${e.fcr},${e.performanceScore}`
-    ).join('\n');
+    const unitObj = unitsList.find(u => u.id === selectedUnit);
+    const unitLabel = unitObj ? unitObj.name.replace(/\s+/g, '_') : `Unit_${selectedUnit}`;
+    const rangeTag = dateRange === 'today' ? 'Today' : dateRange.toUpperCase();
+    const periodStr = dateRange === 'today' ? reportDate : `${reportStartDate}_to_${reportDate}`;
 
-    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    // Metadata lines
+    const metadata = [
+      `"SRI MAHALAKSHMI POULTRY AI ERP - EXECUTIVE REPORT"`,
+      `"Unit Name","${unitObj?.name || `Unit ${selectedUnit}`}"`,
+      `"Report Preset","${rangeTag}"`,
+      `"Reporting Period","${periodStr}"`,
+      `"Generated Date","${new Date().toLocaleString()}"`,
+      ``, // blank line separator
+    ].join('\n');
+
+    // Headers
+    const headers = 'Shed Slot,Opening Birds,Mortality,Closing Birds,Feed Consumed (kg),Water Consumed (L),Water-to-Feed Ratio,Eggs Gathered,Egg Weight (g),Egg Mass (kg),HD %,FCR,Feed/Bird (g),Water/Bird (ml),Bird Age (Wks),Score,Performance Label\n';
+
+    // Rows
+    const rows = entries.map(e => {
+      const slot = isChickShed(selectedUnit, e.shedNumber) ? 'Chick Shed' : `Shed ${e.shedNumber}`;
+      return `"${slot}",${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.waterLiters},${e.waterToFeedRatio},${e.eggsCount},${e.eggWeightG},${e.eggMassKg},${e.hdPct},${e.fcr},${e.feedPerBirdG},${e.waterPerBirdMl},${e.birdAgeWeeks},${e.performanceScore},"${e.performanceLabel}"`;
+    }).join('\n');
+
+    const blob = new Blob([metadata + headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const unitObj = unitsList.find(u => u.id === selectedUnit);
-    const unitLabel = unitObj ? unitObj.name.replace(/\s+/g, '_') : `Unit_${selectedUnit}`;
-    link.setAttribute('download', `Poultry_Report_${unitLabel}_${reportDate}.csv`);
+    link.setAttribute('download', `Poultry_Report_${unitLabel}_${rangeTag}_${reportDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -434,19 +514,21 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
               document={
                 <PoultryPDFReport
                   data={entries}
-                  title="Daily Production Audit Sheet"
+                  title="Production Audit Report"
                   date={reportDate}
                   unitId={selectedUnit}
                   unitName={unitsList.find(u => u.id === selectedUnit)?.name || `Unit ${selectedUnit}`}
+                  dateRange={dateRange}
+                  startDate={reportStartDate || reportDate}
                 />
               }
-              fileName={`Poultry_Report_Unit_${selectedUnit}_${reportDate}.pdf`}
+              fileName={`Poultry_Report_Unit_${selectedUnit}_${dateRange.toUpperCase()}_${reportDate}.pdf`}
               className="px-3.5 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold uppercase rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm text-center"
             >
               {({ loading: pdfLoading }) => (
                 <>
                   <Download className="w-3.5 h-3.5" />
-                  <span>{pdfLoading ? 'Loading PDF...' : 'Download PDF'}</span>
+                  <span>{pdfLoading ? 'Preparing PDF...' : `Download ${dateRange.toUpperCase()} PDF`}</span>
                 </>
               )}
             </PDFDownloadLink>
