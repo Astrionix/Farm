@@ -1121,19 +1121,20 @@ export const dbService = {
           .from('egg_prices')
           .select('*')
           .eq('region', region)
-          .single();
+          .limit(1);
 
-        if (!error && data) {
-          const p = Number(data.price);
-          const yP = Number(data.yesterday_price) || 7.16;
+        if (!error && data && data.length > 0) {
+          const row = data[0];
+          const p = Number(row.price);
+          const yP = Number(row.yesterday_price) || 7.16;
           return {
-            region: data.region,
+            region: row.region,
             price: p,
             yesterdayPrice: yP,
-            trayPrice: Number(data.tray_price) || Number((p * 30).toFixed(1)),
-            petiPrice: Number(data.peti_price) || Number((p * 210).toFixed(1)),
-            updatedAt: data.updated_at,
-            source: data.source || 'EggRateLab (NECC)',
+            trayPrice: Number(row.tray_price) || Number((p * 30).toFixed(1)),
+            petiPrice: Number(row.peti_price) || Number((p * 210).toFixed(1)),
+            updatedAt: row.updated_at,
+            source: row.source || 'EggRateLab (NECC)',
           };
         }
       } catch (e) {
