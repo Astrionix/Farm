@@ -210,28 +210,28 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const latestDate = entries[0]?.date || new Date().toISOString().split('T')[0];
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen">
+    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen scrollbar-hide bg-slate-50/50 dark:bg-slate-950/20">
       {/* Top Bar / Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">
+          <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-850 dark:text-white leading-none">
             Sri Mahalakshmi Poultry ERP
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-            Intelligent Poultry Management Powered by AI — <span className="font-semibold text-primary">{latestDate}</span>
+          <p className="text-slate-550 dark:text-slate-400 text-xs mt-1.5 font-semibold">
+            Intelligent Poultry Management Powered by AI — <span className="font-extrabold text-primary dark:text-primary-light">{latestDate}</span>
           </p>
         </div>
 
         {/* Filters */}
         <div className="flex items-center gap-3">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/50 dark:border-slate-700/50">
+          <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-1 border border-slate-200/50 dark:border-slate-800/80">
             {(['today', '7d', '30d', '90d'] as const).map(range => (
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition uppercase ${dateRange === range
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${dateRange === range
+                    ? 'bg-gradient-to-r from-primary to-primary-light text-white shadow-md'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
               >
                 {range === 'today' ? 'Today' : range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
@@ -242,23 +242,23 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       </div>
 
       {/* Main KPI Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         {/* Eggs Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-tr from-secondary/15 to-transparent rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+            <span className="text-slate-400 dark:text-slate-550 font-extrabold text-[10px] uppercase tracking-wider">
               {dateRange === 'today' ? "Today's Eggs" : "Total Eggs"}
             </span>
-            <span className="p-2 bg-yellow-50 dark:bg-yellow-950/40 text-secondary rounded-xl">
-              <Award className="w-5 h-5" />
+            <span className="p-2.5 bg-yellow-500/10 text-secondary rounded-xl">
+              <Award className="w-4.5 h-4.5" />
             </span>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+            <h3 className="text-2xl font-black text-slate-850 dark:text-white">
               {totalEggs.toLocaleString()}
             </h3>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-success">
+            <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-success">
               <TrendingUp className="w-3.5 h-3.5" />
               <span>
                 {dateRange === 'today'
@@ -270,19 +270,19 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* Hen Day % Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-tr from-primary/10 to-transparent rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Hen-Day (HD) %</span>
-            <span className="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-primary rounded-xl">
-              <Activity className="w-5 h-5" />
+            <span className="text-slate-400 dark:text-slate-555 font-extrabold text-[10px] uppercase tracking-wider">Hen-Day (HD) %</span>
+            <span className="p-2.5 bg-primary/10 text-primary dark:text-primary-light rounded-xl">
+              <Activity className="w-4.5 h-4.5" />
             </span>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+            <h3 className="text-2xl font-black text-slate-855 dark:text-white">
               {avgHDPct.toFixed(1)}%
             </h3>
-            <div className={`flex items-center gap-1.5 mt-2 text-xs font-bold ${avgHDPct >= 92 ? 'text-success' : 'text-amber-500'}`}>
+            <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-bold ${avgHDPct >= 92 ? 'text-success' : 'text-amber-500'}`}>
               <TrendingUp className="w-3.5 h-3.5" />
               <span>{avgHDPct >= 92 ? 'Above Target (92%)' : 'Below Target (92%)'}</span>
             </div>
@@ -290,22 +290,22 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* Mortality Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+            <span className="text-slate-400 dark:text-slate-555 font-extrabold text-[10px] uppercase tracking-wider">
               {dateRange === 'today' ? "Mortality Rate" : "Total Mortality"}
             </span>
-            <span className="p-2 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-xl">
-              <AlertTriangle className="w-5 h-5" />
+            <span className="p-2.5 bg-red-500/10 text-red-550 rounded-xl">
+              <AlertTriangle className="w-4.5 h-4.5" />
             </span>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+            <h3 className="text-2xl font-black text-slate-855 dark:text-white">
               {totalMortality} <span className="text-xs text-slate-400 font-normal">birds ({avgMortPct.toFixed(2)}%)</span>
             </h3>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-danger">
-              <TrendingUp className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-danger">
+              <TrendingUp className="w-3.5 h-3.5 rotate-180" />
               <span>
                 {dateRange === 'today'
                   ? "Spike logged in U3"
@@ -316,43 +316,43 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         </div>
 
         {/* AI Performance Score Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/15 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">Farm AI Score</span>
-            <span className="p-2 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl">
-              <Sparkles className="w-5 h-5" />
+            <span className="text-slate-400 dark:text-slate-555 font-extrabold text-[10px] uppercase tracking-wider">Farm AI Score</span>
+            <span className="p-2.5 bg-orange-500/10 text-orange-500 rounded-xl">
+              <Sparkles className="w-4.5 h-4.5 animate-pulse" />
             </span>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white flex items-baseline gap-1.5">
+            <h3 className="text-2xl font-black text-slate-855 dark:text-white flex items-baseline gap-1.5">
               {avgFarmScore}
               <span className="text-xs text-orange-500 font-bold uppercase">{farmLabel}</span>
             </h3>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-success">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+            <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-success">
+              <CheckCircle2 className="w-3.5 h-3.5 text-primary dark:text-primary-light" />
               <span>Stability is High</span>
             </div>
           </div>
         </div>
 
         {/* Weather Card */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium shadow-premium-hover relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-105" />
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wider">
+            <span className="text-slate-400 dark:text-slate-555 font-extrabold text-[10px] uppercase tracking-wider">
               {dateRange === 'today' ? "Shed Weather" : "Avg Weather"}
             </span>
-            <span className="p-2 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-500 rounded-xl">
-              <CloudSun className="w-5 h-5" />
+            <span className="p-2.5 bg-yellow-500/10 text-yellow-500 rounded-xl">
+              <CloudSun className="w-4.5 h-4.5" />
             </span>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+            <h3 className="text-2xl font-black text-slate-855 dark:text-white">
               {latestTemp}°C {dateRange === 'today' && <span className="text-xs text-slate-400 font-semibold">{latestWeather}</span>}
             </h3>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-slate-500">
-              <span>{dateRange === 'today' ? "Humidity:" : "Avg Humidity:"} <span className="font-black text-slate-700 dark:text-slate-200">{latestHumid}% RH</span></span>
+            <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-slate-550">
+              <span>{dateRange === 'today' ? "Humidity:" : "Avg Humidity:"} <span className="font-extrabold text-slate-700 dark:text-slate-200">{latestHumid}% RH</span></span>
             </div>
           </div>
         </div>
@@ -361,20 +361,20 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       {/* Main Charts & Leaderboards section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recharts Analytics Charts Panel (Takes 2 columns) */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium lg:col-span-2 flex flex-col">
-          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-premium lg:col-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-              <h3 className="font-black text-slate-800 dark:text-white text-base">Production & Performance Charts</h3>
-              <p className="text-slate-400 text-xs font-semibold">Graphical representation of key indicators</p>
+              <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Production Analytics Dashboard</h3>
+              <p className="text-slate-400 text-[10px] font-bold mt-0.5 uppercase tracking-wide">Key Performance Indicators over Period</p>
             </div>
 
-            <div className="bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-lg flex gap-0.5 border border-slate-200/30 dark:border-slate-700/30 shrink-0">
+            <div className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl flex gap-1 border border-slate-200/20 shrink-0">
               <button
                 type="button"
                 onClick={() => setChartTab('trend')}
-                className={`px-3 py-1 rounded-md text-[10px] font-extrabold transition ${chartTab === 'trend'
-                    ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${chartTab === 'trend'
+                    ? 'bg-white dark:bg-slate-900 text-slate-850 dark:text-white shadow-sm'
+                    : 'text-slate-550 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-250'
                   }`}
               >
                 Trend Chart
@@ -382,9 +382,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               <button
                 type="button"
                 onClick={() => setChartTab('comparison')}
-                className={`px-3 py-1 rounded-md text-[10px] font-extrabold transition ${chartTab === 'comparison'
-                    ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${chartTab === 'comparison'
+                    ? 'bg-white dark:bg-slate-900 text-slate-855 dark:text-white shadow-sm'
+                    : 'text-slate-550 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-250'
                   }`}
               >
                 Unit Comparison
@@ -394,7 +394,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
 
           <div className="flex-1 flex flex-col justify-between">
             {chartData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[20rem] flex-1 space-y-3">
+              <div className="flex flex-col items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center min-h-[20rem] flex-1 space-y-3">
                 <div className="p-4 bg-primary/5 rounded-full text-primary">
                   <Activity className="w-8 h-8" />
                 </div>
@@ -407,7 +407,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               chartTab === 'trend' ? (
                 /* Chart 1: Eggs Produced vs HD% */
                 <div className="flex-1 min-h-[20rem] flex flex-col justify-between animate-fade-in">
-                  <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Hen-Day Egg Production Trend</h4>
+                  <h4 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-wider">Hen-Day Egg Production Trend</h4>
                   <div className="flex-1 h-full min-h-[16rem]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -421,12 +421,12 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
                             <stop offset="95%" stopColor="#F9A825" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                        <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                        <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
-                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#1e293b" : "#f1f5f9"} />
+                        <XAxis dataKey="name" stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} />
+                        <YAxis yAxisId="left" stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" domain={[70, 100]} stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ background: darkMode ? "#0f172a" : "#ffffff", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", color: darkMode ? "#f8fafc" : "#0f172a", fontSize: "11px", fontWeight: "bold" }} />
+                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '805', textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                         <Area yAxisId="left" type="monotone" dataKey="eggs" name="Eggs Produced" stroke="#1B5E20" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEggs)" />
                         <Area yAxisId="right" type="monotone" dataKey="hdPct" name="HD Production %" stroke="#F9A825" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHd)" />
                       </AreaChart>
@@ -436,16 +436,16 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               ) : (
                 /* Chart 2: Egg collection by Unit */
                 <div className="flex-1 min-h-[20rem] flex flex-col justify-between animate-fade-in">
-                  <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Egg Collection by Unit</h4>
+                  <h4 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-wider">Egg Collection by Unit</h4>
                   <div className="flex-1 h-full min-h-[16rem]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={unitComparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#334155" : "#f1f5f9"} />
-                        <XAxis dataKey="name" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} />
-                        <YAxis yAxisId="left" stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis yAxisId="right" orientation="right" domain={[0, 100]} stroke={darkMode ? "#94a3b8" : "#64748b"} fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ background: darkMode ? "#1e293b" : "#ffffff", borderColor: darkMode ? "#475569" : "#e2e8f0", color: darkMode ? "#f8fafc" : "#0f172a" }} />
-                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? "#1e293b" : "#f1f5f9"} />
+                        <XAxis dataKey="name" stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} />
+                        <YAxis yAxisId="left" stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" domain={[0, 100]} stroke={darkMode ? "#64748b" : "#94a3b8"} fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ background: darkMode ? "#0f172a" : "#ffffff", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", color: darkMode ? "#f8fafc" : "#0f172a", fontSize: "11px", fontWeight: "bold" }} />
+                        <Legend verticalAlign="top" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '805', textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                         <Bar yAxisId="left" dataKey="eggs" name="Eggs Collected" fill="#1B5E20" radius={[4, 4, 0, 0]} />
                         <Bar yAxisId="right" dataKey="hdPct" name="Avg HD %" fill="#F9A825" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -460,35 +460,41 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
         {/* Leaderboards, Alerts & Inventory (1 column) */}
         <div className="space-y-6">
           {/* Unit Ranking Leaderboard */}
-          <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-4">
-              <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Unit Leaderboard</h3>
-              <Award className="w-4.5 h-4.5 text-secondary" />
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-4">
+              <h3 className="font-extrabold text-slate-850 dark:text-white text-xs uppercase tracking-wider">Unit Leaderboard</h3>
+              <Award className="w-4.5 h-4.5 text-secondary animate-pulse" />
             </div>
 
             <div className="space-y-2">
               {aggMetrics.rankedUnits.map((unit: any, idx: number) => {
-                const rankColors = ['bg-yellow-500 text-white', 'bg-slate-300 text-slate-800', 'bg-amber-600 text-white', 'bg-slate-100 dark:bg-slate-700 text-slate-500'];
+                const rankColors = [
+                  'bg-gradient-to-br from-yellow-400 to-amber-500 text-white font-black shadow shadow-amber-500/20',
+                  'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800 font-black',
+                  'bg-gradient-to-br from-amber-600 to-amber-700 text-white font-black shadow shadow-amber-750/20',
+                  'bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold'
+                ];
                 return (
                   <div
                     key={unit.unitId}
                     onClick={() => onNavigateToUnit(unit.unitId)}
-                    className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/80 cursor-pointer transition-all duration-200"
+                    className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-850/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-800/80 cursor-pointer transition-all duration-300 transform hover:scale-[1.01]"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${rankColors[idx] || 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs ${rankColors[idx] || 'bg-slate-100 text-slate-500'}`}>
                         {idx + 1}
                       </span>
                       <div>
-                        <h4 className="font-extrabold text-xs text-slate-800 dark:text-white">{unit.unitName}</h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">{unit.activeSheds} Active Sheds</p>
+                        <h4 className="font-black text-xs text-slate-800 dark:text-white leading-tight">{unit.unitName}</h4>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-550 font-extrabold uppercase mt-0.5">{unit.activeSheds} Active Sheds</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="font-black text-slate-800 dark:text-white text-sm">{unit.performanceScore}</span>
-                      <span className={`block text-[9px] font-bold ${unit.performanceLabel === 'Excellent' ? 'text-primary' :
+                      <span className="font-black text-slate-850 dark:text-white text-sm tracking-tight">{unit.performanceScore}</span>
+                      <span className={`block text-[8px] font-black uppercase tracking-wider mt-0.5 ${
+                          unit.performanceLabel === 'Excellent' ? 'text-primary dark:text-primary-light' :
                           unit.performanceLabel === 'Very Good' ? 'text-emerald-500' :
-                            unit.performanceLabel === 'Good' ? 'text-yellow-500' : 'text-red-500'
+                          unit.performanceLabel === 'Good' ? 'text-yellow-500' : 'text-red-500'
                         }`}>{unit.performanceLabel}</span>
                     </div>
                   </div>
@@ -498,9 +504,9 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           </div>
 
           {/* Critical Alerts widget */}
-          <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-3">
-              <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Critical Alerts</h3>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 mb-3">
+              <h3 className="font-extrabold text-slate-855 dark:text-white text-xs uppercase tracking-wider">Critical Alerts</h3>
               <CircleAlert className="w-4.5 h-4.5 text-red-500" />
             </div>
 
@@ -508,18 +514,18 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
               {/* Active notifications */}
               {notifications.length > 0 ? (
                 notifications.slice(0, 3).map(n => (
-                  <div key={n.id} className="p-2 bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-950/40 rounded-xl flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <div key={n.id} className="p-3 bg-red-500/10 dark:bg-red-950/20 border border-red-550/20 rounded-2xl flex items-start gap-2.5">
+                    <AlertTriangle className="w-4.5 h-4.5 text-red-550 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-[11px] font-bold text-red-800 dark:text-red-300 leading-tight">{n.title}</h4>
-                      <p className="text-[10px] text-red-600/90 dark:text-red-400/80 leading-snug mt-0.5">{n.message}</p>
+                      <h4 className="text-[11px] font-black text-red-800 dark:text-red-300 leading-tight">{n.title}</h4>
+                      <p className="text-[10px] text-red-650 dark:text-red-400/80 leading-relaxed mt-1 font-semibold">{n.message}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-950/40 rounded-xl flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">No active alerts. System healthy.</span>
+                <div className="p-3 bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-555/20 rounded-2xl flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500" />
+                  <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-extrabold uppercase tracking-wide">No active alerts. System healthy.</span>
                 </div>
               )}
             </div>

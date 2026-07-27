@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
@@ -76,6 +77,11 @@ export default function Home() {
     }
   }, [darkMode]);
 
+  const handleTabChange = (tab: string) => {
+    if (tab === currentTab) return;
+    setCurrentTab(tab);
+  };
+
   const handleNavigateToUnit = (unitId: number) => {
     if (userRole === 'Supervisor' && assignedUnit !== unitId) return; // Prevent supervisor routing leak
     handleUnitSelect(unitId);
@@ -121,7 +127,7 @@ export default function Home() {
     <div className="flex w-full min-h-screen bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
       <Sidebar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={handleTabChange}
         userRole={userRole}
         setUserRole={handleRoleToggle}
         assignedUnit={assignedUnit}
@@ -140,37 +146,41 @@ export default function Home() {
         }}
       >
         <style>{`@media (min-width: 768px) { main { padding-top: 0 !important; padding-bottom: 0 !important; } }`}</style>
-        {currentTab === 'dashboard' && userRole === 'Owner' && (
-          <OwnerDashboard 
-            darkMode={darkMode} 
-            onNavigateToUnit={handleNavigateToUnit}
-          />
-        )}
-        
-        {currentTab === 'unit-dashboard' && (
-          <UnitDashboard
-            userRole={userRole}
-            assignedUnit={assignedUnit}
-          />
-        )}
-        
-        {currentTab === 'daily-entry' && (
-          <DailyEntry
-            userRole={userRole}
-            assignedUnit={assignedUnit}
-          />
-        )}
-        
-        {currentTab === 'ai-chat' && userRole === 'Owner' && (
-          <AIChatPanel />
-        )}
-        
-        {currentTab === 'reports' && (
-          <ReportsPanel
-            userRole={userRole}
-            assignedUnit={assignedUnit}
-          />
-        )}
+
+        {/* Active Page View Container with smooth instant mount fade animation */}
+        <div key={currentTab} className="flex-1 flex flex-col min-h-0 animate-fade-in">
+          {currentTab === 'dashboard' && userRole === 'Owner' && (
+            <OwnerDashboard 
+              darkMode={darkMode} 
+              onNavigateToUnit={handleNavigateToUnit}
+            />
+          )}
+          
+          {currentTab === 'unit-dashboard' && (
+            <UnitDashboard
+              userRole={userRole}
+              assignedUnit={assignedUnit}
+            />
+          )}
+          
+          {currentTab === 'daily-entry' && (
+            <DailyEntry
+              userRole={userRole}
+              assignedUnit={assignedUnit}
+            />
+          )}
+          
+          {currentTab === 'ai-chat' && userRole === 'Owner' && (
+            <AIChatPanel />
+          )}
+          
+          {currentTab === 'reports' && (
+            <ReportsPanel
+              userRole={userRole}
+              assignedUnit={assignedUnit}
+            />
+          )}
+        </div>
       </main>
     </div>
   );

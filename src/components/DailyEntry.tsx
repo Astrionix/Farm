@@ -14,7 +14,9 @@ import {
   Search,
   X,
   AlertTriangle,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
@@ -58,6 +60,15 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const [showConfirm, setShowConfirm] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   const [activeBatchEditShed, setActiveBatchEditShed] = useState<number | null>(null);
+  const [expandedShed, setExpandedShed] = useState<number | null>(null);
+
+  // Auto-expand first active shed slot
+  useEffect(() => {
+    if (shedsList.length > 0) {
+      const firstActive = shedsList.find(s => s.status === 'Active')?.shedNumber;
+      setExpandedShed(firstActive || shedsList[0].shedNumber);
+    }
+  }, [shedsList]);
 
   // History search/filter state
   const [historyEntries, setHistoryEntries] = useState<DBDailyEntry[]>([]);
@@ -431,6 +442,13 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     setHasDraft(false);
   };
 
+  // Daily Summary Aggregates for form inputs
+  const totalShedEggs = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.eggsCount || 0) : sum, 0);
+  const totalShedMortality = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.mortality || 0) : sum, 0);
+  const totalShedFeed = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.feedKg || 0) : sum, 0);
+  const totalShedClosingBirds = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.closingBirds || 0) : sum, 0);
+  const dailyHDPct = totalShedClosingBirds > 0 ? (totalShedEggs / totalShedClosingBirds) * 100 : 0;
+
   // Filtered history
   const filteredHistory = historyEntries.filter(e => {
     const matchesSearch = historySearch === '' ||
@@ -656,19 +674,47 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
           </div>
         </div>
+        <div className="bg-gradient-to-r from-primary to-primary-light text-white p-5 rounded-2xl border border-primary-light/10 shadow-premium flex flex-col md:flex-row md:items-center justify-between gap-5 animate-slide-up">
+          <div>
+            <h3 className="font-extrabold text-sm uppercase tracking-wider text-emerald-100">Live Entry Draft Summary</h3>
+            <p className="text-[10px] text-emerald-250/70 font-black tracking-wide mt-1">Aggregated values of active sheds before submission</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1 max-w-2xl">
+            <div className="bg-primary-dark/25 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-[9px] text-emerald-250/50 block font-bold uppercase tracking-wider">Total Eggs</span>
+              <span className="text-sm font-black tracking-tight">{totalShedEggs.toLocaleString()}</span>
+            </div>
+            <div className="bg-primary-dark/25 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-[9px] text-emerald-250/50 block font-bold uppercase tracking-wider">Hen-Day Avg</span>
+              <span className="text-sm font-black tracking-tight">{dailyHDPct.toFixed(1)}%</span>
+            </div>
+            <div className="bg-primary-dark/25 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-[9px] text-emerald-250/50 block font-bold uppercase tracking-wider">Total Feed</span>
+              <span className="text-sm font-black tracking-tight">{totalShedFeed.toLocaleString()} kg</span>
+            </div>
+            <div className="bg-primary-dark/25 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-[9px] text-emerald-250/50 block font-bold uppercase tracking-wider">Total Mortality</span>
+              <span className="text-sm font-black tracking-tight text-red-350">{totalShedMortality} birds</span>
+            </div>
+          </div>
+        </div>
 
         {/* Shed Cards Row */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Shed Sheets Logs</h3>
-            <span className="text-[10px] text-slate-400 font-bold">12 slots supported</span>
+            <div>
+              <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Shed Sheets Logs</h3>
+              <p className="text-slate-400 text-xs font-semibold">Log poultry metrics for each active shed slot below.</p>
+            </div>
+            <span className="text-[10px] text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-wider">{shedsList.length} slots active</span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {shedsList.map(shed => {
               const sNum = shed.shedNumber;
               const input = shedInputs[sNum] || {};
               const isActive = input.status === 'Active';
+              const isExpanded = expandedShed === sNum;
 
               // Live FCR, HD% and Score calculation preview
               let previewFCR = '0.00';
@@ -702,88 +748,123 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               return (
                 <div
                   key={sNum}
-                  className={`bg-white dark:bg-slate-800 rounded-2xl border ${isActive ? 'border-slate-100 dark:border-slate-800' : 'border-dashed border-slate-200 dark:border-slate-700 opacity-60'
-                    } p-5 shadow-premium transition-all relative`}
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border ${
+                    isActive 
+                      ? 'border-slate-100 dark:border-slate-800 shadow-premium' 
+                      : 'border-dashed border-slate-200 dark:border-slate-800 opacity-60'
+                  } transition-all duration-300 overflow-hidden`}
                 >
-                  {/* Top Bar for Card */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-3.5 mb-4">
+                  {/* Collapsible Accordion Header */}
+                  <div
+                    onClick={() => {
+                      if (isActive) {
+                        setExpandedShed(isExpanded ? null : sNum);
+                      }
+                    }}
+                    className={`p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 select-none ${
+                      isActive ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850/20' : ''
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${
+                        isActive ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                      }`}>
                         {sNum}
                       </span>
                       <div>
-                        <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">
+                        <h4 className="font-extrabold text-sm text-slate-850 dark:text-white leading-tight">
                           {isChickShed(selectedUnit, sNum) ? 'Chick Shed' : `Shed ${sNum}`}
                         </h4>
-                        <span className={`text-[10px] font-bold ${isActive ? 'text-primary' : 'text-slate-400'}`}>
-                          {isActive ? (isChickShed(selectedUnit, sNum) ? 'Active Chick Shed' : 'Active & Included in Reports') : 'Not In Use — Excluded from Math'}
-                        </span>
-                        {/* Auto batch age badge */}
                         {(() => {
                           const batchDate = dbService.getBatchDate(selectedUnit, sNum);
                           const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
                           return batchDate && ageFull ? (
-                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 block mt-0.5">
-                              🐣 {ageFull.weeks} wks {ageFull.days} days · Batch: {new Date(batchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 block mt-0.5 uppercase tracking-wide">
+                              🐣 {ageFull.weeks}w {ageFull.days}d · Placed: {new Date(batchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
                             </span>
-                          ) : null;
+                          ) : (
+                            <span className={`text-[9px] font-bold ${isActive ? 'text-primary' : 'text-slate-400'}`}>
+                              {isActive ? 'Active and Running' : 'Slot Inactive'}
+                            </span>
+                          );
                         })()}
                       </div>
                     </div>
 
-                    {/* Active Checkbox */}
-                    <div className="flex items-center gap-4">
-                      {isActive && (
-                        <div className="bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex items-center gap-4 text-[11px] font-extrabold text-slate-500">
+                    {/* Inline summary when collapsed */}
+                    <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                      {isActive && !isExpanded && (
+                        <div className="bg-slate-50 dark:bg-slate-950/40 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800/80 flex items-center gap-4 text-[10px] font-bold text-slate-450 uppercase tracking-wide animate-fade-in">
                           <div>
-                            HD%: <span className="text-slate-700 dark:text-slate-200 font-black">{previewHDPct}%</span>
+                            Eggs: <span className="text-slate-800 dark:text-slate-200 font-black">{Number(input.eggsCount || 0).toLocaleString()}</span>
                           </div>
                           <div>
-                            FCR: <span className="text-primary font-black">{previewFCR}</span>
+                            HD: <span className="text-slate-800 dark:text-slate-200 font-black">{previewHDPct}%</span>
                           </div>
                           <div>
-                            Shed Score: <span className={`font-black ${previewScore >= 90 ? 'text-primary' : 'text-amber-500'}`}>{previewScore} ({scoreLabel})</span>
+                            FCR: <span className="text-primary dark:text-primary-light font-black">{previewFCR}</span>
+                          </div>
+                          <div>
+                            Score: <span className={`font-black uppercase ${
+                              previewScore >= 90 ? 'text-primary' : previewScore >= 70 ? 'text-blue-500' : 'text-red-500'
+                            }`}>{previewScore}</span>
                           </div>
                         </div>
                       )}
 
                       <button
                         type="button"
-                        onClick={() => handleStatusToggle(sNum)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition border ${isActive
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusToggle(sNum);
+                          if (!isActive) {
+                            setExpandedShed(sNum);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition border cursor-pointer ${isActive
                             ? 'bg-red-50 hover:bg-red-100 text-red-500 border-red-200'
                             : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20'
                           }`}
                       >
-                        {isActive ? 'Disable Shed' : 'Enable Shed'}
+                        {isActive ? 'Disable' : 'Enable'}
                       </button>
 
-                      {/* Set Batch Date Calendar Picker */}
-                      <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-800">
-                        <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide shrink-0">🐣 Batch:</span>
+                      {isActive && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setActiveBatchEditShed(activeBatchEditShed === sNum ? null : sNum);
                           }}
-                          className="bg-amber-200 dark:bg-amber-800/80 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-100 text-[10px] font-black px-2 py-1 rounded-lg transition"
+                          className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition cursor-pointer ${
+                            activeBatchEditShed === sNum
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'bg-amber-50/70 hover:bg-amber-100 text-amber-700 border-amber-200'
+                          }`}
                         >
-                          {activeBatchEditShed === sNum ? 'Hide Config' : 'Configure'}
+                          Batch
                         </button>
-                      </div>
+                      )}
+
+                      {isActive && (
+                        <div className="text-slate-400 dark:text-slate-600 transition-transform duration-200">
+                          {isExpanded ? <ChevronUp className="w-4.5 h-4.5" /> : <ChevronDown className="w-4.5 h-4.5" />}
+                        </div>
+                      )}
                     </div>
                   </div>
 
+                  {/* Batch configuration block inside collapsed/expanded area */}
                   {isActive && activeBatchEditShed === sNum && (
-                    <div className="mb-5 p-4 bg-amber-500/5 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-4">
+                    <div className="mx-5 mb-5 p-4 bg-amber-500/5 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-4 animate-slide-up">
                       <div className="flex items-center justify-between border-b border-amber-200 dark:border-amber-800/80 pb-2">
-                        <span className="text-[11px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
-                          🐣 Shed {sNum} Batch Configuration
+                        <span className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                          🐣 Shed {sNum} Batch Setup
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveBatchEditShed(null)}
-                          className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline font-bold"
+                          className="text-[9px] text-amber-700 dark:text-amber-450 hover:underline font-bold uppercase tracking-wider"
                         >
                           Close
                         </button>
@@ -842,7 +923,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                   }
                                   setShedInputs(prev => ({ ...prev }));
                                 }}
-                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
                               >
                                 {standardBreeds.map(b => (
                                   <option key={b} value={b}>{b}</option>
@@ -850,7 +931,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                 <option value="Other">Other (Custom)...</option>
                               </select>
 
-                              {/* Custom Breed Type input field, shown if Other is selected */}
+                              {/* Custom Breed Type input field */}
                               {isCustomBreed && (
                                 <input
                                   type="text"
@@ -914,49 +995,49 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                     </div>
                   )}
 
-                  {/* Input Grid (Rendered only if Active) */}
-                  {isActive ? (
-                    <div className="space-y-4">
+                  {/* Input Form Grid (Rendered only if Active & Expanded) */}
+                  {isActive && isExpanded && (
+                    <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 space-y-4 bg-slate-50/50 dark:bg-slate-950/20 animate-slide-up">
                       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
                         {/* Opening Birds */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Opening Birds</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Opening Birds</label>
                           <input
                             type="number"
                             value={input.openingBirds ?? 0}
                             onChange={(e) => handleInputChange(sNum, 'openingBirds', Number(e.target.value))}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                             required
                           />
                         </div>
 
                         {/* Mortality */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Mortality</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Mortality</label>
                           <input
                             type="number"
                             value={input.mortality ?? 0}
                             onChange={(e) => handleInputChange(sNum, 'mortality', Number(e.target.value))}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                           />
                         </div>
 
                         {/* Culls */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Culls</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Culls</label>
                           <input
                             type="number"
                             value={input.culls ?? 0}
                             onChange={(e) => handleInputChange(sNum, 'culls', Number(e.target.value))}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                           />
                         </div>
 
                         {/* Closing Birds (Calculated Indicator) */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
-                          <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400">
-                            {input.closingBirds ?? 0}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Closing Birds</label>
+                          <div className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750 rounded-xl text-xs font-black text-slate-500 dark:text-slate-400">
+                            {(input.closingBirds ?? 0).toLocaleString()}
                           </div>
                         </div>
 
@@ -965,22 +1046,21 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
                           const hasAuto = ageFull !== null;
                           return (
-                            <div className="space-y-1">
-                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                Bird Age
-                                {hasAuto && <span className="text-[8px] bg-primary/15 text-primary px-1.5 rounded-full font-black normal-case">Auto</span>}
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span>Bird Age</span>
+                                {hasAuto && <span className="text-[7.5px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full font-black normal-case shrink-0">Auto</span>}
                               </label>
                               {hasAuto && ageFull ? (
-                                <div className="w-full px-2.5 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg text-xs font-black text-primary flex items-center gap-1">
-                                  {ageFull.weeks}w {ageFull.days}d
-                                  <span className="text-[8px] text-primary/60 font-semibold">auto</span>
+                                <div className="w-full px-3 py-2 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl text-xs font-black text-primary flex items-center justify-between">
+                                  <span>{ageFull.weeks}w {ageFull.days}d</span>
                                 </div>
                               ) : (
                                 <input
                                   type="number"
                                   value={input.birdAgeWeeks ?? 0}
                                   onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                                   required
                                 />
                               )}
@@ -989,25 +1069,25 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         })()}
 
                         {/* Feed Consumed (kg) */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
                           <input
                             type="number"
                             value={input.feedKg ?? 0}
                             onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                             required
                           />
                         </div>
 
                         {/* Eggs Collected */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Eggs Collected</label>
                           <input
                             type="number"
                             value={input.eggsCount ?? 0}
                             onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                             required
                           />
                         </div>
@@ -1027,10 +1107,10 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                          const selectRemarkVal = isCustomRemark ? 'Other' : currentRemark;
 
                          return (
-                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-700/60 pt-3">
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-200/50 dark:border-slate-800/80 pt-3">
                              {/* Medication Select */}
-                             <div className="space-y-1">
-                               <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Medication Administered</label>
+                             <div className="space-y-1.5">
+                               <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Medication Administered</label>
                                <select
                                  value={selectMedVal}
                                  onChange={(e) => {
@@ -1041,7 +1121,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                      handleInputChange(sNum, 'medication', val === 'None' ? '' : val);
                                    }
                                  }}
-                                 className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
+                                 className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
                                >
                                  {standardMeds.map(m => (
                                    <option key={m} value={m}>{m}</option>
@@ -1054,14 +1134,14 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                    placeholder="Type Custom Medication..."
                                    value={currentMed === 'Custom Medication' ? '' : currentMed}
                                    onChange={(e) => handleInputChange(sNum, 'medication', e.target.value || 'Custom Medication')}
-                                   className="w-full px-2.5 py-1.5 mt-1.5 bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-850 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                   className="w-full px-3 py-2 mt-1.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                                  />
                                )}
                              </div>
 
                              {/* Shed Remarks Select */}
-                             <div className="space-y-1">
-                               <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Shed Remarks</label>
+                             <div className="space-y-1.5">
+                               <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Shed Remarks</label>
                                <select
                                  value={selectRemarkVal}
                                  onChange={(e) => {
@@ -1072,7 +1152,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                      handleInputChange(sNum, 'remarks', val === 'No remarks recorded for this day.' ? '' : val);
                                    }
                                  }}
-                                 className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
+                                 className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
                                >
                                  {standardRemarksOptions.map(r => (
                                    <option key={r} value={r}>{r}</option>
@@ -1085,17 +1165,20 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                                    placeholder="Type Custom Remarks..."
                                    value={currentRemark === 'Custom Remark' ? '' : currentRemark}
                                    onChange={(e) => handleInputChange(sNum, 'remarks', e.target.value || 'Custom Remark')}
-                                   className="w-full px-2.5 py-1.5 mt-1.5 bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-850 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                   className="w-full px-3 py-2 mt-1.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                                  />
                                )}
                              </div>
                            </div>
                          );
                        })()}
-                     </div>
-                  ) : (
-                    <div className="py-6 text-center text-xs font-bold italic text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-900/10 rounded-xl">
-                      Shed slot currently inactive. Enable status to permit daily log entries.
+                    </div>
+                  )}
+
+                  {/* Slot Inactive Placeholder */}
+                  {!isActive && (
+                    <div className="p-5 text-center text-xs font-bold italic text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800/80">
+                      Shed slot currently inactive. Click enable status to permit daily log entries.
                     </div>
                   )}
                 </div>

@@ -34,7 +34,7 @@ interface UnitDashboardProps {
 }
 
 export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardProps) {
-  const [selectedUnit, setSelectedUnit] = useState<number>(1);
+  const [selectedUnit, setSelectedUnit] = useState<number>(() => userRole === 'Supervisor' ? assignedUnit : 1);
   const [entries, setEntries] = useState<DBDailyEntry[]>([]);
   const [shedStatusMap, setShedStatusMap] = useState<Record<number, 'Active' | 'Not In Use'>>({});
   const [loading, setLoading] = useState(true);
@@ -44,9 +44,16 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const [historyLogs, setHistoryLogs] = useState<DBDailyEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Sync unit choice with assigned unit for supervisors (without useEffect sync loops)
+  const [prevAssignedUnit, setPrevAssignedUnit] = useState(assignedUnit);
+  if (userRole === 'Supervisor' && assignedUnit !== prevAssignedUnit) {
+    setPrevAssignedUnit(assignedUnit);
+    setSelectedUnit(assignedUnit);
+  }
+
   useEffect(() => {
     if (selectedShedDetails) {
-      setHistoryLoading(true);
+      // historyLoading is set to true in the click handler rather than synchronously in effect
       dbService.getDailyEntries({ 
         unitId: selectedShedDetails.unitId
       }).then(logs => {
@@ -72,13 +79,6 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
     }
     loadUnits();
   }, []);
-
-  // Sync unit choice with assigned unit for supervisors
-  useEffect(() => {
-    if (userRole === 'Supervisor') {
-      setSelectedUnit(assignedUnit);
-    }
-  }, [userRole, assignedUnit]);
 
   // Load data for the selected unit
   useEffect(() => {
@@ -181,23 +181,23 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const scoreRisk = latestEntries.length > 0 ? Math.round(Math.min(100, (unitMortPct * 200) + (100 - scorePerformance) * 0.5)) : 0;
 
   // Circular gauge renderer helper
-  const renderGauge = (score: number, title: string, icon: any, colorClass: string, trackColor: string) => {
+  const renderGauge = (score: number, title: string, icon: React.ComponentType<{ className?: string }>, colorClass: string, trackColor: string) => {
     const Icon = icon;
     const radius = 22;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - (score / 100) * circumference;
 
     return (
-      <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex items-center gap-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-premium flex items-center gap-3 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
         <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
           <svg viewBox="0 0 56 56" className="w-14 h-14 transform -rotate-90">
-            <circle cx="28" cy="28" r={radius} className="stroke-slate-100 dark:stroke-slate-700" strokeWidth="5" fill="transparent" />
+            <circle cx="28" cy="28" r={radius} className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="4.5" fill="transparent" />
             <circle 
               cx="28" 
               cy="28" 
               r={radius} 
               className={trackColor} 
-              strokeWidth="5" 
+              strokeWidth="4.5" 
               fill="transparent" 
               strokeDasharray={circumference} 
               strokeDashoffset={strokeDashoffset}
@@ -205,14 +205,14 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             />
           </svg>
           <div className="absolute text-center">
-            <span className="text-[11px] font-black text-slate-800 dark:text-white leading-none">{score}%</span>
+            <span className="text-[11px] font-black text-slate-850 dark:text-white leading-none">{score}%</span>
           </div>
         </div>
         <div>
-          <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider">{title}</h4>
-          <div className="flex items-center gap-1.5 mt-1">
+          <h4 className="text-slate-400 dark:text-slate-550 font-bold text-[9px] uppercase tracking-wider leading-none">{title}</h4>
+          <div className="flex items-center gap-1.5 mt-1.5">
             <Icon className={`w-3.5 h-3.5 ${colorClass}`} />
-            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
+            <span className="text-[10px] font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
               {score >= 90 ? 'Excellent' : score >= 80 ? 'Optimal' : score >= 70 ? 'Stable' : score >= 50 ? 'Warning' : 'Critical'}
             </span>
           </div>
@@ -385,10 +385,11 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
               <div 
                 key={shedNum}
                 className={`p-5 rounded-2xl border ${borderClass} ${bgClass} shadow-premium transition-all duration-300 relative group flex flex-col justify-between min-h-48 ${
-                  isActive ? 'hover:shadow-md cursor-pointer hover:-translate-y-0.5' : 'opacity-60 bg-slate-50 dark:bg-slate-900/40'
+                  isActive ? 'hover:shadow-lg cursor-pointer hover:-translate-y-[2px]' : 'opacity-60 bg-slate-50 dark:bg-slate-900/30'
                 }`}
                 onClick={() => {
                   if (isActive && entry) {
+                    setHistoryLoading(true);
                     setSelectedShedDetails(entry);
                   }
                 }}
@@ -396,7 +397,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 {/* Top header row */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-extrabold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <h4 className="font-extrabold text-xs text-slate-400 dark:text-slate-550 uppercase tracking-wider">
                       {isChickShed(selectedUnit, shedNum) ? 'Chick Shed' : `Shed ${shedNum}`}
                     </h4>
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase mt-1 ${

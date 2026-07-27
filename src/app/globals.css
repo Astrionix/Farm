@@ -13,18 +13,29 @@
 
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-blob-float-1: float1 10s ease-in-out infinite;
+  --animate-blob-float-2: float2 14s ease-in-out infinite;
+  --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes float1 {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(15px) scale(0.95); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 :root {

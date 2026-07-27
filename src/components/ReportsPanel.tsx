@@ -340,13 +340,13 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
         </div>
 
         {/* Filters and Controls */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Unit selection */}
           {userRole === 'Owner' && (
             <select
               value={selectedUnit}
               onChange={(e) => setSelectedUnit(Number(e.target.value))}
-              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-750 dark:text-slate-200 focus:outline-none focus:border-primary h-9"
             >
               {unitsList.map(u => (
                 <option key={u.id} value={u.id}>{u.name}</option>
@@ -355,7 +355,7 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
           )}
 
           {/* Date Range Selectors */}
-          <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-0.5 border border-slate-200/50 dark:border-slate-800">
+          <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-0.5 border border-slate-200/50 dark:border-slate-800 h-9 items-center">
             {([
               { id: 'today', label: 'Today' },
               { id: '7d', label: '7 Days' },
@@ -364,8 +364,9 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             ] as const).map(range => (
               <button
                 key={range.id}
+                type="button"
                 onClick={() => setDateRange(range.id)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${dateRange === range.id
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all duration-200 ${dateRange === range.id
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
@@ -380,7 +381,8 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             type="date"
             value={reportDate}
             onChange={(e) => setReportDate(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+            onClick={(e) => e.currentTarget.showPicker?.()}
+            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-750 dark:text-slate-200 focus:outline-none focus:border-primary h-9 cursor-pointer"
           />
         </div>
       </div>

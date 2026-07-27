@@ -302,38 +302,38 @@ export default function InventoryModule() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-700/60 text-slate-400 font-bold uppercase text-[9px] tracking-wider">
-                  <th className="py-3 px-2">Date</th>
-                  <th className="py-3 px-2">Item</th>
-                  <th className="py-3 px-2">Type</th>
-                  <th className="py-3 px-2 text-right">Quantity</th>
-                  <th className="py-3 px-2">Ref</th>
-                  <th className="py-3 px-2">Remarks</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-black uppercase text-[8.5px] tracking-wider">
+                  <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-3">Item</th>
+                  <th className="py-3 px-3">Type</th>
+                  <th className="py-3 px-3 text-right">Quantity</th>
+                  <th className="py-3 px-3">Ref</th>
+                  <th className="py-3 px-3">Remarks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100/50 dark:divide-slate-700/40 font-semibold text-slate-700 dark:text-slate-300">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
                 {transactions.slice(0, 15).map(tx => {
                   const matchItem = inventory.find(i => i.id === tx.inventoryId);
                   const isPurchase = tx.transactionType === 'Purchase';
                   return (
-                    <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/20">
-                      <td className="py-3 px-2 text-[10px] font-bold text-slate-400">{tx.date}</td>
-                      <td className="py-3 px-2 leading-tight">
-                        <span className="font-bold text-slate-800 dark:text-white">{matchItem?.itemName || 'Unknown Item'}</span>
-                        <span className="block text-[9px] text-slate-400 font-semibold">{matchItem?.category}</span>
+                    <tr key={tx.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                      <td className="py-3.5 px-3 text-[10px] font-bold text-slate-400 dark:text-slate-550">{tx.date}</td>
+                      <td className="py-3.5 px-3 leading-tight">
+                        <span className="font-extrabold text-slate-800 dark:text-slate-200">{matchItem?.itemName || 'Unknown Item'}</span>
+                        <span className="block text-[8.5px] text-slate-400 dark:text-slate-550 font-bold uppercase mt-0.5 tracking-wider">{matchItem?.category}</span>
                       </td>
-                      <td className="py-3 px-2">
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
-                          isPurchase ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-red-50 text-red-500 border border-red-100'
+                      <td className="py-3.5 px-3">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${
+                          isPurchase ? 'bg-primary/10 text-primary border-primary/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
                         }`}>
                           {tx.transactionType}
                         </span>
                       </td>
-                      <td className={`py-3 px-2 text-right font-black text-xs ${isPurchase ? 'text-primary' : 'text-red-500'}`}>
+                      <td className={`py-3.5 px-3 text-right font-black text-xs ${isPurchase ? 'text-primary' : 'text-red-500'}`}>
                         {isPurchase ? '+' : '-'}{Math.round(tx.quantity).toLocaleString()} {matchItem?.uom}
                       </td>
-                      <td className="py-3 px-2 text-[10px] text-slate-400 max-w-[80px] truncate">{tx.reference || '—'}</td>
-                      <td className="py-3 px-2 text-[10px] text-slate-400 max-w-[140px] truncate" title={tx.remarks}>{tx.remarks || '—'}</td>
+                      <td className="py-3.5 px-3 text-[10px] text-slate-400 dark:text-slate-500 max-w-[80px] truncate">{tx.reference || '—'}</td>
+                      <td className="py-3.5 px-3 text-[10px] text-slate-400 dark:text-slate-500 max-w-[140px] truncate" title={tx.remarks}>{tx.remarks || '—'}</td>
                     </tr>
                   );
                 })}

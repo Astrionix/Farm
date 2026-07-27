@@ -206,7 +206,7 @@ You can ask me questions like:
   };
 
   return (
-    <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 lg:flex-row lg:gap-6 max-h-screen overflow-hidden">
+    <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 lg:flex-row lg:gap-6 h-[calc(100vh-145px)] lg:h-[calc(100vh-2rem)] overflow-hidden">
       {/* Mobile Sub-Tab Selector */}
       <div className="lg:hidden flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
         <button
@@ -392,11 +392,11 @@ You can ask me questions like:
       </div>
 
       {/* RIGHT PANEL: Interactive Chat Assistant */}
-      <div className={`w-full lg:w-1/2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex-col h-full overflow-hidden ${
+      <div className={`w-full lg:w-1/2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex flex-col h-full overflow-hidden ${
         activeMobileSubTab === 'chat' ? 'flex' : 'hidden lg:flex'
       }`}>
         {/* Header */}
-        <div className="bg-primary text-white p-4 flex items-center justify-between">
+        <div className="bg-primary text-white p-4 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-2.5">
             <Bot className="w-5.5 h-5.5 text-secondary animate-bounce-slow" />
             <div>
@@ -408,13 +408,13 @@ You can ask me questions like:
         </div>
 
         {/* Message Log */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-900/20">
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-950/20">
           {messages.map((m, i) => {
             const isBot = m.sender === 'bot';
             return (
               <div 
                 key={i} 
-                className={`flex gap-3 max-w-[85%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
+                className={`flex gap-3 max-w-[88%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
               >
                 {/* Avatar */}
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
@@ -427,15 +427,15 @@ You can ask me questions like:
                 <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm border ${
                   isBot 
                     ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-100 dark:border-slate-700/60' 
-                    : 'bg-primary text-white border-primary-dark/20'
+                    : 'bg-primary text-white border-primary-dark/20 animate-slide-up'
                 }`}>
-                  {/* Clean Markdown Bold rendering support */}
-                  <p 
+                  {/* Clean Markdown rendering support */}
+                  <div 
                     className="whitespace-pre-line font-semibold"
                     dangerouslySetInnerHTML={{ 
                       __html: m.text
-                        .replace(/\*\*(.*?)\*\*/g, '<b class="font-extrabold text-slate-900 dark:text-white">$1</b>') 
-                        .replace(/\*(.*?)\*/g, '<span class="text-secondary">$1</span>') 
+                        .replace(/\*\*(.*?)\*\*/g, `<strong class="font-black ${isBot ? 'text-slate-900 dark:text-white' : 'text-white'}">$1</strong>`)
+                        .replace(/^\*\s(.*)$/gm, '<li class="ml-4 list-disc my-1">$1</li>')
                     }}
                   />
                 </div>
@@ -459,15 +459,34 @@ You can ask me questions like:
           <div ref={chatEndRef} />
         </div>
 
+        {/* Click-to-Prompt Suggestions Grid */}
+        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-hide bg-slate-50/20 dark:bg-slate-950/40 shrink-0">
+          {[
+            { label: 'Compare Units 1 & 2', query: 'Compare Unit 1 and Unit 2 performance on this day.' },
+            { label: 'Production drop?', query: 'Why did production decrease in Unit 3?' },
+            { label: 'Mortality spikes?', query: 'Find abnormal mortality spikes in the logs.' },
+            { label: 'FCR Analysis', query: 'Which shed has the best FCR and why?' }
+          ].map((pill, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setInputVal(pill.query)}
+              className="px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider text-primary dark:text-secondary bg-primary/5 hover:bg-primary/10 border border-primary/20 dark:border-secondary/20 rounded-full shrink-0 transition cursor-pointer"
+            >
+              💡 {pill.label}
+            </button>
+          ))}
+        </div>
+
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-100 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900 shrink-0">
           <input
             type="text"
             placeholder="Ask a question about your farm ledger..."
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             disabled={chatLoading}
-            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary disabled:opacity-60"
+            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-primary disabled:opacity-60"
           />
           <button
             type="submit"
