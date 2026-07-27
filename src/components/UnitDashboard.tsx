@@ -670,16 +670,8 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.feedKg.toFixed(1)} kg</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Water Consumed:</span>
-                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.waterLiters.toFixed(1)} L</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span>Feed / Bird:</span>
                       <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.feedPerBirdG} grams</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Water / Bird:</span>
-                      <span className="text-slate-800 dark:text-white font-bold">{selectedShedDetails.waterPerBirdMl} ml</span>
                     </div>
                   </div>
                 </div>

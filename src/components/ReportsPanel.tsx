@@ -382,12 +382,12 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
     ].join('\n');
 
     // Headers
-    const headers = 'Shed Slot,Opening Birds,Mortality,Closing Birds,Feed Consumed (kg),Water Consumed (L),Water-to-Feed Ratio,Eggs Gathered,Egg Weight (g),Egg Mass (kg),HD %,FCR,Feed/Bird (g),Water/Bird (ml),Bird Age (Wks),Score,Performance Label\n';
+    const headers = 'Shed Slot,Opening Birds,Mortality,Closing Birds,Feed Consumed (kg),Eggs Gathered,Egg Weight (g),Egg Mass (kg),HD %,FCR,Feed/Bird (g),Bird Age (Wks),Score,Performance Label\n';
 
     // Rows
     const rows = entries.map(e => {
       const slot = isChickShed(selectedUnit, e.shedNumber) ? 'Chick Shed' : `Shed ${e.shedNumber}`;
-      return `"${slot}",${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.waterLiters},${e.waterToFeedRatio},${e.eggsCount},${e.eggWeightG},${e.eggMassKg},${e.hdPct},${e.fcr},${e.feedPerBirdG},${e.waterPerBirdMl},${e.birdAgeWeeks},${e.performanceScore},"${e.performanceLabel}"`;
+      return `"${slot}",${e.openingBirds},${e.mortality},${e.closingBirds},${e.feedKg},${e.eggsCount},${e.eggWeightG},${e.eggMassKg},${e.hdPct},${e.fcr},${e.feedPerBirdG},${e.birdAgeWeeks},${e.performanceScore},"${e.performanceLabel}"`;
     }).join('\n');
 
     const blob = new Blob([metadata + headers + rows], { type: 'text/csv;charset=utf-8;' });
