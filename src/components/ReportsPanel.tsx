@@ -106,6 +106,9 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
 
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('today');
+  // raw per-shed daily feed rows for weekly analysis
+  const [rawDailyByShed, setRawDailyByShed] = useState<Record<number, { date: string; feedKg: number; birds: number }[]>>({});
+  const [reportStartDate, setReportStartDate] = useState<string>('');
 
   useEffect(() => {
     async function loadUnits() {
@@ -158,15 +161,17 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
         } else {
           // Aggregate data per shed across the selected period
           const aggregatedMap: Record<number, any> = {};
+          const dailyByShed: Record<number, { date: string; feedKg: number; birds: number }[]> = {};
+
           activeData.forEach(entry => {
             const sNum = entry.shedNumber;
             if (!aggregatedMap[sNum]) {
               aggregatedMap[sNum] = {
                 shedNumber: sNum,
-                openingBirds: entry.openingBirds, // Start of period opening
+                openingBirds: entry.openingBirds,
                 mortality: 0,
                 culls: 0,
-                closingBirds: entry.closingBirds, // Will be overwritten by latest entry
+                closingBirds: entry.closingBirds,
                 feedKg: 0,
                 waterLiters: 0,
                 eggsCount: 0,
@@ -182,7 +187,15 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
                 recordsCount: 0,
                 date: entry.date,
               };
+              dailyByShed[sNum] = [];
             }
+
+            // collect raw daily feed row
+            dailyByShed[sNum].push({
+              date: entry.date,
+              feedKg: entry.feedKg,
+              birds: entry.closingBirds || entry.openingBirds,
+            });
 
             const record = aggregatedMap[sNum];
             // Accumulate
@@ -270,6 +283,8 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
           });
 
           setEntries(compiledList.sort((a, b) => a.shedNumber - b.shedNumber));
+          setRawDailyByShed(dailyByShed);
+          setReportStartDate(startDate);
         }
       } catch (err) {
         console.error('Failed loading reports:', err);
@@ -547,6 +562,100 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
             </div>
           </div>
         </div>
+
+        {/* ── Per-Shed Daily Feed Analysis (weekly/multi-day only) ── */}
+        {dateRange !== 'today' && Object.keys(rawDailyByShed).length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
+              <span className="text-base">🌾</span>
+              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                Per-Shed Daily Feed Consumption Analysis
+              </h3>
+              <span className="ml-auto text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                {reportStartDate} → {reportDate}
+              </span>
+            </div>
+
+            {Object.entries(rawDailyByShed)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([shedNumStr, days]) => {
+                const sNum = Number(shedNumStr);
+                const shedLabel = isChickShed(selectedUnit, sNum) ? 'Chick Shed' : `Shed ${sNum}`;
+                const sortedDays = [...days].sort((a, b) => a.date.localeCompare(b.date));
+                const feedDays = sortedDays.filter(d => d.feedKg > 0);
+                const totalFeedShed = sortedDays.reduce((s, d) => s + d.feedKg, 0);
+                const avgPerFeedDay = feedDays.length > 0 ? totalFeedShed / feedDays.length : 0;
+                const avgBirds = days.length > 0 ? Math.round(days.reduce((s, d) => s + d.birds, 0) / days.length) : 0;
+                const avgPerBirdG = avgBirds > 0 && feedDays.length > 0 ? (avgPerFeedDay * 1000) / avgBirds : 0;
+
+                return (
+                  <div key={sNum} className="bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 space-y-3">
+                    {/* Shed header */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-xs font-black text-slate-800 dark:text-white">{shedLabel}</span>
+                      <div className="flex flex-wrap gap-3">
+                        <div className="text-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Total Feed</span>
+                          <span className="text-sm font-black text-primary">{totalFeedShed.toFixed(0)} kg</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Feed Days</span>
+                          <span className="text-sm font-black text-amber-600">{feedDays.length} / {sortedDays.length} days</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Avg / Feed Day</span>
+                          <span className="text-sm font-black text-blue-600 dark:text-blue-400">{avgPerFeedDay.toFixed(0)} kg</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Avg / Bird</span>
+                          <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">{avgPerBirdG.toFixed(0)} g</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Day-by-day feed row chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {sortedDays.map(d => {
+                        const hasFeed = d.feedKg > 0;
+                        const dayLabel = new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                        return (
+                          <div
+                            key={d.date}
+                            className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl border text-center min-w-[52px] ${
+                              hasFeed
+                                ? 'bg-primary/8 dark:bg-primary/15 border-primary/25 dark:border-primary/30'
+                                : 'bg-amber-50/60 dark:bg-amber-900/10 border-dashed border-amber-300/60 dark:border-amber-800/40'
+                            }`}
+                          >
+                            <span className={`text-[8.5px] font-bold ${ hasFeed ? 'text-slate-500 dark:text-slate-400' : 'text-amber-500 dark:text-amber-600' }`}>
+                              {dayLabel}
+                            </span>
+                            <span className={`text-[10px] font-black mt-0.5 ${ hasFeed ? 'text-primary dark:text-emerald-400' : 'text-amber-400 dark:text-amber-600' }`}>
+                              {hasFeed ? `${d.feedKg} kg` : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Mini progress bar: feed days vs no-feed days */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-bold text-slate-400 shrink-0">Feed Coverage</span>
+                      <div className="flex-1 h-2 bg-amber-100 dark:bg-amber-900/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${sortedDays.length > 0 ? (feedDays.length / sortedDays.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-[8px] font-black text-primary shrink-0">
+                        {sortedDays.length > 0 ? Math.round((feedDays.length / sortedDays.length) * 100) : 0}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
 
         {/* Entries Table */}
         <div className="overflow-x-auto">

@@ -290,7 +290,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             mortality: Number(input.mortality || 0),
             culls: Number(input.culls || 0),
             closingBirds: closing,
-            feedKg: Number(input.feedKg || (closing ? Math.round(closing * 0.116) : 0)),
+            feedKg: Number(input.feedKg ?? 0),
             waterLiters: Number(input.waterLiters || (closing ? Math.round(closing * 0.116 * 2.0) : 0)),
             eggsCount: Number(input.eggsCount || 0),
             eggWeightG: Number(input.eggWeightG || 60.0),
@@ -1068,16 +1068,42 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           );
                         })()}
 
-                        {/* Feed Consumed (kg) */}
+                        {/* Feed Consumed (kg) — optional, not given every day */}
                         <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
-                          <input
-                            type="number"
-                            value={input.feedKg ?? 0}
-                            onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                            required
-                          />
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isNoFeed = (input as Record<string, unknown>).__noFeedToday;
+                                setShedInputs(prev => ({
+                                  ...prev,
+                                  [sNum]: { ...prev[sNum], feedKg: 0, __noFeedToday: !isNoFeed } as never
+                                }));
+                              }}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all cursor-pointer ${
+                                (input as Record<string, unknown>).__noFeedToday
+                                  ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400/60 text-amber-700 dark:text-amber-400'
+                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-amber-400 hover:text-amber-600'
+                              }`}
+                            >
+                              {(input as Record<string, unknown>).__noFeedToday ? '🚫 No Feed Today' : '✓ Feed Given'}
+                            </button>
+                          </div>
+                          {(input as Record<string, unknown>).__noFeedToday ? (
+                            <div className="w-full px-3 py-2.5 bg-amber-50/60 dark:bg-amber-900/10 border border-dashed border-amber-300 dark:border-amber-800/50 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-500 text-center">
+                              No feed given — will record as 0 kg
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              value={input.feedKg ?? ''}
+                              placeholder="Enter kg given today"
+                              onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            />
+                          )}
                         </div>
 
                         {/* Eggs Collected */}
