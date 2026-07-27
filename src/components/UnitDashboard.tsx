@@ -17,6 +17,16 @@ import {
   Calendar
 } from 'lucide-react';
 import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 
 interface UnitDashboardProps {
   userRole: 'Owner' | 'Supervisor';
@@ -31,6 +41,29 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const [selectedShedDetails, setSelectedShedDetails] = useState<DBDailyEntry | null>(null);
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [historyLogs, setHistoryLogs] = useState<DBDailyEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedShedDetails) {
+      setHistoryLoading(true);
+      dbService.getDailyEntries({ 
+        unitId: selectedShedDetails.unitId
+      }).then(logs => {
+        const shedLogs = logs
+          .filter(e => e.shedNumber === selectedShedDetails.shedNumber)
+          .slice(0, 30) // last 30 logs (sorted desc)
+          .reverse(); // chronological for chart
+        setHistoryLogs(shedLogs);
+        setHistoryLoading(false);
+      }).catch(err => {
+        console.error(err);
+        setHistoryLoading(false);
+      });
+    } else {
+      setHistoryLogs([]);
+    }
+  }, [selectedShedDetails]);
 
   useEffect(() => {
     async function loadUnits() {
@@ -613,6 +646,108 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                     {selectedShedDetails.remarks || 'No remarks recorded for this day.'}
                   </div>
                 </div>
+              </div>
+
+              {/* 30-Day Medication & Performance Timeline Chart */}
+              <div className="space-y-2 border-t border-slate-100 dark:border-slate-700 pt-4">
+                <h4 className="font-extrabold text-xs text-primary uppercase">📈 30-Day Medication & Performance Timeline</h4>
+                {historyLoading ? (
+                  <div className="h-44 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs text-slate-400 font-bold animate-pulse">
+                    Loading historical timeline...
+                  </div>
+                ) : historyLogs.length === 0 ? (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl text-center text-xs text-slate-400 font-semibold italic">
+                    No historical logs found for this shed.
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white dark:bg-slate-900/10 border border-slate-100 dark:border-slate-800 rounded-xl">
+                    <div className="h-48 text-[9px] font-bold">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={historyLogs.map(l => ({
+                            date: new Date(l.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+                            'HD %': Number(l.hdPct || 0),
+                            'Mortality': Number(l.mortality || 0),
+                            medication: l.medication,
+                            remarks: l.remarks
+                          }))}
+                          margin={{ top: 10, right: 5, left: -20, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" className="hidden dark:block" />
+                          <XAxis dataKey="date" stroke="#94a3b8" />
+                          <YAxis yAxisId="left" stroke="#3b82f6" domain={[0, 100]} />
+                          <YAxis yAxisId="right" stroke="#ef4444" orientation="right" />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-md text-[10px] space-y-1">
+                                    <p className="font-extrabold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-1">{data.date}</p>
+                                    <p className="text-blue-500">Egg Yield: <span className="font-black">{data['HD %'].toFixed(1)}% HD</span></p>
+                                    <p className="text-red-500">Mortality: <span className="font-black">{data.Mortality} birds</span></p>
+                                    {data.medication && data.medication !== 'None' && (
+                                      <p className="text-amber-500 mt-1 border-t border-slate-100 dark:border-slate-700 pt-1">
+                                        💊 <span className="font-black">{data.medication}</span>
+                                        {data.remarks && <span className="block text-[8px] text-slate-400 mt-0.5 font-semibold">Note: {data.remarks}</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="HD %"
+                            stroke="#3b82f6"
+                            strokeWidth={2.5}
+                            dot={(props) => {
+                              const { cx, cy, payload } = props;
+                              if (cx === undefined || cy === undefined) return null;
+                              if (payload.medication && payload.medication !== 'None') {
+                                return (
+                                  <g key={props.key}>
+                                    <circle cx={cx} cy={cy} r={6} fill="#f59e0b" stroke="#fff" strokeWidth={1.5} />
+                                    <text x={cx} y={cy + 3} textAnchor="middle" fill="#fff" fontSize="8px" fontWeight="black">💊</text>
+                                  </g>
+                                );
+                              }
+                              return <circle key={props.key} cx={cx} cy={cy} r={2} fill="#3b82f6" />;
+                            }}
+                            activeDot={{ r: 6 }}
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="Mortality"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            dot={(props) => {
+                              const { cx, cy, payload } = props;
+                              if (cx === undefined || cy === undefined) return null;
+                              if (payload.medication && payload.medication !== 'None') {
+                                return (
+                                  <circle key={props.key} cx={cx} cy={cy} r={4} fill="#ef4444" stroke="#fff" strokeWidth={1} />
+                                );
+                              }
+                              return <circle key={props.key} cx={cx} cy={cy} r={1.5} fill="#ef4444" />;
+                            }}
+                            activeDot={{ r: 5 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 text-[9px] text-slate-400 font-bold justify-center">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                      <span>Golden Pills (💊) indicate vaccine or treatment events</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Flock / Batch History Log (Non-interactive historical records overview) */}
