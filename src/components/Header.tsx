@@ -14,12 +14,34 @@ export default function Header({ userRole, darkMode, setDarkMode, onLogout, setM
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   const [eggPrice, setEggPrice] = useState<{ region: string; price: number; trayPrice: number; petiPrice: number; source: string } | null>(null);
 
+  const [liveWeather, setLiveWeather] = useState<{ temp: string; condition: string; icon: string }>({ temp: '31', condition: 'Sunny', icon: '☀️' });
+
   useEffect(() => {
-    async function loadPrice() {
-      const p = await dbService.getEggPrice('Kakinada');
-      setEggPrice(p);
+    async function loadData() {
+      try {
+        const p = await dbService.getEggPrice('Kakinada');
+        setEggPrice(p);
+
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=17.1706&longitude=82.0163&current=temperature_2m,relative_humidity_2m,weather_code');
+        if (res.ok) {
+          const data = await res.json();
+          const current = data.current || {};
+          if (current.temperature_2m !== undefined) {
+            const temp = current.temperature_2m.toFixed(1);
+            const code = current.weather_code;
+            let condition = 'Sunny';
+            let icon = '☀️';
+            if (code === 2 || code === 3) { condition = 'Cloudy'; icon = '⛅'; }
+            else if (code >= 51 && code <= 82) { condition = 'Rainy'; icon = '🌧️'; }
+            else if (current.relative_humidity_2m > 75) { condition = 'Humid'; icon = '🌫️'; }
+            setLiveWeather({ temp, condition, icon });
+          }
+        }
+      } catch (e) {
+        console.warn('Header data load error:', e);
+      }
     }
-    loadPrice();
+    loadData();
   }, []);
 
   return (
@@ -51,11 +73,12 @@ export default function Header({ userRole, darkMode, setDarkMode, onLogout, setM
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Date & Weather Placeholder */}
+        {/* Date & Weather Indicator */}
         <div className="hidden md:flex flex-col items-end mr-2">
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{todayStr}</span>
           <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-            ☀️ Sunny 31°C
+            <span>{liveWeather.icon}</span>
+            <span>{liveWeather.condition} {liveWeather.temp}°C</span>
           </span>
         </div>
 
