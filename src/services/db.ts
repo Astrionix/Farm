@@ -751,6 +751,96 @@ export const dbService = {
       throw new Error('No Supabase connection. Please check your internet and try again.');
     }
 
+    // --- Retroactive Auto-Averaging for Feed ---
+    const retroUpdates: any[] = [];
+    const currentDateObj = new Date(date);
+
+    for (const item of shedInputs) {
+      if (item.input.feedKg && item.input.feedKg > 0) {
+        // Find the previous entry with feed > 0 for this shed
+        const { data: prevFeedData, error: prevError } = await supabaseClient
+          .from('daily_entries')
+          .select('*')
+          .eq('unit_id', unitId)
+          .eq('shed_number', item.shedNumber)
+          .lt('date', date)
+          .gt('feed_kg', 0)
+          .order('date', { ascending: false })
+          .limit(1);
+
+        if (!prevError && prevFeedData && prevFeedData.length > 0) {
+          const prevEntry = prevFeedData[0];
+          const prevDateObj = new Date(prevEntry.date);
+          
+          // Calculate difference in days
+          const diffTime = Math.abs(currentDateObj.getTime() - prevDateObj.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays > 1) {
+            // Calculate the smoothed average
+            const dailyAvgFeed = prevEntry.feed_kg / diffDays;
+
+            // Fetch all entries in the gap (from prevDate up to currentDate - 1)
+            const { data: gapData, error: gapError } = await supabaseClient
+              .from('daily_entries')
+              .select('*')
+              .eq('unit_id', unitId)
+              .eq('shed_number', item.shedNumber)
+              .gte('date', prevEntry.date)
+              .lt('date', date);
+
+            if (!gapError && gapData && gapData.length > 0) {
+              for (const gapRow of gapData) {
+                // Reconstruct input to recalculate metrics
+                const gapInput: ShedDataInput = {
+                  status: gapRow.status || 'Active',
+                  openingBirds: gapRow.opening_birds,
+                  mortality: gapRow.mortality,
+                  culls: gapRow.culls,
+                  closingBirds: gapRow.closing_birds,
+                  feedKg: dailyAvgFeed, // The smoothed average
+                  waterLiters: gapRow.water_liters,
+                  eggsCount: gapRow.eggs_count,
+                  eggWeightG: gapRow.egg_weight_g,
+                  uniformity: gapRow.uniformity,
+                  bodyWeight: gapRow.body_weight,
+                  medication: gapRow.medication,
+                  remarks: gapRow.remarks,
+                  birdAgeWeeks: gapRow.bird_age_weeks,
+                };
+                
+                const calc = calculateShedMetrics(gapInput);
+                
+                retroUpdates.push({
+                  ...gapRow, // retain all existing fields
+                  feed_kg: dailyAvgFeed,
+                  hd_pct: calc.hdPct,
+                  mortality_pct: calc.mortalityPct,
+                  feed_per_bird_g: calc.feedPerBirdG,
+                  water_per_bird_ml: calc.waterPerBirdMl,
+                  fcr: calc.fcr,
+                  water_to_feed_ratio: calc.waterToFeedRatio,
+                  egg_mass_kg: calc.eggMassKg,
+                  performance_score: calc.performanceScore,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Apply retroactive updates if there are any
+    if (retroUpdates.length > 0) {
+      const { error: retroError } = await supabaseClient
+        .from('daily_entries')
+        .upsert(retroUpdates, { onConflict: 'date,unit_id,shed_number' });
+      if (retroError) {
+        console.error('Retroactive feed auto-averaging failed:', retroError);
+      }
+    }
+    // -------------------------------------------
+
     const records = processedEntries.map(e => ({
       date: e.date,
       unit_id: e.unitId,
