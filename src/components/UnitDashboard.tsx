@@ -81,12 +81,16 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
     loadUnits();
   }, []);
 
-  // Load data for the selected unit
+  // Load and auto-update live data for the selected unit automatically
   useEffect(() => {
+    let isSubscribed = true;
     async function loadUnitData() {
       setLoading(true);
       try {
+        // 1. Auto-fetch fresh shed configuration
         const allSheds = await dbService.getSheds();
+        if (!isSubscribed) return;
+
         const unitSheds = allSheds.filter(s => s.unitId === selectedUnit);
         const map: Record<number, 'Active' | 'Not In Use'> = {};
         unitSheds.forEach(s => {
@@ -94,8 +98,10 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
         });
         setShedStatusMap(map);
 
-        // Fetch latest entries for this unit
+        // 2. Auto-fetch latest live entries from Supabase
         const unitEntries = await dbService.getDailyEntries({ unitId: selectedUnit });
+        if (!isSubscribed) return;
+
         setEntries(unitEntries);
         if (unitEntries.length > 0) {
           setSelectedDate(unitEntries[0].date);
@@ -103,12 +109,19 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
           setSelectedDate(new Date().toISOString().split('T')[0]);
         }
       } catch (err) {
-        console.error('Error loading unit dashboard:', err);
+        console.error('Error auto-updating unit dashboard:', err);
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     }
+
     loadUnitData();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [selectedUnit]);
 
   const toggleShedStatus = async (shedNum: number) => {
