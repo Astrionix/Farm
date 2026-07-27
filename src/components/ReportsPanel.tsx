@@ -342,7 +342,7 @@ export default function ReportsPanel({ userRole, assignedUnit }: ReportsPanelPro
     : 0;
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen">
+    <div className="flex-1 p-6 space-y-6">
       {/* Title */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5 print:hidden">
         <div>

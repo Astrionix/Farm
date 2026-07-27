@@ -730,6 +730,72 @@ export const dbService = {
     remarks: string,
     shedInputs: { shedNumber: number; input: ShedDataInput }[]
   ): Promise<void> => {
+    // 0. Pre-process feed distribution (Forward Auto-Averaging)
+    const futureRecords: any[] = [];
+    
+    shedInputs.forEach(item => {
+      if (item.input.feedKg && item.input.feedKg > 0 && item.input.feedDaysCovered && item.input.feedDaysCovered > 1) {
+        const totalFeed = item.input.feedKg;
+        const days = item.input.feedDaysCovered;
+        const dailyFeed = totalFeed / days;
+        
+        // Update current day's input
+        item.input.feedKg = dailyFeed;
+        
+        // Generate future days
+        const currentDateObj = new Date(date);
+        for (let i = 1; i < days; i++) {
+          const futureDateObj = new Date(currentDateObj);
+          futureDateObj.setDate(currentDateObj.getDate() + i);
+          const futureDateStr = futureDateObj.toISOString().split('T')[0];
+          
+          // Create dummy input for future calculation
+          const futureInput: ShedDataInput = {
+            ...item.input,
+            mortality: 0,
+            culls: 0,
+            openingBirds: item.input.closingBirds,
+            closingBirds: item.input.closingBirds,
+            eggsCount: 0,
+            feedKg: dailyFeed,
+            waterLiters: 0, 
+          };
+          
+          const calc = calculateShedMetrics(futureInput);
+          
+          futureRecords.push({
+            date: futureDateStr,
+            unit_id: unitId,
+            shed_number: item.shedNumber,
+            weather: weather,
+            temperature: temperature,
+            humidity: humidity,
+            opening_birds: futureInput.openingBirds,
+            mortality: futureInput.mortality,
+            culls: futureInput.culls,
+            closing_birds: futureInput.closingBirds,
+            uniformity: futureInput.uniformity,
+            body_weight: futureInput.bodyWeight,
+            bird_age_weeks: futureInput.birdAgeWeeks || 20,
+            feed_kg: futureInput.feedKg,
+            water_liters: futureInput.waterLiters,
+            eggs_count: futureInput.eggsCount,
+            egg_weight_g: futureInput.eggWeightG,
+            medication: futureInput.medication || '',
+            remarks: 'Auto-distributed feed from bulk entry.',
+            hd_pct: calc.hdPct,
+            mortality_pct: calc.mortalityPct,
+            feed_per_bird_g: calc.feedPerBirdG,
+            water_per_bird_ml: calc.waterPerBirdMl,
+            fcr: calc.fcr,
+            water_to_feed_ratio: calc.waterToFeedRatio,
+            egg_mass_kg: calc.eggMassKg,
+            performance_score: calc.performanceScore,
+          });
+        }
+      }
+    });
+
     // 1. Compute calculations for each active shed
     const processedEntries: Omit<DBDailyEntry, 'id'>[] = shedInputs.map(item => {
       const calculated = calculateShedMetrics(item.input);
@@ -871,7 +937,8 @@ export const dbService = {
       performance_score: e.performanceScore,
     }));
 
-    const { error } = await supabaseClient.from('daily_entries').upsert(records, { onConflict: 'date,unit_id,shed_number' });
+    const allRecords = [...records, ...futureRecords];
+    const { error } = await supabaseClient.from('daily_entries').upsert(allRecords, { onConflict: 'date,unit_id,shed_number' });
     if (error) {
       console.error('Supabase save failed:', error);
       throw new Error(`Save failed: ${error.message}`);

@@ -18,7 +18,9 @@ import {
   X,
   Settings,
   Database,
-  AlertTriangle
+  AlertTriangle,
+  User,
+  MoreVertical
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
@@ -32,6 +34,8 @@ interface SidebarProps {
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
   onLogout: () => void;
+  mobileDrawerOpen: boolean;
+  setMobileDrawerOpen: (open: boolean) => void;
 }
 
 export default function Sidebar({
@@ -43,9 +47,11 @@ export default function Sidebar({
   setAssignedUnit,
   darkMode,
   setDarkMode,
-  onLogout
+  onLogout,
+  mobileDrawerOpen,
+  setMobileDrawerOpen
 }: SidebarProps) {
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
 
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -237,7 +243,7 @@ export default function Sidebar({
       {/* ═══════════════════════════════════════════
           DESKTOP SIDEBAR (hidden on mobile)
       ═══════════════════════════════════════════ */}
-      <aside className="hidden md:flex w-64 min-h-screen bg-primary text-white flex-col justify-between border-r border-primary-dark/30 shadow-premium shrink-0">
+      <aside className="hidden md:flex w-64 h-screen sticky top-0 self-start overflow-y-auto bg-primary text-white flex-col border-r border-primary-dark/30 shadow-premium shrink-0">
         <div className="flex flex-col">
           {/* Logo */}
           <div className="p-6 border-b border-primary-light/10">
@@ -269,63 +275,47 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {/* Bottom Controls */}
-        <div className="p-4 border-t border-white/5 space-y-4">
-          <RoleControlBlock />
-          <DatabaseControlBlock />
-          <div className="flex items-center justify-between text-[10px] font-bold text-emerald-250/50 px-1">
-            <span className="tracking-wide">v1.2.0 (AI Enabled)</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-200 hover:text-white transition-all cursor-pointer active:scale-95 border border-white/5"
-                title="Toggle Dark Mode"
-              >
-                <SunMoon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onLogout}
-                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-150 transition-all cursor-pointer active:scale-95 border border-red-500/10"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+        {/* Bottom Controls (Desktop User Profile Popover) */}
+        <div className="p-4 mt-auto border-t border-white/5 relative">
+          {/* Popover Menu */}
+          {profileMenuOpen && (
+            <div className="absolute bottom-full left-4 right-4 mb-2 bg-slate-900 border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-4 animate-fade-in z-50">
+              <div className="flex items-center justify-between text-[10px] font-bold text-emerald-250/50 px-1 pb-2 border-b border-white/5">
+                <span className="tracking-wide">v1.2.0 (AI Enabled)</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-200 hover:text-white transition-all cursor-pointer" title="Toggle Dark Mode">
+                    <SunMoon className="w-4 h-4" />
+                  </button>
+                  <button onClick={onLogout} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 transition-all cursor-pointer" title="Sign Out">
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <RoleControlBlock />
+              <DatabaseControlBlock />
             </div>
-          </div>
+          )}
+
+          {/* Profile Trigger Button */}
+          <button
+            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary/30 text-secondary">
+                <User className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-bold text-white leading-tight">Admin User</span>
+                <span className="text-[9px] font-black text-secondary uppercase tracking-widest">{userRole}</span>
+              </div>
+            </div>
+            <MoreVertical className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+          </button>
         </div>
       </aside>
 
-      {/* ═══════════════════════════════════════════
-          MOBILE TOP HEADER BAR
-      ═══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white shadow-lg border-b border-primary-dark/30"
-           style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="flex items-center justify-between px-4 py-3">
-          <LogoBlock />
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-xl bg-primary-light/20 hover:bg-primary-light/40 transition active:scale-95"
-              title="Toggle Dark Mode"
-            >
-              <SunMoon className="w-4 h-4 text-white" />
-            </button>
-            <button
-              onClick={onLogout}
-              className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/30 text-red-300 transition active:scale-95"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMobileDrawerOpen(true)}
-              className="p-2 rounded-xl bg-primary-light/20 hover:bg-primary-light/40 transition active:scale-95"
-            >
-              <Menu className="w-5 h-5 text-white" />
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       {/* ═══════════════════════════════════════════
           MOBILE SLIDE-OUT DRAWER

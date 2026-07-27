@@ -283,7 +283,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
       </div>
 
       {/* ── Scrollable Content ─────────────────────── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4">
+      <div className="flex-1 overflow-x-hidden p-4 md:p-6 space-y-4">
 
         {/* Metrics Grid — 2 cols on mobile, 3 cols on tablet, 7 cols on desktop */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
@@ -303,17 +303,17 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
             </div>
           </div>
 
-          {/* Average Flock Age Card */}
+          {/* Total Birds Card */}
           <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium flex flex-col gap-2">
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/15 flex items-center justify-center text-blue-500 border border-blue-100/50 dark:border-blue-900/30">
-              <Calendar className="w-4.5 h-4.5" />
+              <span className="font-extrabold text-sm leading-none flex items-center justify-center">🐓</span>
             </div>
             <div>
-              <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase tracking-wider leading-none">Flock Age</h4>
+              <h4 className="text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase tracking-wider leading-none">Active Birds</h4>
               <span className="text-base font-black text-slate-800 dark:text-white block mt-1 leading-none">
-                {avgBirdAge > 0 ? `${avgBirdAge.toFixed(1)}w` : '0.0w'}
+                {totalClosingBirds.toLocaleString()}
               </span>
-              <span className="text-[9px] text-blue-500 font-bold mt-1 block">Active Lifecycle</span>
+              <span className="text-[9px] text-blue-500 font-bold mt-1 block">Live Flock Count</span>
             </div>
           </div>
 

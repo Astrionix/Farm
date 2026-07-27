@@ -58,7 +58,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [showConfirm, setShowConfirm] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
+
   const [activeBatchEditShed, setActiveBatchEditShed] = useState<number | null>(null);
   const [expandedShed, setExpandedShed] = useState<number | null>(null);
 
@@ -70,11 +70,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     }
   }, [shedsList]);
 
-  // History search/filter state
-  const [historyEntries, setHistoryEntries] = useState<DBDailyEntry[]>([]);
-  const [historySearch, setHistorySearch] = useState('');
-  const [historyFilterUnit, setHistoryFilterUnit] = useState<number | 'all'>('all');
-  const [historyLoading, setHistoryLoading] = useState(false);
+
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
@@ -93,7 +89,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     return full;
   };
 
-  const DRAFT_KEY = `smp_draft_${assignedUnit}`;
+
 
   // Lock unit to assigned unit for supervisors
   useEffect(() => {
@@ -106,10 +102,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
-
-    // Check for saved draft
-    const saved = localStorage.getItem(`smp_draft_${assignedUnit}`);
-    if (saved) setHasDraft(true);
   }, [assignedUnit]);
 
   // Fetch sheds and load existing entry if any
@@ -199,11 +191,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
         setShedInputs(inputsMap);
 
-        // Load history for search panel
-        setHistoryLoading(true);
-        const recent = await dbService.getDailyEntries({ unitId: userRole === 'Owner' ? undefined : selectedUnit });
-        setHistoryEntries(recent);
-        setHistoryLoading(false);
+
       } catch (err) {
         console.error('Error fetching entries:', err);
       } finally {
@@ -242,11 +230,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       }
 
       inputs[shedNum] = updated;
-
-      // Persist draft to localStorage
-      const draft = { weather, temperature, humidity, generalRemarks, shedInputs: { ...inputs } };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      setHasDraft(true);
 
       return inputs;
     });
@@ -311,10 +294,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         generalRemarks,
         inputsArray
       );
-
-      // Clear saved draft on success
-      localStorage.removeItem(DRAFT_KEY);
-      setHasDraft(false);
 
       confetti({
         particleCount: 80,
@@ -423,24 +402,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     }
   }, [selectedDate, selectedUnit]);
 
-  // Restore saved draft
-  const handleRestoreDraft = () => {
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (!saved) return;
-    try {
-      const draft = JSON.parse(saved);
-      if (draft.weather) setWeather(draft.weather);
-      if (draft.temperature) setTemperature(draft.temperature);
-      if (draft.humidity) setHumidity(draft.humidity);
-      if (draft.generalRemarks) setGeneralRemarks(draft.generalRemarks);
-      if (draft.shedInputs) setShedInputs(draft.shedInputs);
-    } catch { }
-  };
-
-  const handleDiscardDraft = () => {
-    localStorage.removeItem(DRAFT_KEY);
-    setHasDraft(false);
-  };
 
   // Daily Summary Aggregates for form inputs
   const totalShedEggs = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.eggsCount || 0) : sum, 0);
@@ -449,18 +410,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const totalShedClosingBirds = Object.values(shedInputs).reduce((sum, input) => input.status === 'Active' ? sum + Number(input.closingBirds || 0) : sum, 0);
   const dailyHDPct = totalShedClosingBirds > 0 ? (totalShedEggs / totalShedClosingBirds) * 100 : 0;
 
-  // Filtered history
-  const filteredHistory = historyEntries.filter(e => {
-    const matchesSearch = historySearch === '' ||
-      e.date.includes(historySearch) ||
-      String(e.shedNumber).includes(historySearch) ||
-      String(e.eggsCount).includes(historySearch) ||
-      (e.medication && e.medication.toLowerCase().includes(historySearch.toLowerCase())) ||
-      (e.remarks && e.remarks.toLowerCase().includes(historySearch.toLowerCase()));
-    const matchesUnit = historyFilterUnit === 'all' || e.unitId === historyFilterUnit;
-    const matchesMedsOnly = !medsOnlyFilter || (e.medication && e.medication.trim() !== '' && e.medication.toLowerCase() !== 'none');
-    return matchesSearch && matchesUnit && matchesMedsOnly;
-  });
 
   if (loading) {
     return <SkeletonDailyEntry />;
@@ -506,7 +455,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
       </div>
 
       {/* ── Scrollable Content ─────────────────────── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4">
+      <div className="flex-1 overflow-x-hidden p-4 md:p-6 space-y-4">
 
       {/* Confirm Save Dialog */}
       {showConfirm && (
@@ -540,19 +489,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         </div>
       )}
 
-      {/* Draft Restore Banner */}
-      {hasDraft && (
-        <div className="p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs font-semibold">
-            <History className="w-4 h-4" />
-            <span>Unsaved draft found for {unitsList.find(u => u.id === assignedUnit)?.name || `Unit ${assignedUnit}`}. Restore your previous work?</span>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button onClick={handleRestoreDraft} className="text-[10px] font-bold px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition">Restore</button>
-            <button onClick={handleDiscardDraft} className="text-[10px] font-bold px-3 py-1.5 border border-amber-300 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition">Discard</button>
-          </div>
-        </div>
-      )}
 
       {/* Success Alert Banner */}
       {successMsg && (
@@ -998,9 +934,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                   {/* Input Form Grid (Rendered only if Active & Expanded) */}
                   {isActive && isExpanded && (
                     <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 space-y-4 bg-slate-50/50 dark:bg-slate-950/20 animate-slide-up">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
                         {/* Opening Birds */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex flex-col justify-end h-full">
                           <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Opening Birds</label>
                           <input
                             type="number"
@@ -1012,7 +948,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
 
                         {/* Mortality */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex flex-col justify-end h-full">
                           <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Mortality</label>
                           <input
                             type="number"
@@ -1023,7 +959,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
 
                         {/* Culls */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex flex-col justify-end h-full">
                           <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Culls</label>
                           <input
                             type="number"
@@ -1034,7 +970,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                         </div>
 
                         {/* Closing Birds (Calculated Indicator) */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex flex-col justify-end h-full">
                           <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Closing Birds</label>
                           <div className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750 rounded-xl text-xs font-black text-slate-500 dark:text-slate-400">
                             {(input.closingBirds ?? 0).toLocaleString()}
@@ -1046,7 +982,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
                           const hasAuto = ageFull !== null;
                           return (
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 flex flex-col justify-end h-full">
                               <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
                                 <span>Bird Age</span>
                                 {hasAuto && <span className="text-[7.5px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full font-black normal-case shrink-0">Auto</span>}
@@ -1068,46 +1004,77 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                           );
                         })()}
 
-                        {/* Feed Consumed (kg) — optional, not given every day */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isNoFeed = (input as Record<string, unknown>).__noFeedToday;
-                                setShedInputs(prev => ({
-                                  ...prev,
-                                  [sNum]: { ...prev[sNum], feedKg: 0, __noFeedToday: !isNoFeed } as never
-                                }));
-                              }}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all cursor-pointer ${
-                                (input as Record<string, unknown>).__noFeedToday
-                                  ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400/60 text-amber-700 dark:text-amber-400'
-                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-amber-400 hover:text-amber-600'
-                              }`}
-                            >
-                              {(input as Record<string, unknown>).__noFeedToday ? '🚫 No Feed Today' : '✓ Feed Given'}
-                            </button>
-                          </div>
-                          {(input as Record<string, unknown>).__noFeedToday ? (
-                            <div className="w-full px-3 py-2.5 bg-amber-50/60 dark:bg-amber-900/10 border border-dashed border-amber-300 dark:border-amber-800/50 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-500 text-center">
+                        {/* Feed Consumed (kg) + Days Covered */}
+                        {(input as Record<string, unknown>).__noFeedToday ? (
+                          <div className="space-y-1.5 col-span-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const isNoFeed = (input as Record<string, unknown>).__noFeedToday;
+                                  setShedInputs(prev => ({
+                                    ...prev,
+                                    [sNum]: { ...prev[sNum], feedKg: 0, __noFeedToday: !isNoFeed } as never
+                                  }));
+                                }}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all cursor-pointer bg-amber-100 dark:bg-amber-900/30 border-amber-400/60 text-amber-700 dark:text-amber-400"
+                              >
+                                🚫 No Feed Today
+                              </button>
+                            </div>
+                            <div className="w-full px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10 border border-dashed border-amber-300 dark:border-amber-800/50 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-500 text-center">
                               No feed given — will record as 0 kg
                             </div>
-                          ) : (
-                            <input
-                              type="number"
-                              min={0}
-                              value={input.feedKg ?? ''}
-                              placeholder="Enter kg given today"
-                              onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                            />
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-1.5 flex flex-col justify-end h-full">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const isNoFeed = (input as Record<string, unknown>).__noFeedToday;
+                                    setShedInputs(prev => ({
+                                      ...prev,
+                                      [sNum]: { ...prev[sNum], feedKg: 0, __noFeedToday: !isNoFeed } as never
+                                    }));
+                                  }}
+                                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-amber-400 hover:text-amber-600"
+                                >
+                                  ✓ Feed Given
+                                </button>
+                              </div>
+                              <input
+                                type="number"
+                                min={0}
+                                value={input.feedKg ?? ''}
+                                placeholder="Total kg"
+                                onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
+                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                              />
+                            </div>
+                            
+                            <div className="space-y-1.5 flex flex-col justify-end h-full">
+                              <label className="text-[10px] text-transparent font-bold uppercase tracking-wider block select-none h-[15px]">Days</label>
+                              <div className="relative w-full" title="Days Covered by this feed">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400">For Days:</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={14}
+                                  value={input.feedDaysCovered ?? 1}
+                                  onChange={(e) => handleInputChange(sNum, 'feedDaysCovered', Number(e.target.value))}
+                                  className="w-full pl-14 pr-2 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
 
                         {/* Eggs Collected */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex flex-col justify-end h-full">
                           <label className="text-[10px] text-slate-405 dark:text-slate-500 font-bold uppercase tracking-wider block">Eggs Collected</label>
                           <input
                             type="number"
@@ -1231,107 +1198,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         </div>
       </form>
 
-      {/* ─── History Search & Filter Panel ─── */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-premium overflow-hidden">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-primary" />
-            <h3 className="font-extrabold text-slate-800 dark:text-white text-sm">Entry History</h3>
-            <span className="text-[10px] text-slate-400 font-bold bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-              {filteredHistory.length} records
-            </span>
-          </div>
-          <div className="flex gap-2 sm:ml-auto">
-            {/* Search box */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search date, shed, meds…"
-                value={historySearch}
-                onChange={e => setHistorySearch(e.target.value)}
-                className="pl-8 pr-8 py-1.5 text-[11px] font-semibold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary text-slate-700 dark:text-slate-200 w-48"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
-              {historySearch && (
-                <button onClick={() => setHistorySearch('')} className="absolute right-2 top-2">
-                  <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
-                </button>
-              )}
-            </div>
-            {/* Meds Only Toggle */}
-            <button
-              type="button"
-              onClick={() => setMedsOnlyFilter(!medsOnlyFilter)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition border shrink-0 flex items-center gap-1 ${
-                medsOnlyFilter
-                  ? 'bg-amber-100 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900/60'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
-              }`}
-            >
-              💊 {medsOnlyFilter ? 'All Logs' : 'Meds Only'}
-            </button>
-            {/* Unit filter (owner only) */}
-            {userRole === 'Owner' && (
-              <select
-                value={historyFilterUnit}
-                onChange={e => setHistoryFilterUnit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                className="py-1.5 px-2 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary text-slate-700 dark:text-slate-200"
-              >
-                <option value="all">All Units</option>
-                {unitsList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            )}
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          {historyLoading ? (
-            <div className="p-8 text-center text-xs text-slate-400 font-semibold animate-pulse">Loading history…</div>
-          ) : filteredHistory.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 font-semibold">No records match your search.</div>
-          ) : (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50">
-                  {['Date', 'Unit', 'Shed', 'Birds', 'Eggs', 'HD%', 'FCR', 'Mortality', 'Medication', 'Score'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {filteredHistory.slice(0, 50).map(e => (
-                  <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-                    <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200">{e.date}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{getUnitShortName(e.unitId)}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{isChickShed(e.unitId, e.shedNumber) ? 'Chick' : `Shed ${e.shedNumber}`}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.closingBirds?.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.eggsCount?.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 font-semibold text-primary">{e.hdPct?.toFixed(1)}%</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.fcr?.toFixed(2)}</td>
-                    <td className={`px-4 py-2.5 font-bold ${e.mortality > 5 ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>{e.mortality}</td>
-                    <td className="px-4 py-2.5">
-                      {e.medication ? (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20 max-w-[120px] truncate block text-center">
-                          {e.medication}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 font-normal italic text-[10px]">None</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${e.performanceScore >= 90 ? 'bg-emerald-100 text-emerald-700' :
-                          e.performanceScore >= 70 ? 'bg-blue-100 text-blue-700' :
-                            e.performanceScore >= 50 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
-                        }`}>{e.performanceScore}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
       </div>
     </div>
   );

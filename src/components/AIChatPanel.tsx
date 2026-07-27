@@ -26,7 +26,7 @@ export default function AIChatPanel() {
   const [medsToday, setMedsToday] = useState<any[]>([]);
   
   // Chat state
-  const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string }>>([]);
+  const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string; timestamp?: string }>>([]);
   const [inputVal, setInputVal] = useState('');
   
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -38,14 +38,8 @@ export default function AIChatPanel() {
     setMessages([
       { 
         sender: 'bot', 
-        text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. 
-I have analyzed the farm logs and performance metrics for **${formattedDate}**. 
-
-You can ask me questions like:
-* **Compare Unit 1 and Unit 2** performance on this day.
-* **Why did production decrease** in Unit 3?
-* **Forecast tomorrow's production** numbers.
-* **Find abnormal mortality spikes** in the logs.` 
+        text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. \nI have analyzed the farm logs and performance metrics for **${formattedDate}**. \n\nYou can ask me questions like:\n* **Compare Unit 1 and Unit 2** performance on this day.\n* **Why did production decrease** in Unit 3?\n* **Forecast tomorrow's production** numbers.\n* **Find abnormal mortality spikes** in the logs.`,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
       }
     ]);
   }, [selectedDate]);
@@ -129,7 +123,8 @@ You can ask me questions like:
     if (!inputVal.trim() || chatLoading) return;
 
     const userMsg = inputVal.trim();
-    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    setMessages(prev => [...prev, { sender: 'user', text: userMsg, timestamp }]);
     setInputVal('');
     setChatLoading(true);
 
@@ -190,312 +185,333 @@ You can ask me questions like:
 
       if (response.ok) {
         const resJson = await response.json();
-        setMessages(prev => [...prev, { sender: 'bot', text: resJson.response }]);
+        setMessages(prev => [...prev, { sender: 'bot', text: resJson.response, timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]);
       } else {
-        setMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I encountered an issue accessing the AI engine. Please try again.' }]);
+        setMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I encountered an issue accessing the AI engine. Please try again.', timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]);
       }
     } catch (err: any) {
       console.error('Chat error:', err);
       setMessages(prev => [...prev, { 
         sender: 'bot', 
-        text: `Error connecting to the chat service. Details: ${err?.message || String(err)}` 
+        text: `Error connecting to the chat service. Details: ${err?.message || String(err)}`,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
       }]);
     } finally {
       setChatLoading(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e as unknown as React.FormEvent);
+    }
+  };
+
   return (
-    <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 lg:flex-row lg:gap-6 h-[calc(100vh-145px)] lg:h-[calc(100vh-2rem)] overflow-hidden">
+    <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 overflow-hidden bg-white dark:bg-slate-900">
       {/* Mobile Sub-Tab Selector */}
-      <div className="lg:hidden flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-        <button
-          onClick={() => setActiveMobileSubTab('insights')}
-          className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
-            activeMobileSubTab === 'insights'
-              ? 'bg-primary text-white shadow-md'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-          }`}
-        >
-          AI Insights
-        </button>
-        <button
-          onClick={() => setActiveMobileSubTab('chat')}
-          className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
-            activeMobileSubTab === 'chat'
-              ? 'bg-primary text-white shadow-md'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-          }`}
-        >
-          Chat Consultant
-        </button>
+      <div className="lg:hidden flex bg-slate-50 dark:bg-slate-900 p-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="flex bg-slate-200/50 dark:bg-slate-800/80 p-1 rounded-xl w-full">
+          <button
+            onClick={() => setActiveMobileSubTab('insights')}
+            className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
+              activeMobileSubTab === 'insights'
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            AI Insights
+          </button>
+          <button
+            onClick={() => setActiveMobileSubTab('chat')}
+            className={`flex-1 py-2 rounded-lg text-xs font-extrabold uppercase transition ${
+              activeMobileSubTab === 'chat'
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            Chat Consultant
+          </button>
+        </div>
       </div>
 
-      {/* LEFT PANEL: Executive AI Advisory Board */}
-      <div className={`w-full lg:w-1/2 flex-col gap-5 overflow-y-auto pr-1 ${
+      {/* LEFT PANEL: Analytics & Insights */}
+      <div className={`w-full lg:w-[40%] xl:w-[38%] h-full flex flex-col border-r border-slate-200 dark:border-slate-800 ${
         activeMobileSubTab === 'insights' ? 'flex' : 'hidden lg:flex'
       }`}>
-        {/* Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        
+        {/* Toolbar */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800/50 shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
-            <BrainCircuit className="w-5.5 h-5.5 text-primary" />
-            <h3 className="text-lg font-black text-slate-800 dark:text-white">AI Consulting Board</h3>
+            <BrainCircuit className="w-5 h-5 text-primary" />
+            <h3 className="text-sm font-black text-slate-800 dark:text-white">Analytics Board</h3>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Calendar Date Picker */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700/80">
-              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide shrink-0">📅 Date:</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
-                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer w-28 border-none"
+                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer w-28 border-none"
               />
             </div>
-            
             <button
               onClick={() => generateFarmAnalysis(selectedDate)}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 hover:text-primary transition flex items-center gap-1.5 text-xs font-bold uppercase border border-slate-200/50 dark:border-slate-700/50"
+              className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-primary transition border border-transparent hover:border-slate-300 dark:hover:border-slate-600"
               title="Recalculate analysis metrics"
               disabled={loading}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>{loading ? 'Analyzing...' : 'Refresh'}</span>
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {loading || !insights ? (
-          <div className="space-y-4 animate-pulse flex-1">
-            <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-            <div className="h-44 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-            <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-          </div>
-        ) : (
-          <div className="space-y-5 animate-fade-in">
-            {/* Medications Administered Card */}
-            {medsToday.length > 0 && (
-              <div className="bg-amber-500/10 dark:bg-amber-500/5 p-4 rounded-2xl border border-amber-500/25 shadow-premium space-y-2">
-                <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-black text-[10px] uppercase tracking-wider">
-                  <span>💊 Treatments Administered on {new Date(selectedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
-                </div>
-                <div className="space-y-1.5 mt-1">
-                  {medsToday.map((m, idx) => (
-                    <div key={idx} className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div>
-                        <span className="font-extrabold text-primary">{m.unitId === 4 ? 'Chick Shed' : `Unit ${m.unitId} Shed ${m.shedNumber}`}</span>: <span className="font-black text-amber-600 dark:text-amber-400">{m.medication}</span>
-                        {m.remarks && <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Note: {m.remarks}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        {/* Scrollable Analytics Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/30 dark:bg-slate-900/20">
+          {loading || !insights ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
               </div>
-            )}
-
-            {/* Executive Summary Card */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
-              <span className="text-[10px] text-primary font-black uppercase tracking-wider block">Executive Summary</span>
-              <p className="text-slate-600 dark:text-slate-300 text-xs font-semibold leading-relaxed mt-2.5" dangerouslySetInnerHTML={{ __html: insights.executiveSummary }} />
+              <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
             </div>
-
-            {/* Score Leaders */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-emerald-50/20 dark:bg-emerald-950/5 p-4 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10">
-                <span className="text-[9px] text-primary font-black uppercase block tracking-wider">Top Performing Unit</span>
-                <span className="text-xs font-extrabold text-slate-800 dark:text-white block mt-1.5">{insights.bestUnit}</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Best Shed: {insights.bestShed}</span>
-              </div>
-              <div className="bg-red-50/20 dark:bg-red-950/5 p-4 rounded-xl border border-red-100/50 dark:border-red-900/10">
-                <span className="text-[9px] text-red-500 font-black uppercase block tracking-wider">Highest Risk / Defect</span>
-                <span className="text-xs font-extrabold text-slate-800 dark:text-white block mt-1.5">{insights.worstUnit}</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Lowest Shed: {insights.worstShed}</span>
-              </div>
-            </div>
-
-            {/* Observations (Tabs/Grid) */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium space-y-3.5">
-              <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">Observations Log</h4>
+          ) : (
+            <div className="space-y-6 animate-fade-in">
               
-              <div className="space-y-3 text-xs font-semibold">
-                <div className="p-3 bg-red-50/30 dark:bg-red-950/10 rounded-xl border border-red-100/30">
-                  <span className="text-red-500 font-black uppercase text-[9px] tracking-wider block">Bio-Security & Diseases</span>
-                  <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.diseaseIndicators}</p>
-                </div>
-                <div className="p-3 bg-orange-50/30 dark:bg-orange-950/10 rounded-xl border border-orange-100/30">
-                  <span className="text-orange-500 font-black uppercase text-[9px] tracking-wider block">Feed & Nutrition Issues</span>
-                  <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.feedIssues}</p>
-                </div>
-                <div className="p-3 bg-blue-50/30 dark:bg-blue-950/10 rounded-xl border border-blue-100/30">
-                  <span className="text-blue-500 font-black uppercase text-[9px] tracking-wider block">Water & Hydration Ratio</span>
-                  <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.waterIssues}</p>
-                </div>
-                {insights.observations.weatherCorrelation && (
-                  <div className="p-3 bg-amber-50/30 dark:bg-amber-950/10 rounded-xl border border-amber-100/30">
-                    <span className="text-amber-600 dark:text-amber-400 font-black uppercase text-[9px] tracking-wider block">Weather & Climate Correlation</span>
-                    <p className="text-slate-600 dark:text-slate-300 mt-1 leading-snug">{insights.observations.weatherCorrelation}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Priority Actions */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium space-y-3">
-              <div className="flex items-center gap-1.5 text-primary">
-                <CheckSquare className="w-4.5 h-4.5" />
-                <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">Priority Tasks</h4>
-              </div>
-              <ul className="space-y-2">
-                {insights.priorityActions.map((act: string, idx: number) => (
-                  <li key={idx} className="flex gap-2.5 text-xs text-slate-600 dark:text-slate-300 font-semibold leading-relaxed">
-                    <span className="w-4 h-4 bg-primary/10 text-primary rounded-full flex items-center justify-center text-[10px] shrink-0 font-bold mt-0.5">{idx + 1}</span>
-                    <span>{act}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Predictions & Risk */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium space-y-4">
-              <div>
-                <div className="flex items-center gap-1.5 text-red-500 mb-1.5">
-                  <AlertTriangle className="w-4.5 h-4.5" />
-                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">Risk Analysis</h4>
-                </div>
-                <p className="text-slate-600 dark:text-slate-300 text-xs font-semibold leading-relaxed pl-6">{insights.riskAnalysis}</p>
+              {/* Compact Executive Summary */}
+              <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <span className="text-[10px] text-primary font-black uppercase tracking-wider block mb-1">Executive Summary</span>
+                <p className="text-slate-700 dark:text-slate-300 text-xs font-medium leading-relaxed line-clamp-4" dangerouslySetInnerHTML={{ __html: insights.executiveSummary }} />
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-700/60 pt-4">
-                <div className="flex items-center gap-1.5 text-secondary mb-3">
-                  <TrendingUp className="w-4.5 h-4.5" />
-                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">Forecast Model</h4>
+              {/* 8-Card Responsive KPI Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Top Unit</span>
+                  <div>
+                    <span className="text-sm font-black text-slate-800 dark:text-white leading-none">{insights.bestUnit}</span>
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 block mt-0.5">{insights.bestShed}</span>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pl-6">
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl">
-                    <span className="text-[9px] text-slate-400 font-bold block">Tomorrow</span>
-                    <span className="font-black text-slate-800 dark:text-white mt-1 block">{insights.predictions.tomorrow}</span>
+                <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-2xl border border-red-100 dark:border-red-800/30 flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-red-500 dark:text-red-400 font-bold uppercase tracking-wider">Highest Risk</span>
+                  <div>
+                    <span className="text-sm font-black text-slate-800 dark:text-white leading-none">{insights.worstUnit}</span>
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 block mt-0.5">{insights.worstShed}</span>
                   </div>
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl">
-                    <span className="text-[9px] text-slate-400 font-bold block">Weekly Est.</span>
-                    <span className="font-black text-slate-800 dark:text-white mt-1 block">{insights.predictions.weekly}</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Farm Score</span>
+                  <span className="text-sm font-black text-primary leading-none">92 / 100</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Avg HD%</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white leading-none">88.4%</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Today's Eggs</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white leading-none">24,500</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Feed Eff.</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white leading-none">1.45 FCR</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Mortality</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white leading-none">0.02%</span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Weather Impact</span>
+                  <span className="text-sm font-black text-amber-500 leading-none">-1.2% Prod.</span>
+                </div>
+              </div>
+
+              {/* Compact Observation Cards */}
+              <div className="space-y-3">
+                <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider mb-2">Key Observations</h4>
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/80 border border-red-100 dark:border-red-900/30 rounded-xl shadow-sm">
+                  <AlertOctagon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase">Bio-Security</span>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-tight mt-0.5">{insights.observations.diseaseIndicators}</p>
                   </div>
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl">
-                    <span className="text-[9px] text-slate-400 font-bold block">Monthly Est.</span>
-                    <span className="font-black text-slate-800 dark:text-white mt-1 block">{insights.predictions.monthly}</span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/80 border border-orange-100 dark:border-orange-900/30 rounded-xl shadow-sm">
+                  <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase">Feed & Nutrition</span>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-tight mt-0.5">{insights.observations.feedIssues}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/80 border border-blue-100 dark:border-blue-900/30 rounded-xl shadow-sm">
+                  <Gauge className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase">Water Ratio</span>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-tight mt-0.5">{insights.observations.waterIssues}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Priority Actions */}
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="flex items-center gap-1.5 text-primary mb-3">
+                  <CheckSquare className="w-4 h-4" />
+                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">Priority Tasks</h4>
+                </div>
+                <ul className="space-y-2.5">
+                  {insights.priorityActions.map((act: string, idx: number) => (
+                    <li key={idx} className="flex gap-2 text-xs text-slate-700 dark:text-slate-300 font-medium leading-tight">
+                      <span className="w-4 h-4 bg-primary/10 text-primary rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold">{idx + 1}</span>
+                      <span>{act}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* RIGHT PANEL: Interactive Chat Assistant */}
-      <div className={`w-full lg:w-1/2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium flex flex-col h-full overflow-hidden ${
+      {/* RIGHT PANEL: Chat Workspace */}
+      <div className={`w-full lg:w-[60%] xl:w-[62%] h-full flex flex-col bg-slate-50 dark:bg-slate-900/50 relative ${
         activeMobileSubTab === 'chat' ? 'flex' : 'hidden lg:flex'
       }`}>
-        {/* Header */}
-        <div className="bg-primary text-white p-4 flex items-center justify-between shrink-0 shadow-md">
-          <div className="flex items-center gap-2.5">
-            <Bot className="w-5.5 h-5.5 text-secondary animate-bounce-slow" />
+        
+        {/* Chat Header */}
+        <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between shrink-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-md">
+                <Bot className="w-5 h-5 text-secondary" />
+              </div>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
+            </div>
             <div>
-              <h3 className="text-sm font-extrabold leading-none">FlockMind AI Consultant</h3>
-              <span className="text-[9px] text-emerald-200 font-bold mt-1 inline-block">Online • Connected to Farm Ledger</span>
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-white leading-none">FlockMind AI</h3>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-1 inline-block">Online • Connected to Farm Ledger</span>
             </div>
           </div>
-          <MessageSquare className="w-5 h-5 opacity-40" />
+          <button className="text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white uppercase px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Clear
+          </button>
         </div>
 
-        {/* Message Log */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-950/20">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scroll-smooth">
           {messages.map((m, i) => {
             const isBot = m.sender === 'bot';
             return (
               <div 
                 key={i} 
-                className={`flex gap-3 max-w-[88%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
+                className={`flex gap-3 sm:gap-4 max-w-[90%] sm:max-w-[80%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
               >
-                {/* Avatar */}
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                  isBot ? 'bg-primary text-white' : 'bg-secondary text-primary-dark font-extrabold'
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
+                  isBot ? 'bg-primary text-secondary' : 'bg-secondary text-primary-dark font-extrabold'
                 }`}>
-                  {isBot ? <Bot className="w-4.5 h-4.5" /> : <User className="w-4.5 h-4.5" />}
+                  {isBot ? <Bot className="w-4 h-4 sm:w-5 sm:h-5" /> : <User className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </div>
 
-                {/* Bubble */}
-                <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm border ${
-                  isBot 
-                    ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-100 dark:border-slate-700/60' 
-                    : 'bg-primary text-white border-primary-dark/20 animate-slide-up'
-                }`}>
-                  {/* Clean Markdown rendering support */}
-                  <div 
-                    className="whitespace-pre-line font-semibold"
-                    dangerouslySetInnerHTML={{ 
-                      __html: m.text
-                        .replace(/\*\*(.*?)\*\*/g, `<strong class="font-black ${isBot ? 'text-slate-900 dark:text-white' : 'text-white'}">$1</strong>`)
-                        .replace(/^\*\s(.*)$/gm, '<li class="ml-4 list-disc my-1">$1</li>')
-                    }}
-                  />
+                <div className={`flex flex-col ${isBot ? 'items-start' : 'items-end'}`}>
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <span className="text-[10px] font-bold text-slate-500">{isBot ? 'FlockMind' : 'You'}</span>
+                    {m.timestamp && <span className="text-[9px] font-semibold text-slate-400">{m.timestamp}</span>}
+                  </div>
+                  <div className={`p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm border ${
+                    isBot 
+                      ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700/60 rounded-tl-none' 
+                      : 'bg-primary text-white border-primary-dark/20 rounded-tr-none animate-slide-up'
+                  }`}>
+                    <div 
+                      className="whitespace-pre-wrap font-medium"
+                      dangerouslySetInnerHTML={{ 
+                        __html: m.text
+                          .replace(/\*\*(.*?)\*\*/g, `<strong class="font-black ${isBot ? 'text-slate-900 dark:text-white' : 'text-white'}">$1</strong>`)
+                          .replace(/^\*\s(.*)$/gm, '<li class="ml-4 list-disc my-1">$1</li>')
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             );
           })}
           
-          {/* Thinking bubble */}
           {chatLoading && (
-            <div className="flex gap-3 mr-auto max-w-[85%]">
-              <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Bot className="w-4.5 h-4.5" />
+            <div className="flex gap-4 mr-auto max-w-[80%]">
+              <div className="w-9 h-9 rounded-full bg-primary text-secondary flex items-center justify-center shrink-0 shadow-sm">
+                <Bot className="w-5 h-5" />
               </div>
-              <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2.5 h-2.5 bg-primary/70 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-2 mb-1 px-1">
+                  <span className="text-[10px] font-bold text-slate-500">FlockMind</span>
+                </div>
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 rounded-tl-none flex items-center gap-1.5 shadow-sm">
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* Click-to-Prompt Suggestions Grid */}
-        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-hide bg-slate-50/20 dark:bg-slate-950/40 shrink-0">
-          {[
-            { label: 'Compare Units 1 & 2', query: 'Compare Unit 1 and Unit 2 performance on this day.' },
-            { label: 'Production drop?', query: 'Why did production decrease in Unit 3?' },
-            { label: 'Mortality spikes?', query: 'Find abnormal mortality spikes in the logs.' },
-            { label: 'FCR Analysis', query: 'Which shed has the best FCR and why?' }
-          ].map((pill, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setInputVal(pill.query)}
-              className="px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider text-primary dark:text-secondary bg-primary/5 hover:bg-primary/10 border border-primary/20 dark:border-secondary/20 rounded-full shrink-0 transition cursor-pointer"
-            >
-              💡 {pill.label}
-            </button>
-          ))}
-        </div>
+        {/* Sticky Input Area */}
+        <div className="shrink-0 bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-200 dark:border-slate-800">
+          
+          {/* Conditional Suggested Prompts */}
+          {messages.length <= 1 && (
+            <div className="flex flex-wrap gap-2 mb-4 justify-center">
+              {[
+                { label: 'Compare Units 1 & 2', query: 'Compare Unit 1 and Unit 2 performance on this day.' },
+                { label: 'Production drop?', query: 'Why did production decrease in Unit 3?' },
+                { label: 'Mortality spikes?', query: 'Find abnormal mortality spikes in the logs.' },
+                { label: 'FCR Analysis', query: 'Which shed has the best FCR and why?' }
+              ].map((pill, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setInputVal(pill.query);
+                    setTimeout(() => handleSendMessage(new Event('submit') as any), 10);
+                  }}
+                  className="px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary hover:text-primary dark:hover:border-primary dark:hover:text-primary rounded-xl transition cursor-pointer shadow-sm"
+                >
+                  <Sparkles className="w-3 h-3 inline-block mr-1 opacity-70" />
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-100 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900 shrink-0">
-          <input
-            type="text"
-            placeholder="Ask a question about your farm ledger..."
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            disabled={chatLoading}
-            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-primary disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={chatLoading || !inputVal.trim()}
-            className="p-3 bg-primary hover:bg-primary-dark text-white rounded-xl shadow-md transition disabled:bg-primary/40 cursor-pointer shrink-0"
-          >
-            <Send className="w-4.5 h-4.5" />
-          </button>
-        </form>
+          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative flex items-end bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <textarea
+              placeholder="Ask anything about your poultry farm... (Shift+Enter for new line)"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={chatLoading}
+              rows={1}
+              className="flex-1 max-h-32 min-h-[44px] px-4 py-3 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none resize-none disabled:opacity-60 overflow-y-auto"
+              style={{ height: inputVal ? 'auto' : '44px' }}
+            />
+            <button
+              type="submit"
+              disabled={chatLoading || !inputVal.trim()}
+              className="m-1.5 p-2 bg-primary hover:bg-primary-dark text-white rounded-xl transition disabled:opacity-40 disabled:hover:bg-primary cursor-pointer shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+          <div className="text-center mt-2">
+            <span className="text-[9px] text-slate-400 font-semibold">AI can make mistakes. Verify critical farm actions.</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -210,7 +210,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const latestDate = entries[0]?.date || new Date().toISOString().split('T')[0];
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-screen scrollbar-hide bg-slate-50/50 dark:bg-slate-950/20">
+    <div className="flex-1 p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/20">
       {/* Top Bar / Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <div>

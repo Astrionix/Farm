@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
-import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
 import UnitDashboard from '../components/UnitDashboard';
 import DailyEntry from '../components/DailyEntry';
@@ -24,6 +23,7 @@ export default function Home() {
   });
   const [dbReady, setDbReady] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Initialize DB & Local state on first mount
@@ -188,7 +188,7 @@ export default function Home() {
       {!isAuthenticated ? (
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <div className="flex w-full min-h-screen bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
+        <div className="flex h-screen overflow-hidden bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
           <Sidebar
             currentTab={currentTab}
             setCurrentTab={handleTabChange}
@@ -199,21 +199,14 @@ export default function Home() {
             darkMode={darkMode}
             setDarkMode={setDarkMode}
             onLogout={handleLogout}
+            mobileDrawerOpen={mobileDrawerOpen}
+            setMobileDrawerOpen={setMobileDrawerOpen}
           />
           
-          {/* Main content: safe-area aware padding for fixed mobile header + bottom nav */}
-          <main
-            className="flex-1 flex flex-col min-w-0 overflow-x-hidden bg-slate-50 dark:bg-slate-900 md:pt-0 md:pb-0"
-            style={{
-              paddingTop: 'calc(env(safe-area-inset-top) + 62px)',
-              paddingBottom: 'calc(env(safe-area-inset-bottom) + 58px)',
-            }}
-          >
-            <style>{`@media (min-width: 768px) { main { padding-top: 0 !important; padding-bottom: 0 !important; } }`}</style>
-
-            {/* Active Page View Container with smooth instant mount fade animation */}
-            <div key={currentTab} className="flex-1 flex flex-col min-h-0 animate-fade-in">
-              {currentTab === 'dashboard' && userRole === 'Owner' && (
+          <div className="flex flex-col flex-1 min-w-0">
+            <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
+              <div key={currentTab} className="animate-fade-in flex-1 flex flex-col min-h-0">
+                {currentTab === 'dashboard' && userRole === 'Owner' && (
                 <OwnerDashboard 
                   darkMode={darkMode} 
                   onNavigateToUnit={handleNavigateToUnit}
@@ -244,8 +237,9 @@ export default function Home() {
                   assignedUnit={assignedUnit}
                 />
               )}
-            </div>
-          </main>
+              </div>
+            </main>
+          </div>
         </div>
       )}
     </>

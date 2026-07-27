@@ -7,6 +7,7 @@ export interface ShedDataInput {
   culls: number;
   closingBirds: number;
   feedKg: number;
+  feedDaysCovered?: number;
   waterLiters: number;
   eggsCount: number;
   eggWeightG: number;
