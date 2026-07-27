@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
+import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
 import UnitDashboard from '../components/UnitDashboard';
 import DailyEntry from '../components/DailyEntry';
