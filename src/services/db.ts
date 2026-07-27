@@ -474,13 +474,15 @@ async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms = 8000): 
 // CLIENT API INTERFACE (SUPABASE / LOCALSTORAGE HYBRID)
 // -------------------------------------------------------------
 export const dbService = {
-  // Initialize state
+  // Initialize state — also silently purges notifications older than 90 days
   init: () => {
     if (typeof window === 'undefined') return;
     if (!localStorage.getItem(STORAGE_KEYS.USER_ROLE)) {
       localStorage.setItem(STORAGE_KEYS.USER_ROLE, 'Owner');
       localStorage.setItem(STORAGE_KEYS.ASSIGNED_UNIT, '1');
     }
+    // Run notification cleanup in the background — non-blocking
+    dbService.cleanupOldNotifications(90).catch(() => {});
   },
 
   // DB Mode Access
@@ -935,46 +937,65 @@ export const dbService = {
         .from('daily_entries')
         .upsert(retroUpdates, { onConflict: 'date,unit_id,shed_number' });
       if (retroError) {
-        console.error('Retroactive feed auto-averaging failed:', retroError);
+        console.error('Retroactive feed auto-averaging failed:', {
+          message: retroError.message,
+          code: retroError.code,
+          details: retroError.details,
+          hint: retroError.hint,
+        });
       }
     }
     // -------------------------------------------
 
-    const records = processedEntries.map(e => ({
-      date: e.date,
-      unit_id: e.unitId,
-      shed_number: e.shedNumber,
-      weather: e.weather,
-      temperature: e.temperature,
-      humidity: e.humidity,
-      opening_birds: e.openingBirds,
-      mortality: e.mortality,
-      culls: e.culls,
-      closing_birds: e.closingBirds,
-      uniformity: e.uniformity,
-      body_weight: e.bodyWeight,
-      bird_age_weeks: e.birdAgeWeeks || 20,
-      feed_kg: e.feedKg,
-      water_liters: e.waterLiters,
-      eggs_count: e.eggsCount,
-      egg_weight_g: e.eggWeightG,
-      medication: e.medication || '',
-      remarks: e.remarks || '',
-      hd_pct: e.hdPct,
-      mortality_pct: e.mortalityPct,
-      feed_per_bird_g: e.feedPerBirdG,
-      water_per_bird_ml: e.waterPerBirdMl,
-      fcr: e.fcr,
-      water_to_feed_ratio: e.waterToFeedRatio,
-      egg_mass_kg: e.eggMassKg,
-      performance_score: e.performanceScore,
-    }));
+    // Helper: sanitize a number and clamp to max allowed by DB column precision
+    const safe = (v: any, max: number) => {
+      const n = Number(v);
+      if (!isFinite(n) || isNaN(n)) return 0;
+      return Math.min(Math.max(n, 0), max);
+    };
+
+    const records = processedEntries
+      .filter(e => e.status !== 'Not In Use' || e.openingBirds > 0)
+      .map(e => ({
+        date: e.date,
+        unit_id: e.unitId,
+        shed_number: e.shedNumber,
+        weather: e.weather || 'Sunny',
+        temperature: safe(e.temperature, 99.99),
+        humidity: safe(e.humidity, 100),
+        opening_birds: Math.max(0, Number(e.openingBirds) || 0),
+        mortality: Math.max(0, Number(e.mortality) || 0),
+        culls: Math.max(0, Number(e.culls) || 0),
+        closing_birds: Math.max(0, Number(e.closingBirds) || 0),
+        uniformity: safe(e.uniformity, 100),
+        body_weight: safe(e.bodyWeight, 9999.99),
+        bird_age_weeks: Math.max(0, Number(e.birdAgeWeeks) || 20),
+        feed_kg: safe(e.feedKg, 99999.99),
+        water_liters: safe(e.waterLiters, 99999.99),
+        eggs_count: Math.max(0, Number(e.eggsCount) || 0),
+        egg_weight_g: safe(e.eggWeightG, 999.99),
+        medication: e.medication || '',
+        remarks: e.remarks || '',
+        hd_pct: safe(e.hdPct, 999.99),           // NUMERIC(5,2)
+        mortality_pct: safe(e.mortalityPct, 999.99), // NUMERIC(5,2)
+        feed_per_bird_g: safe(e.feedPerBirdG, 9999.99),  // NUMERIC(6,2)
+        water_per_bird_ml: safe(e.waterPerBirdMl, 9999.99), // NUMERIC(6,2)
+        fcr: safe(e.fcr, 999.99),                // NUMERIC(5,2)
+        water_to_feed_ratio: safe(e.waterToFeedRatio, 999.99), // NUMERIC(5,2)
+        egg_mass_kg: safe(e.eggMassKg, 999999.99), // NUMERIC(8,2)
+        performance_score: safe(e.performanceScore, 100),
+      }));
 
     const allRecords = [...records, ...futureRecords];
     const { error } = await supabaseClient.from('daily_entries').upsert(allRecords, { onConflict: 'date,unit_id,shed_number' });
     if (error) {
-      console.error('Supabase save failed:', error);
-      throw new Error(`Save failed: ${error.message}`);
+      console.error('[SB ERR] message :', error.message);
+      console.error('[SB ERR] code    :', error.code);
+      console.error('[SB ERR] details :', error.details);
+      console.error('[SB ERR] hint    :', error.hint);
+      console.error('[SB ERR] keys    :', Object.keys(error));
+      console.error('[SB ERR] raw JSON:', JSON.stringify(error));
+      throw new Error(`Save failed: ${error.message || error.code || 'Unknown Supabase error — check [SB ERR] logs'}`);
     }
 
   },
@@ -1056,6 +1077,40 @@ export const dbService = {
     if (!supabaseClient) return;
     const { error } = await supabaseClient.from('notifications').update({ is_read: true }).eq('id', id);
     if (error) console.error('markNotificationAsRead failed:', error.message);
+  },
+
+  deleteNotification: async (id: string): Promise<void> => {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from('notifications').delete().eq('id', id);
+    if (error) console.error('deleteNotification failed:', error.message);
+  },
+
+  /**
+   * Deletes notifications older than `olderThanDays` days.
+   * Runs automatically on app startup (90-day window).
+   * Also exposed so the owner can trigger a manual cleanup from settings.
+   */
+  cleanupOldNotifications: async (olderThanDays: number = 90): Promise<number> => {
+    if (!supabaseClient) return 0;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - olderThanDays);
+    const cutoffISO = cutoff.toISOString();
+
+    const { data, error } = await supabaseClient
+      .from('notifications')
+      .delete()
+      .lt('created_at', cutoffISO)
+      .select('id');
+
+    if (error) {
+      console.warn('cleanupOldNotifications failed:', error.message);
+      return 0;
+    }
+    const deleted = data?.length ?? 0;
+    if (deleted > 0) {
+      console.info(`[DB Cleanup] Deleted ${deleted} notification(s) older than ${olderThanDays} days.`);
+    }
+    return deleted;
   },
 
   // 6. SCORES METRICS AGGREGATIONS — Supabase only

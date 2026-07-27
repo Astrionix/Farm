@@ -2,17 +2,60 @@
 
 import React, { useState, useEffect } from 'react';
 
+// ─── TIME OF DAY ─────────────────────────────────────────────────────────────
+function getTimeOfDay(): 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night' {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 7) return 'dawn';
+  if (h >= 7 && h < 12) return 'morning';
+  if (h >= 12 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 20) return 'evening';
+  return 'night';
+}
+
+const SKY_THEMES = {
+  dawn:      { sky: 'linear-gradient(180deg,#312e81 0%,#7c3aed 18%,#f97316 38%,#fbbf24 52%,#fef9c3 65%,#d1fae5 82%,#16a34a 100%)', sunColor: '#fbbf24', sunGlow: '#f97316', nightMode: true },
+  morning:   { sky: 'linear-gradient(180deg,#0ea5e9 0%,#38bdf8 22%,#7dd3fc 44%,#e0f2fe 62%,#d1fae5 80%,#16a34a 100%)',             sunColor: '#fef08a', sunGlow: '#fbbf24', nightMode: false },
+  afternoon: { sky: 'linear-gradient(180deg,#1d4ed8 0%,#3b82f6 20%,#60a5fa 40%,#bfdbfe 65%,#d1fae5 82%,#16a34a 100%)',             sunColor: '#fef9c3', sunGlow: '#fef08a', nightMode: false },
+  evening:   { sky: 'linear-gradient(180deg,#1e1b4b 0%,#7c3aed 12%,#ea580c 30%,#f97316 48%,#fbbf24 62%,#d1fae5 80%,#16a34a 100%)', sunColor: '#fbbf24', sunGlow: '#ef4444', nightMode: true },
+  night:     { sky: 'linear-gradient(180deg,#020617 0%,#0f172a 25%,#1e1b4b 55%,#1e3a5f 78%,#14532d 100%)',                          sunColor: '#e2e8f0', sunGlow: '#93c5fd', nightMode: true },
+};
+
 const LOADING_MESSAGES = [
-  '🐔 Gathering shed records...',
-  "🥚 Counting today's egg production...",
-  '🌾 Calculating feed efficiency...',
-  '📊 Analyzing flock performance...',
-  '🤖 AI is reviewing farm health...',
-  '📈 Preparing executive insights...',
-  '🧠 Comparing all six units...',
-  '🔍 Detecting production trends...',
-  "📋 Building today's farm report...",
-  '🚀 Launching FlockMind AI...',
+  { icon: '🌾', text: "Collecting today's egg production..." },
+  { icon: '📊', text: 'Analyzing flock performance...' },
+  { icon: '💀', text: 'Checking mortality records...' },
+  { icon: '🌾', text: 'Reviewing feed consumption...' },
+  { icon: '🌡', text: 'Loading environmental sensors...' },
+  { icon: '🔄', text: 'Synchronizing farm database...' },
+  { icon: '🧠', text: 'Generating AI insights...' },
+  { icon: '🌤', text: 'Connecting to weather station...' },
+  { icon: '📋', text: 'Preparing executive dashboard...' },
+  { icon: '✅', text: 'Almost ready...' },
+];
+
+const AI_STEPS = [
+  "✓ Reading today's records",
+  '✓ Calculating HD%',
+  '✓ Detecting abnormalities',
+  '✓ Comparing historical trends',
+  '✓ Preparing recommendations',
+];
+
+const TIPS = [
+  { label: '💡 Tip', text: 'Maintain humidity between 60–70% for optimal production.' },
+  { label: '🧠 AI Tip', text: "Feed efficiency is one of the strongest indicators of future production." },
+  { label: '💡 Tip', text: 'Consistent lighting schedules improve egg uniformity by up to 8%.' },
+  { label: '🧠 AI Tip', text: "Monitor water-to-feed ratio daily — it's an early stress indicator." },
+  { label: '💡 Tip', text: 'Birds aged 20–40 weeks are at peak production. Track FCR closely.' },
+];
+
+const STATS = [
+  { icon: '🥚', label: 'Eggs Today', value: '90,150' },
+  { icon: '🐔', label: 'Active Birds', value: '1,62,400' },
+  { icon: '🌡', label: 'Temperature', value: '29°C' },
+  { icon: '💧', label: 'Humidity', value: '72%' },
+  { icon: '📈', label: 'HD%', value: '88.4%' },
+  { icon: '⚖️', label: 'Feed Eff.', value: '1.45 FCR' },
 ];
 
 interface HenLoadingScreenProps {
@@ -20,355 +63,510 @@ interface HenLoadingScreenProps {
 }
 
 export default function HenLoadingScreen({ progress = 0 }: HenLoadingScreenProps) {
+  const tod = getTimeOfDay();
+  const theme = SKY_THEMES[tod];
+  const night = theme.nightMode;
+
   const [msgIndex, setMsgIndex] = useState(0);
   const [msgVisible, setMsgVisible] = useState(true);
+  const [tipIndex, setTipIndex] = useState(0);
+  const [tipVisible, setTipVisible] = useState(true);
+  const [statIndex, setStatIndex] = useState(0);
+  const [statVisible, setStatVisible] = useState(true);
+  const [aiStep, setAiStep] = useState(0);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; type: string; delay: number; dur: number }[]>([]);
+  const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  const henLeft = Math.min(Math.max(progress, 3), 91);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    setMounted(true);
+    setParticles(Array.from({ length: 18 }, (_, i) => ({
+      id: i, x: Math.random() * 100, y: Math.random() * 70,
+      type: i % 3 === 0 ? 'feather' : i % 3 === 1 ? 'sparkle' : 'dust',
+      delay: Math.random() * 5, dur: 3 + Math.random() * 4,
+    })));
+    setStars(Array.from({ length: 55 }, (_, i) => ({
+      id: i, x: Math.random() * 100, y: Math.random() * 50,
+      size: 0.8 + Math.random() * 2, delay: Math.random() * 4,
+    })));
+  }, []);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
       setMsgVisible(false);
-      setTimeout(() => {
-        setMsgIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
-        setMsgVisible(true);
-      }, 400);
-    }, 2800);
-    return () => clearInterval(interval);
+      setTimeout(() => { setMsgIndex(p => (p + 1) % LOADING_MESSAGES.length); setMsgVisible(true); }, 380);
+    }, 2600);
+    return () => clearInterval(iv);
   }, []);
 
   useEffect(() => {
-    setParticles(
-      Array.from({ length: 20 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 80,
-        type: i % 3 === 0 ? 'feather' : i % 3 === 1 ? 'sparkle' : 'dust',
-        delay: Math.random() * 5,
-        dur: 3 + Math.random() * 4,
-      }))
-    );
+    const iv = setInterval(() => {
+      setTipVisible(false);
+      setTimeout(() => { setTipIndex(p => (p + 1) % TIPS.length); setTipVisible(true); }, 380);
+    }, 4000);
+    return () => clearInterval(iv);
   }, []);
 
-  const henLeft = Math.min(Math.max(progress, 4), 93);
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setStatVisible(false);
+      setTimeout(() => { setStatIndex(p => (p + 1) % STATS.length); setStatVisible(true); }, 350);
+    }, 2200);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    let cur = 0;
+    const iv = setInterval(() => {
+      if (cur < AI_STEPS.length - 1) { cur++; setAiStep(cur); }
+    }, 900);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Colors
+  const accent = night ? '#4ade80' : '#166534';
+  const accentLight = night ? '#4ade80' : '#15803d';
+  const cyan = '#22d3ee';
+  const panelBg = night ? 'rgba(15,23,42,0.72)' : 'rgba(240,253,244,0.78)';
+  const panelBorder = night ? 'rgba(74,222,128,0.22)' : 'rgba(34,197,94,0.3)';
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden', fontFamily: "'Outfit', 'Inter', sans-serif",
+      overflow: 'hidden', fontFamily: "'Outfit','Inter',sans-serif",
+      opacity: mounted ? 1 : 0, transition: 'opacity 0.6s ease',
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap');
 
-        .hl-sky {
-          position:absolute; inset:0;
-          background:linear-gradient(180deg,#fef9c3 0%,#fef3c7 10%,#d1fae5 35%,#a7f3d0 60%,#4ade80 85%,#16a34a 100%);
-        }
-        .hl-sun {
-          position:absolute; top:5%; left:50%; transform:translateX(-50%);
-          width:72px; height:72px; border-radius:50%;
-          background:radial-gradient(circle,#fef08a 0%,#fbbf24 55%,#fbbf2433 100%);
-          box-shadow:0 0 80px 40px #fbbf2444,0 0 160px 80px #fbbf2422;
-          animation:hlSunPulse 4s ease-in-out infinite;
-        }
-        @keyframes hlSunPulse{
-          0%,100%{transform:translateX(-50%) scale(1); box-shadow:0 0 80px 40px #fbbf2444,0 0 160px 80px #fbbf2422;}
-          50%{transform:translateX(-50%) scale(1.06); box-shadow:0 0 100px 50px #fbbf2455,0 0 200px 100px #fbbf2430;}
-        }
+        .hls-sky { position:absolute;inset:0; }
 
-        .hl-cloud{position:absolute;background:rgba(255,255,255,0.88);border-radius:60px;filter:blur(2px);}
-        .hl-cloud-1{width:130px;height:38px;top:13%;left:-150px;animation:hlCloud 20s linear infinite;}
-        .hl-cloud-2{width:90px;height:26px;top:20%;left:-110px;animation:hlCloud 30s linear infinite 7s;}
-        .hl-cloud-3{width:170px;height:46px;top:7%;left:-190px;animation:hlCloud 26s linear infinite 14s;}
-        @keyframes hlCloud{from{left:-200px} to{left:110vw}}
+        /* Stars */
+        .hls-star { position:absolute;border-radius:50%;background:#fff;
+          animation:hlsStar var(--sdur,3s) ease-in-out infinite var(--sdly,0s); }
+        @keyframes hlsStar{0%,100%{opacity:0.15}50%{opacity:1}}
 
-        .hl-birds{position:absolute;top:16%;left:-80px;animation:hlBirds 16s linear infinite;}
-        @keyframes hlBirds{from{left:-80px;opacity:0} 5%{opacity:1} 95%{opacity:1} to{left:110vw;opacity:0}}
+        /* Moon */
+        .hls-moon{position:absolute;top:6%;right:10%;width:58px;height:58px;border-radius:50%;
+          background:radial-gradient(circle at 35% 40%,#e2e8f0,#94a3b8);
+          box-shadow:0 0 40px 16px #93c5fd44;animation:hlsMoon 5s ease-in-out infinite;}
+        @keyframes hlsMoon{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
-        /* HEN animations */
-        .hl-hen-wrap{
-          position:absolute; top:-62px;
-          transform:translateX(-50%);
-          transition:left 0.5s cubic-bezier(0.34,1.4,0.64,1);
-          filter:drop-shadow(0 8px 16px rgba(0,0,0,0.22));
-        }
-        .hl-body   {animation:hlBob    0.5s ease-in-out infinite alternate;}
-        .hl-head   {animation:hlHead   0.5s ease-in-out infinite alternate;}
-        .hl-wing   {animation:hlWing   0.5s ease-in-out infinite alternate; transform-origin:34px 32px;}
-        .hl-tail   {animation:hlTail   0.5s ease-in-out infinite alternate; transform-origin:20px 38px;}
-        .hl-leg-r  {animation:hlLegR   0.5s ease-in-out infinite alternate; transform-origin:46px 54px;}
-        .hl-leg-l  {animation:hlLegL   0.5s ease-in-out infinite alternate-reverse; transform-origin:38px 54px;}
-        .hl-beak-lo{animation:hlBeak   1.0s ease-in-out infinite; transform-origin:60px 20px;}
-        .hl-egg    {position:absolute;right:-14px;bottom:10px;width:12px;height:15px;
-                    border-radius:50% 50% 55% 45%/60% 60% 40% 40%;
-                    background:linear-gradient(135deg,#fde68a,#facc15);
-                    box-shadow:0 2px 6px rgba(0,0,0,0.18);
-                    animation:hlEggBounce 1s ease-in-out infinite;}
-        .hl-dust{position:absolute;bottom:-2px;width:12px;height:6px;border-radius:50%;
-                 background:rgba(139,94,60,0.28);animation:hlDust 0.5s ease-out infinite;}
-        .hl-dust:nth-child(2){left:16px;animation-delay:0.25s;}
+        /* Sun */
+        .hls-sun{position:absolute;top:5%;left:50%;transform:translateX(-50%);
+          width:82px;height:82px;border-radius:50%;animation:hlsSun 4s ease-in-out infinite;}
+        @keyframes hlsSun{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.07)}}
 
-        @keyframes hlBob   {from{transform:translateY(0)}   to{transform:translateY(-6px)}}
-        @keyframes hlHead  {from{transform:translateY(0) rotate(-5deg)} to{transform:translateY(-5px) rotate(5deg)}}
-        @keyframes hlWing  {from{transform:rotate(-18deg)} to{transform:rotate(12deg)}}
-        @keyframes hlTail  {from{transform:rotate(-14deg)} to{transform:rotate(10deg)}}
-        @keyframes hlLegR  {from{transform:rotate(28deg)}  to{transform:rotate(-18deg)}}
-        @keyframes hlLegL  {from{transform:rotate(28deg)}  to{transform:rotate(-18deg)}}
-        @keyframes hlBeak  {0%,100%{transform:rotate(0)} 50%{transform:rotate(18deg)}}
-        @keyframes hlEggBounce{0%,100%{transform:translateY(0) rotate(-10deg)} 50%{transform:translateY(-10px) rotate(10deg)}}
-        @keyframes hlDust  {0%{transform:scale(0.5);opacity:0.55} 100%{transform:scale(2.8) translateY(-5px);opacity:0}}
+        /* Clouds */
+        .hls-cloud{position:absolute;border-radius:60px;filter:blur(2px);}
+        .hls-c1{width:140px;height:42px;top:11%;left:-160px;animation:hlsCloud 22s linear infinite;}
+        .hls-c2{width:100px;height:30px;top:19%;left:-120px;animation:hlsCloud 32s linear infinite 8s;}
+        .hls-c3{width:180px;height:50px;top:6%;left:-200px;animation:hlsCloud 28s linear infinite 15s;}
+        @keyframes hlsCloud{from{left:-220px}to{left:110vw}}
+
+        /* Birds */
+        .hls-birds-fly{position:absolute;animation:hlsBirdsFly 18s linear infinite;}
+        @keyframes hlsBirdsFly{from{left:-100px;opacity:0}5%{opacity:1}95%{opacity:1}to{left:110vw;opacity:0}}
+
+        /* HEN on track */
+        .hls-hen-wrap{position:absolute;top:-88px;transform:translateX(-50%);
+          transition:left 0.55s cubic-bezier(0.34,1.4,0.64,1);
+          filter:drop-shadow(0 10px 22px rgba(0,0,0,0.28));}
+        .hls-body  {animation:hlsBob  0.48s ease-in-out infinite alternate;}
+        .hls-head  {animation:hlsHead 0.48s ease-in-out infinite alternate;}
+        .hls-wing  {animation:hlsWing 0.48s ease-in-out infinite alternate;transform-origin:50px 48px;}
+        .hls-tail  {animation:hlsTail 0.48s ease-in-out infinite alternate;transform-origin:22px 46px;}
+        .hls-legR  {animation:hlsLegR 0.48s ease-in-out infinite alternate;transform-origin:58px 68px;}
+        .hls-legL  {animation:hlsLegL 0.48s ease-in-out infinite alternate-reverse;transform-origin:46px 68px;}
+        .hls-beak  {animation:hlsBeak 1.2s ease-in-out infinite;transform-origin:78px 22px;}
+        .hls-blink {animation:hlsBlink 4.5s ease-in-out infinite;}
+        .hls-d1,.hls-d2{position:absolute;bottom:-2px;width:14px;height:7px;border-radius:50%;
+          background:rgba(139,94,60,0.3);animation:hlsDust 0.5s ease-out infinite;}
+        .hls-d2{left:22px;animation-delay:.25s;}
+
+        @keyframes hlsBob  {from{transform:translateY(0)}   to{transform:translateY(-8px)}}
+        @keyframes hlsHead {from{transform:translateY(0) rotate(-6deg)} to{transform:translateY(-6px) rotate(7deg)}}
+        @keyframes hlsWing {from{transform:rotate(-20deg)} to{transform:rotate(15deg)}}
+        @keyframes hlsTail {from{transform:rotate(-16deg)} to{transform:rotate(12deg)}}
+        @keyframes hlsLegR {from{transform:rotate(30deg)}  to{transform:rotate(-20deg)}}
+        @keyframes hlsLegL {from{transform:rotate(30deg)}  to{transform:rotate(-20deg)}}
+        @keyframes hlsBeak {0%,100%{transform:rotate(0)}50%{transform:rotate(20deg)}}
+        @keyframes hlsBlink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(0.08)}}
+        @keyframes hlsDust {0%{transform:scale(0.5);opacity:0.6}100%{transform:scale(3) translateY(-6px);opacity:0}}
+
+        /* Ground walking hen */
+        .hls-gwhen{position:absolute;bottom:58px;animation:hlsGwalk 16s linear infinite;}
+        .hls-gwhen2{position:absolute;bottom:60px;animation:hlsGwalk2 24s linear infinite 8s;}
+        @keyframes hlsGwalk {from{left:-80px}to{left:110%}}
+        @keyframes hlsGwalk2{from{left:-60px}to{left:110%}}
 
         /* Track */
-        .hl-track-bg{
-          width:100%;height:16px;border-radius:20px;
-          background:#d1fae5;border:2px solid #6ee7b7;position:relative;overflow:hidden;
-        }
-        .hl-track-fill{
-          height:100%;border-radius:20px;
-          background:linear-gradient(90deg,#166534,#22c55e,#4ade80,#facc15);
-          transition:width 0.55s cubic-bezier(0.34,1.4,0.64,1);
-          position:relative;
-        }
-        .hl-track-fill::after{
-          content:'';position:absolute;inset:0;border-radius:inherit;
-          background:repeating-linear-gradient(90deg,transparent 0,transparent 10px,rgba(255,255,255,0.22) 10px,rgba(255,255,255,0.22) 12px);
-        }
+        .hls-track{width:100%;height:18px;border-radius:20px;position:relative;overflow:hidden;}
+        .hls-fill{height:100%;border-radius:20px;transition:width 0.55s cubic-bezier(0.34,1.4,0.64,1);position:relative;}
+        .hls-fill::after{content:'';position:absolute;inset:0;border-radius:inherit;
+          background:repeating-linear-gradient(90deg,transparent 0,transparent 10px,rgba(255,255,255,0.2) 10px,rgba(255,255,255,0.2) 12px);}
 
         /* Particles */
-        .hl-particle{position:absolute;pointer-events:none;}
-        .hl-pf{width:7px;height:18px;border-radius:50%;background:linear-gradient(160deg,#fde68a,#d1fae5);opacity:0;animation:hlFeather 5s ease-in-out infinite;}
-        .hl-ps{width:6px;height:6px;border-radius:50%;background:#facc15;opacity:0;box-shadow:0 0 6px 3px #facc1588;animation:hlSparkle 3s ease-in-out infinite;}
-        .hl-pd{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.55);opacity:0;animation:hlDustP 6s ease-in-out infinite;}
-        @keyframes hlFeather{0%{opacity:0;transform:translateY(0) rotate(0)}20%{opacity:0.8}80%{opacity:0.4}100%{opacity:0;transform:translateY(-65px) rotate(200deg) translateX(22px)}}
-        @keyframes hlSparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1.6)}}
-        @keyframes hlDustP  {0%{opacity:0;transform:translateY(0)}30%{opacity:0.6}100%{opacity:0;transform:translateY(-45px) translateX(12px)}}
+        .hls-particle{position:absolute;pointer-events:none;}
+        .hls-pf{width:8px;height:20px;border-radius:50%;background:linear-gradient(160deg,#fde68a,#d1fae5);opacity:0;animation:hlsFeather 5s ease-in-out infinite;}
+        .hls-ps{width:7px;height:7px;border-radius:50%;background:#facc15;opacity:0;box-shadow:0 0 8px 4px #facc1588;animation:hlsSparkle 3s ease-in-out infinite;}
+        .hls-pd{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.5);opacity:0;animation:hlsDustP 6s ease-in-out infinite;}
+        @keyframes hlsFeather{0%{opacity:0;transform:translateY(0) rotate(0)}20%{opacity:0.8}80%{opacity:0.4}100%{opacity:0;transform:translateY(-70px) rotate(220deg) translateX(25px)}}
+        @keyframes hlsSparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1.8)}}
+        @keyframes hlsDustP  {0%{opacity:0;transform:translateY(0)}30%{opacity:0.6}100%{opacity:0;transform:translateY(-50px) translateX(14px)}}
 
-        /* Msg fade */
-        .hl-msg{transition:opacity 0.4s,transform 0.4s;}
-        .hl-msg-in {opacity:1;transform:translateY(0);}
-        .hl-msg-out{opacity:0;transform:translateY(8px);}
+        /* Glass card */
+        .hls-card{
+          background:rgba(255,255,255,0.13);
+          backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+          border:1.5px solid rgba(255,255,255,0.3);
+          border-radius:28px;
+          box-shadow:0 8px 64px rgba(0,0,0,0.22),inset 0 0 0 0.5px rgba(255,255,255,0.1);
+          padding:26px 28px 22px;width:100%;max-width:560px;
+        }
 
-        /* Dot pulse */
-        .hl-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:hlBob 0.7s ease-in-out infinite alternate;}
+        /* Fade transitions */
+        .hls-fade{transition:opacity 0.38s,transform 0.38s;}
+        .hls-in {opacity:1;transform:translateY(0);}
+        .hls-out{opacity:0;transform:translateY(8px);}
+
+        /* AI step appear */
+        .hls-ai-in{animation:hlsAiIn 0.5s ease forwards;}
+        @keyframes hlsAiIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Dot */
+        .hls-dot{width:9px;height:9px;border-radius:50%;animation:hlsBob 0.7s ease-in-out infinite alternate;}
+
+        /* Entrance */
+        .hls-entry{animation:hlsEntry 0.75s cubic-bezier(0.16,1,0.3,1) both;}
+        @keyframes hlsEntry{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
       `}</style>
 
       {/* Sky */}
-      <div className="hl-sky" />
+      <div className="hls-sky" style={{ background: theme.sky }} />
+
+      {/* Stars */}
+      {night && stars.map(s => (
+        <div key={s.id} className="hls-star" style={{
+          left: `${s.x}%`, top: `${s.y}%`,
+          width: s.size, height: s.size,
+          // @ts-ignore css variables
+          '--sdur': `${2 + s.delay}s`, '--sdly': `${s.delay}s`,
+        }} />
+      ))}
+
+      {/* Moon (night only) */}
+      {tod === 'night' && <div className="hls-moon" />}
 
       {/* Sun */}
-      <div className="hl-sun" />
+      {tod !== 'night' && (
+        <div className="hls-sun" style={{
+          background: `radial-gradient(circle,${theme.sunColor} 0%,${theme.sunGlow} 55%,transparent 100%)`,
+          boxShadow: `0 0 90px 45px ${theme.sunGlow}44,0 0 180px 90px ${theme.sunGlow}22`,
+        }} />
+      )}
 
       {/* Clouds */}
-      <div className="hl-cloud hl-cloud-1" />
-      <div className="hl-cloud hl-cloud-2" />
-      <div className="hl-cloud hl-cloud-3" />
+      {(['morning','afternoon'] as const).includes(tod as any) && (<>
+        <div className="hls-cloud hls-c1" style={{ background: 'rgba(255,255,255,0.88)' }} />
+        <div className="hls-cloud hls-c2" style={{ background: 'rgba(255,255,255,0.82)' }} />
+        <div className="hls-cloud hls-c3" style={{ background: 'rgba(255,255,255,0.76)' }} />
+      </>)}
+      {night && (<>
+        <div className="hls-cloud hls-c1" style={{ background: 'rgba(148,163,184,0.18)' }} />
+        <div className="hls-cloud hls-c2" style={{ background: 'rgba(148,163,184,0.14)' }} />
+      </>)}
 
-      {/* Birds */}
-      <div className="hl-birds">
-        <svg width="90" height="26" viewBox="0 0 90 26" fill="none">
-          <path d="M0 14 Q12 4 22 14 Q34 24 44 14" stroke="#166534" strokeWidth="2.2" strokeLinecap="round"/>
-          <path d="M46 14 Q58 4 68 14 Q80 24 90 14" stroke="#166534" strokeWidth="2.2" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div className="hl-birds" style={{ animationDelay: '9s', top: '24%' }}>
-        <svg width="55" height="18" viewBox="0 0 55 18" fill="none">
-          <path d="M0 10 Q10 2 18 10 Q28 18 36 10" stroke="#166534" strokeWidth="1.8" strokeLinecap="round"/>
-          <path d="M38 10 Q46 2 55 10" stroke="#166534" strokeWidth="1.8" strokeLinecap="round"/>
-        </svg>
-      </div>
+      {/* Flying birds (day only) */}
+      {!night && (<>
+        <div className="hls-birds-fly" style={{ top: '14%', left: '-100px' }}>
+          <svg width="90" height="26" viewBox="0 0 90 26" fill="none">
+            <path d="M0 14 Q12 4 22 14 Q34 24 44 14" stroke="#166534" strokeWidth="2.2" strokeLinecap="round"/>
+            <path d="M46 14 Q58 4 68 14 Q80 24 90 14" stroke="#166534" strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div className="hls-birds-fly" style={{ top: '22%', left: '-60px', animationDelay: '8s' }}>
+          <svg width="55" height="18" viewBox="0 0 55 18" fill="none">
+            <path d="M0 10 Q10 2 18 10 Q28 18 36 10" stroke="#1d4ed8" strokeWidth="1.8" strokeLinecap="round"/>
+            <path d="M38 10 Q46 2 55 10" stroke="#1d4ed8" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </>)}
 
-      {/* Hills + Sheds */}
+      {/* Farm Landscape */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-        <svg viewBox="0 0 1200 260" preserveAspectRatio="none" width="100%" height="220" style={{ display: 'block' }}>
+        <svg viewBox="0 0 1200 270" preserveAspectRatio="none" width="100%" height="225" style={{ display: 'block' }}>
           <defs>
-            <radialGradient id="hillGrad" cx="50%" cy="0%" r="80%">
-              <stop offset="0%" stopColor="#4ade80" />
-              <stop offset="100%" stopColor="#15803d" />
-            </radialGradient>
+            <linearGradient id="hF" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={night ? '#1e3a5f' : '#86efac'}/>
+              <stop offset="100%" stopColor={night ? '#0f172a' : '#15803d'}/>
+            </linearGradient>
+            <linearGradient id="hN" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={night ? '#14532d' : '#22c55e'}/>
+              <stop offset="100%" stopColor={night ? '#052e16' : '#16a34a'}/>
+            </linearGradient>
           </defs>
-          {/* Far hills */}
-          <ellipse cx="600" cy="320" rx="950" ry="200" fill="#86efac" />
-          {/* Mid hills */}
-          <ellipse cx="180" cy="315" rx="500" ry="175" fill="#4ade80" />
-          <ellipse cx="950" cy="315" rx="500" ry="170" fill="#4ade80" />
-          {/* Near hill */}
-          <ellipse cx="600" cy="350" rx="750" ry="150" fill="#22c55e" />
-          {/* Ground */}
-          <rect x="0" y="215" width="1200" height="50" fill="#16a34a" />
-          {/* Path strip */}
-          <rect x="200" y="215" width="800" height="12" rx="6" fill="#15803d88" />
+          <ellipse cx="600" cy="330" rx="960" ry="205" fill="url(#hF)" />
+          <ellipse cx="200" cy="322" rx="520" ry="182" fill={night?'#0f3460':'#4ade80'} />
+          <ellipse cx="970" cy="322" rx="520" ry="177" fill={night?'#0f3460':'#4ade80'} />
+          <ellipse cx="600" cy="362" rx="760" ry="157" fill="url(#hN)" />
+          <rect x="0" y="218" width="1200" height="55" fill={night?'#14532d':'#16a34a'} />
+          <rect x="220" y="218" width="760" height="12" rx="6" fill={night?'#052e1688':'#15803d88'} />
 
-          {/* Trees Left */}
-          <rect x="55" y="155" width="11" height="64" rx="3" fill="#8B5E3C"/>
-          <ellipse cx="60" cy="148" rx="30" ry="40" fill="#15803d"/>
-          <ellipse cx="60" cy="142" rx="22" ry="28" fill="#166534"/>
-          <rect x="118" y="170" width="9" height="50" rx="3" fill="#8B5E3C"/>
-          <ellipse cx="122" cy="163" rx="24" ry="32" fill="#15803d"/>
-
-          {/* Trees Right */}
-          <rect x="1110" y="157" width="11" height="62" rx="3" fill="#8B5E3C"/>
-          <ellipse cx="1115" cy="150" rx="30" ry="38" fill="#15803d"/>
-          <ellipse cx="1115" cy="144" rx="22" ry="28" fill="#166534"/>
-          <rect x="1060" y="172" width="9" height="48" rx="3" fill="#8B5E3C"/>
-          <ellipse cx="1064" cy="165" rx="22" ry="30" fill="#15803d"/>
-
-          {/* Shed Left */}
-          <rect x="155" y="188" width="140" height="55" rx="5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5"/>
-          <polygon points="138,188 225,158 312,188" fill="#94a3b8"/>
-          <rect x="198" y="206" width="34" height="37" rx="2" fill="#cbd5e1"/>
-          <rect x="170" y="198" width="22" height="16" rx="2" fill="#bfdbfe88"/>
-          <rect x="253" y="198" width="22" height="16" rx="2" fill="#bfdbfe88"/>
-          <text x="225" y="250" fill="#94a3b8" fontSize="9" textAnchor="middle" fontWeight="700">UNIT 1</text>
-
-          {/* Shed Right */}
-          <rect x="900" y="188" width="140" height="55" rx="5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5"/>
-          <polygon points="883,188 970,158 1057,188" fill="#94a3b8"/>
-          <rect x="943" y="206" width="34" height="37" rx="2" fill="#cbd5e1"/>
-          <rect x="915" y="198" width="22" height="16" rx="2" fill="#bfdbfe88"/>
-          <rect x="998" y="198" width="22" height="16" rx="2" fill="#bfdbfe88"/>
-          <text x="970" y="250" fill="#94a3b8" fontSize="9" textAnchor="middle" fontWeight="700">UNIT 2</text>
-        </svg>
-      </div>
-
-      {/* Windmill */}
-      <div style={{ position: 'absolute', bottom: '23%', right: '7%', zIndex: 5 }}>
-        <svg width="48" height="88" viewBox="0 0 48 88">
-          <rect x="21" y="30" width="7" height="56" rx="2.5" fill="#8B5E3C"/>
-          <g style={{ transformOrigin: '16px 16px', animation: 'hlBirds 0s', transform: 'none' }}>
-            <animateTransform attributeName="transform" type="rotate" from="0 16 16" to="360 16 16" dur="3s" repeatCount="indefinite"/>
-            <ellipse cx="8" cy="16" rx="5" ry="15" fill="#94a3b8bb" transform="rotate(-45 8 16)"/>
-            <ellipse cx="8" cy="16" rx="5" ry="15" fill="#94a3b8bb" transform="rotate(45 8 16)"/>
-            <ellipse cx="8" cy="16" rx="5" ry="15" fill="#94a3b8bb" transform="rotate(135 8 16)"/>
-            <ellipse cx="8" cy="16" rx="5" ry="15" fill="#94a3b8bb" transform="rotate(225 8 16)"/>
-            <circle cx="8" cy="16" r="4" fill="#64748b"/>
+          {/* Trees with SVG sway animation */}
+          <g transform="translate(60,60)">
+            <animateTransform attributeName="transform" type="rotate" values="-3 60 158;3 60 158;-3 60 158" dur="4s" repeatCount="indefinite" additive="sum"/>
+            <rect x="54" y="155" width="11" height="65" rx="3" fill="#8B5E3C"/>
+            <ellipse cx="60" cy="148" rx="32" ry="42" fill={night?'#14532d':'#15803d'}/>
+            <ellipse cx="60" cy="140" rx="23" ry="30" fill={night?'#052e16':'#166534'}/>
           </g>
+          <g transform="translate(0,0)">
+            <animateTransform attributeName="transform" type="rotate" values="3 122 220;-3 122 220;3 122 220" dur="5.5s" repeatCount="indefinite" additive="sum"/>
+            <rect x="118" y="170" width="9" height="50" rx="3" fill="#8B5E3C"/>
+            <ellipse cx="122" cy="163" rx="24" ry="32" fill={night?'#14532d':'#15803d'}/>
+          </g>
+          <g transform="translate(0,0)">
+            <animateTransform attributeName="transform" type="rotate" values="-2.5 1115 207;2.5 1115 207;-2.5 1115 207" dur="4.5s" repeatCount="indefinite" additive="sum"/>
+            <rect x="1110" y="157" width="11" height="63" rx="3" fill="#8B5E3C"/>
+            <ellipse cx="1115" cy="150" rx="31" ry="40" fill={night?'#14532d':'#15803d'}/>
+            <ellipse cx="1115" cy="143" rx="22" ry="29" fill={night?'#052e16':'#166534'}/>
+          </g>
+          <g transform="translate(0,0)">
+            <animateTransform attributeName="transform" type="rotate" values="3 1064 218;-3 1064 218;3 1064 218" dur="6s" repeatCount="indefinite" additive="sum"/>
+            <rect x="1060" y="172" width="9" height="48" rx="3" fill="#8B5E3C"/>
+            <ellipse cx="1064" cy="165" rx="22" ry="30" fill={night?'#14532d':'#15803d'}/>
+          </g>
+
+          {/* Sheds */}
+          <rect x="155" y="187" width="148" height="58" rx="5" fill={night?'#1e293b':'#f8fafc'} stroke={night?'#334155':'#e2e8f0'} strokeWidth="1.5"/>
+          <polygon points="138,187 229,155 320,187" fill={night?'#475569':'#94a3b8'}/>
+          <rect x="200" y="205" width="36" height="40" rx="2" fill={night?'#334155':'#cbd5e1'}/>
+          <rect x="170" y="197" width="22" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <rect x="256" y="197" width="22" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <text x="229" y="255" fill={night?'#64748b':'#94a3b8'} fontSize="9" textAnchor="middle" fontWeight="700">UNIT 1</text>
+
+          <rect x="520" y="192" width="160" height="52" rx="5" fill={night?'#1e293b':'#f1f5f9'} stroke={night?'#334155':'#e2e8f0'} strokeWidth="1.5"/>
+          <polygon points="502,192 600,160 698,192" fill={night?'#475569':'#94a3b8'}/>
+          <rect x="566" y="210" width="38" height="34" rx="2" fill={night?'#334155':'#cbd5e1'}/>
+          <rect x="530" y="200" width="24" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <rect x="643" y="200" width="24" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <text x="600" y="258" fill={night?'#64748b':'#94a3b8'} fontSize="9" textAnchor="middle" fontWeight="700">UNIT 3</text>
+
+          <rect x="900" y="187" width="148" height="58" rx="5" fill={night?'#1e293b':'#f8fafc'} stroke={night?'#334155':'#e2e8f0'} strokeWidth="1.5"/>
+          <polygon points="882,187 976,155 1070,187" fill={night?'#475569':'#94a3b8'}/>
+          <rect x="944" y="205" width="36" height="40" rx="2" fill={night?'#334155':'#cbd5e1'}/>
+          <rect x="914" y="197" width="22" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <rect x="1000" y="197" width="22" height="16" rx="2" fill={night?'#fbbf2466':'#bfdbfe88'}/>
+          <text x="976" y="255" fill={night?'#64748b':'#94a3b8'} fontSize="9" textAnchor="middle" fontWeight="700">UNIT 2</text>
+
+          {/* Windmill */}
+          <rect x="455" y="170" width="7" height="58" rx="2.5" fill="#8B5E3C"/>
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="0 459 170" to="360 459 170" dur="3.5s" repeatCount="indefinite"/>
+            <ellipse cx="451" cy="170" rx="5" ry="14" fill="#94a3b8bb" transform="rotate(-45 451 170)"/>
+            <ellipse cx="451" cy="170" rx="5" ry="14" fill="#94a3b8bb" transform="rotate(45 451 170)"/>
+            <ellipse cx="451" cy="170" rx="5" ry="14" fill="#94a3b8bb" transform="rotate(135 451 170)"/>
+            <ellipse cx="451" cy="170" rx="5" ry="14" fill="#94a3b8bb" transform="rotate(225 451 170)"/>
+            <circle cx="451" cy="170" r="4" fill="#64748b"/>
+          </g>
+
+          {/* Grass wave blades */}
+          {Array.from({ length: 28 }, (_, i) => (
+            <g key={i}>
+              <animateTransform attributeName="transform" type="rotate"
+                values={`${i%2===0?-7:7} ${170+i*30} 220;${i%2===0?7:-7} ${170+i*30} 220;${i%2===0?-7:7} ${170+i*30} 220`}
+                dur={`${2.5 + (i%5)*0.4}s`} repeatCount="indefinite" additive="sum"/>
+              <rect x={168+i*30} y="207" width="3" height={12+(i%4)*3} rx="1.5"
+                fill={night?'#166534':'#22c55e'} />
+            </g>
+          ))}
         </svg>
       </div>
 
-      {/* Ambient Particles */}
+      {/* Ground-walking chickens */}
+      <div className="hls-gwhen" style={{ zIndex: 6 }}>
+        <svg width="38" height="32" viewBox="0 0 38 32">
+          <ellipse cx="16" cy="18" rx="10" ry="8" fill={night?'#f1f5f9':'#f9fafb'} stroke="#e2e8f0" strokeWidth="1"/>
+          <circle cx="26" cy="10" r="7" fill={night?'#f1f5f9':'#f9fafb'} stroke="#e2e8f0" strokeWidth="1"/>
+          <path d="M23 3 Q25 0 26 3.5 Q27.5 0 29.5 4" stroke="#ef4444" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+          <circle cx="28" cy="8" r="2.2" fill="#0f172a"/>
+          <ellipse cx="23" cy="13" rx="2.2" ry="3.2" fill="#ef4444"/>
+          <line x1="13" y1="24" x2="11" y2="31" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="19" y1="24" x2="21" y2="31" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div className="hls-gwhen2" style={{ zIndex: 6, transform: 'scaleX(-1)' }}>
+        <svg width="30" height="25" viewBox="0 0 30 25">
+          <ellipse cx="12" cy="15" rx="8" ry="6.5" fill="#fef3c7" stroke="#e2e8f0" strokeWidth="1"/>
+          <circle cx="20" cy="8" r="5.5" fill="#fef3c7" stroke="#e2e8f0" strokeWidth="1"/>
+          <path d="M18 2 Q19.5 0 21 2 Q22.5 0 24 2" stroke="#ef4444" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+          <circle cx="22" cy="6" r="1.8" fill="#0f172a"/>
+          <ellipse cx="18" cy="11" rx="1.8" ry="2.6" fill="#ef4444"/>
+          <line x1="10" y1="19" x2="8" y2="24" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round"/>
+          <line x1="14" y1="19" x2="16" y2="24" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round"/>
+        </svg>
+      </div>
+
+      {/* Ambient particles */}
       {particles.map(p => (
-        <div
-          key={p.id}
-          className={`hl-particle ${p.type === 'feather' ? 'hl-pf' : p.type === 'sparkle' ? 'hl-ps' : 'hl-pd'}`}
-          style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s` }}
+        <div key={p.id}
+          className={`hls-particle ${p.type==='feather'?'hls-pf':p.type==='sparkle'?'hls-ps':'hls-pd'}`}
+          style={{ left:`${p.x}%`, top:`${p.y}%`, animationDelay:`${p.delay}s`, animationDuration:`${p.dur}s` }}
         />
       ))}
 
-      {/* ── CENTER CARD ── */}
-      <div style={{
-        position: 'relative', zIndex: 20,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 0, marginTop: '-80px',
-        padding: '0 16px', width: '100%', maxWidth: 560,
-      }}>
+      {/* ── GLASS CARD ── */}
+      <div className="hls-card hls-entry" style={{ position: 'relative', zIndex: 20, margin: '0 14px', marginTop: '-70px' }}>
 
-        {/* Branding */}
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        {/* LOGO */}
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 6 }}>🐔</div>
           <div style={{
-            fontSize: 'clamp(1.05rem,4.5vw,1.55rem)',
-            fontWeight: 900, letterSpacing: '-0.02em',
-            background: 'linear-gradient(135deg,#166534 0%,#15803d 50%,#052e16 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            fontSize: 'clamp(1.1rem,4.5vw,1.6rem)', fontWeight: 900,
+            letterSpacing: '-0.02em', lineHeight: 1.15,
+            background: night
+              ? 'linear-gradient(135deg,#4ade80 0%,#22d3ee 100%)'
+              : 'linear-gradient(135deg,#166534 0%,#15803d 50%,#052e16 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-            🐓 Sri Mahalakshmi Poultry AI ERP
+            Sri Mahalakshmi<br/>Poultry AI ERP
           </div>
-          <div style={{ fontSize: 'clamp(0.62rem,2vw,0.75rem)', color: '#15803d', fontWeight: 600, marginTop: 4, letterSpacing: '0.02em' }}>
-            Intelligent Poultry Management Powered by AI
+          <div style={{ fontSize: '0.68rem', color: night?'#4ade80':'#15803d', fontWeight: 700, marginTop: 6, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            Powered by <span style={{ color: night?cyan:'#0ea5e9', fontWeight: 900 }}>FlockMind AI</span>
           </div>
         </div>
 
-        {/* ── TRACK + HEN ── */}
-        <div style={{ width: '100%', position: 'relative', marginBottom: 6 }}>
-
-          {/* Hen sitting on track */}
-          <div className="hl-hen-wrap" style={{ left: `${henLeft}%` }}>
-            <div className="hl-dust" style={{ left: 4 }} />
-            <div className="hl-dust" style={{ left: 20 }} />
-            <div className="hl-egg" />
-
-            <svg width="84" height="72" viewBox="0 0 84 72">
-              {/* Tail */}
-              <g className="hl-tail">
-                <ellipse cx="15" cy="34" rx="11" ry="5" fill="#facc15" transform="rotate(-38 15 34)"/>
-                <ellipse cx="12" cy="38" rx="11" ry="4" fill="#fbbf24" transform="rotate(-52 12 38)"/>
-                <ellipse cx="11" cy="32" rx="10" ry="4" fill="#f59e0b" transform="rotate(-22 11 32)"/>
+        {/* TRACK + HEN */}
+        <div style={{ width: '100%', position: 'relative', marginBottom: 10 }}>
+          {/* Hen — 40% larger (108×90) */}
+          <div className="hls-hen-wrap" style={{ left:`${henLeft}%` }}>
+            <div className="hls-d1" style={{ left: 5 }} />
+            <div className="hls-d2" />
+            <svg width="108" height="90" viewBox="0 0 108 90">
+              <g className="hls-tail">
+                <ellipse cx="18" cy="42" rx="14" ry="6" fill="#facc15" transform="rotate(-40 18 42)"/>
+                <ellipse cx="14" cy="48" rx="13" ry="5" fill="#fbbf24" transform="rotate(-56 14 48)"/>
+                <ellipse cx="13" cy="38" rx="12" ry="5" fill="#f59e0b" transform="rotate(-24 13 38)"/>
               </g>
-
-              {/* Body */}
-              <g className="hl-body">
-                <ellipse cx="44" cy="41" rx="23" ry="19" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.5"/>
-                <ellipse cx="46" cy="47" rx="13" ry="10" fill="#fde68a33"/>
-                {/* Wing */}
-                <g className="hl-wing">
-                  <ellipse cx="42" cy="39" rx="15" ry="10" fill="#f1f5f9" stroke="#e2e8f0" strokeWidth="1" transform="rotate(-12 42 39)"/>
-                  <ellipse cx="40" cy="42" rx="11" ry="6" fill="#e2e8f0" transform="rotate(-12 40 42)"/>
+              <g className="hls-body">
+                <ellipse cx="55" cy="51" rx="28" ry="23" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.8"/>
+                <ellipse cx="57" cy="58" rx="16" ry="13" fill="#fde68a22"/>
+                <g className="hls-wing">
+                  <ellipse cx="52" cy="48" rx="18" ry="12" fill="#f1f5f9" stroke="#e2e8f0" strokeWidth="1.2" transform="rotate(-12 52 48)"/>
+                  <ellipse cx="50" cy="52" rx="13" ry="7" fill="#e2e8f0" transform="rotate(-12 50 52)"/>
                 </g>
-                {/* Spots */}
-                <circle cx="52" cy="37" r="3.5" fill="#fde68a33"/>
-                <circle cx="46" cy="46" r="2.5" fill="#fde68a22"/>
-
-                {/* Legs */}
-                <g className="hl-leg-r">
-                  <line x1="48" y1="56" x2="52" y2="67" stroke="#f59e0b" strokeWidth="3.2" strokeLinecap="round"/>
-                  <line x1="52" y1="67" x2="59" y2="68" stroke="#f59e0b" strokeWidth="2.6" strokeLinecap="round"/>
-                  <line x1="52" y1="67" x2="46" y2="69" stroke="#f59e0b" strokeWidth="2.6" strokeLinecap="round"/>
+                <g className="hls-legR">
+                  <line x1="60" y1="70" x2="65" y2="84" stroke="#f59e0b" strokeWidth="3.8" strokeLinecap="round"/>
+                  <line x1="65" y1="84" x2="74" y2="85" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
+                  <line x1="65" y1="84" x2="57" y2="87" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
                 </g>
-                <g className="hl-leg-l">
-                  <line x1="39" y1="56" x2="35" y2="67" stroke="#f59e0b" strokeWidth="3.2" strokeLinecap="round"/>
-                  <line x1="35" y1="67" x2="42" y2="68" stroke="#f59e0b" strokeWidth="2.6" strokeLinecap="round"/>
-                  <line x1="35" y1="67" x2="29" y2="69" stroke="#f59e0b" strokeWidth="2.6" strokeLinecap="round"/>
+                <g className="hls-legL">
+                  <line x1="48" y1="70" x2="42" y2="84" stroke="#f59e0b" strokeWidth="3.8" strokeLinecap="round"/>
+                  <line x1="42" y1="84" x2="51" y2="85" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
+                  <line x1="42" y1="84" x2="35" y2="87" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
                 </g>
-
-                {/* Head */}
-                <g className="hl-head" style={{ transformOrigin: '55px 24px' }}>
-                  <ellipse cx="54" cy="29" rx="9" ry="12" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.2"/>
-                  <circle cx="56" cy="17" r="14" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.5"/>
-                  {/* Comb */}
-                  <path d="M51 5 Q53.5 0 55.5 4.5 Q57.5 -0.5 59.5 5 Q61.5 0.5 63.5 5.5" stroke="#ef4444" strokeWidth="2.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Eye */}
-                  <circle cx="61" cy="14" r="4.5" fill="#0f172a"/>
-                  <circle cx="62.5" cy="12.5" r="1.8" fill="white"/>
-                  <circle cx="61" cy="14" r="1.8" fill="#166534"/>
-                  {/* Wattle */}
-                  <ellipse cx="55" cy="25" rx="4.5" ry="5.5" fill="#ef4444"/>
-                  {/* Beak */}
-                  <g className="hl-beak-lo">
-                    <path d="M62 18 L72 21 L62 24 Z" fill="#f59e0b" stroke="#d97706" strokeWidth="0.8"/>
+                <g className="hls-head" style={{ transformOrigin: '70px 26px' }}>
+                  <ellipse cx="70" cy="34" rx="11" ry="15" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.4"/>
+                  <circle cx="70" cy="20" r="17" fill="#f9fafb" stroke="#e2e8f0" strokeWidth="1.6"/>
+                  <path d="M65 6 Q67.5 0 70 5 Q72.5 -1 75 5.5 Q77.5 0 80 6" stroke="#ef4444" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <g className="hls-blink" style={{ transformOrigin: '77px 17px' }}>
+                    <circle cx="77" cy="17" r="5.5" fill="#0f172a"/>
+                    <circle cx="79" cy="15" r="2.2" fill="white"/>
+                    <circle cx="77" cy="17" r="2.2" fill="#166534"/>
                   </g>
-                  <path d="M62 18 L72 20 L62 21 Z" fill="#fbbf24"/>
+                  <ellipse cx="67" cy="31" rx="5.5" ry="7" fill="#ef4444"/>
+                  <g className="hls-beak">
+                    <path d="M78 21 L94 25 L78 29 Z" fill="#f59e0b" stroke="#d97706" strokeWidth="1"/>
+                  </g>
+                  <path d="M78 21 L94 24 L78 25 Z" fill="#fbbf24"/>
                 </g>
               </g>
             </svg>
           </div>
 
-          {/* Track */}
-          <div className="hl-track-bg">
-            <div className="hl-track-fill" style={{ width: `${progress}%` }} />
+          {/* Track bar */}
+          <div className="hls-track" style={{
+            background: night?'rgba(30,41,59,0.7)':'#d1fae5',
+            border: `2px solid ${night?'rgba(74,222,128,0.3)':'#6ee7b7'}`,
+          }}>
+            <div className="hls-fill" style={{
+              width: `${progress}%`,
+              background: night
+                ? 'linear-gradient(90deg,#065f46,#10b981,#4ade80,#22d3ee)'
+                : 'linear-gradient(90deg,#166534,#22c55e,#4ade80,#facc15)',
+            }} />
           </div>
 
           {/* Track labels */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 7, padding: '0 2px' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>🌱 Farm Ledger</span>
-            <span style={{ fontSize: 11, fontWeight: 900, color: '#166534' }}>{Math.round(progress)}%</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>🏁 Dashboard</span>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, padding:'0 2px' }}>
+            <span style={{ fontSize:10, fontWeight:700, color:accentLight }}>🌱 Farm Ledger</span>
+            <div style={{ textAlign:'center' }}>
+              <span style={{ fontSize:16, fontWeight:900, color:accent }}>{Math.round(progress)}%</span>
+              <span style={{ fontSize:9, color:accentLight, display:'block', marginTop:1 }}>
+                {Math.min(Math.ceil(progress / 14.3), 7)} of 7 modules
+              </span>
+            </div>
+            <span style={{ fontSize:10, fontWeight:700, color:accentLight }}>🏁 Dashboard</span>
           </div>
         </div>
 
-        {/* Loading Message */}
-        <div style={{ height: 38, display: 'flex', alignItems: 'center', marginTop: 12 }}>
-          <p className={`hl-msg ${msgVisible ? 'hl-msg-in' : 'hl-msg-out'}`} style={{
-            fontSize: 'clamp(0.72rem,2.5vw,0.84rem)',
-            fontWeight: 700, color: '#166534',
-            letterSpacing: '0.01em', textAlign: 'center', margin: 0,
+        {/* BOTTOM PANELS */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:10 }}>
+
+          {/* FlockMind AI */}
+          <div style={{ background:panelBg, border:`1px solid ${panelBorder}`, borderRadius:14, padding:'10px 12px' }}>
+            <div style={{ fontSize:10, fontWeight:800, color:night?cyan:'#0ea5e9', marginBottom:7, letterSpacing:'0.05em' }}>
+              🧠 FlockMind AI
+            </div>
+            {AI_STEPS.map((step, i) => (
+              <div key={i}
+                className={i <= aiStep ? 'hls-ai-in' : ''}
+                style={{
+                  fontSize:9.5, fontWeight:600,
+                  color: i <= aiStep ? accent : (night?'#334155':'#e5e7eb'),
+                  marginBottom:4, opacity: i <= aiStep ? 1 : 0.22,
+                  transition:'color 0.4s,opacity 0.4s',
+                  animationDelay:`${i*0.1}s`,
+                }}
+              >{step}</div>
+            ))}
+          </div>
+
+          {/* Stat + Tip */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ background:panelBg, border:`1px solid ${panelBorder}`, borderRadius:14, padding:'8px 10px', flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div className={`hls-fade ${statVisible?'hls-in':'hls-out'}`} style={{ textAlign:'center' }}>
+                <div style={{ fontSize:20 }}>{STATS[statIndex].icon}</div>
+                <div style={{ fontSize:9, color:night?'#94a3b8':'#6b7280', fontWeight:600, marginTop:2 }}>{STATS[statIndex].label}</div>
+                <div style={{ fontSize:16, fontWeight:900, color:accent, marginTop:2 }}>{STATS[statIndex].value}</div>
+              </div>
+            </div>
+            <div style={{ background: night?'rgba(15,23,42,0.72)':'rgba(255,251,235,0.82)', border:`1px solid ${night?'rgba(251,191,36,0.22)':'rgba(251,191,36,0.4)'}`, borderRadius:14, padding:'8px 10px', flex:1 }}>
+              <div className={`hls-fade ${tipVisible?'hls-in':'hls-out'}`}>
+                <div style={{ fontSize:9.5, fontWeight:800, color:night?'#fbbf24':'#d97706', marginBottom:3 }}>{TIPS[tipIndex].label}</div>
+                <div style={{ fontSize:9, color:night?'#e2e8f0':'#78350f', fontWeight:600, lineHeight:1.45 }}>{TIPS[tipIndex].text}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading message */}
+        <div style={{ height:32, display:'flex', alignItems:'center', justifyContent:'center', marginTop:12 }}>
+          <p className={`hls-fade ${msgVisible?'hls-in':'hls-out'}`} style={{
+            fontSize:'clamp(0.7rem,2.2vw,0.82rem)', fontWeight:700,
+            color:accent, letterSpacing:'0.01em', textAlign:'center', margin:0,
           }}>
-            {LOADING_MESSAGES[msgIndex]}
+            {LOADING_MESSAGES[msgIndex].icon} {LOADING_MESSAGES[msgIndex].text}
           </p>
         </div>
 
-        {/* Dot pulse */}
-        <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} className="hl-dot" style={{ animationDelay: `${i * 0.22}s` }} />
+        {/* Dots */}
+        <div style={{ display:'flex', gap:7, marginTop:8, justifyContent:'center' }}>
+          {[0,1,2].map(i => (
+            <div key={i} className="hls-dot" style={{ animationDelay:`${i*0.22}s`, background:accent }} />
           ))}
         </div>
       </div>
