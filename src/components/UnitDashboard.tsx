@@ -565,21 +565,21 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 );
 
                 return (
-                  <div className="bg-gradient-to-r from-emerald-500/5 via-slate-50 to-emerald-500/10 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-emerald-950/30 p-4 rounded-2xl border border-emerald-500/20 dark:border-emerald-800/40 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-gradient-to-r from-emerald-500/5 via-slate-50 to-emerald-500/10 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-emerald-950/30 p-3.5 sm:p-4 rounded-2xl border border-emerald-500/20 dark:border-emerald-800/40 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">📈</span>
+                        <span className="text-base shrink-0">📈</span>
                         <div>
                           <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
                             BV300 Breed Standard Comparison (Week {currentWeek})
                           </h4>
-                          <p className="text-[10px] text-slate-400 font-semibold">
+                          <p className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold">
                             Official Venky's / Babcock Commercial Layer Genetic Benchmark
                           </p>
                         </div>
                       </div>
 
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-xs ${
+                      <span className={`self-start sm:self-auto px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-xs ${
                         variance.status === 'Peak Perform' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
                         variance.status === 'On Target' ? 'bg-primary/10 text-primary border-primary/30' :
                         variance.status === 'Minor Lag' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' :
@@ -591,7 +591,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-center">
                       {/* Metric 1: HD% */}
                       <div className="p-2.5 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">HD% Yield</span>
