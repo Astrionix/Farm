@@ -35,10 +35,17 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
+  const [liveEggRate, setLiveEggRate] = useState<number>(6.86);
 
-  // Constant values for financial calculation
-  const EGG_SALE_PRICE = 5.5; // Rs. 5.50 per egg
+  // Dynamic values for financial calculation based on Kakinada market price
+  const EGG_SALE_PRICE = liveEggRate; // Dynamic Kakinada NECC egg price
   const FEED_COST_PER_KG = 36.0; // Rs. 36.00 per kg
+
+  useEffect(() => {
+    dbService.getEggPrice('Kakinada').then(p => {
+      if (p && p.price > 0) setLiveEggRate(p.price);
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;

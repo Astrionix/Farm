@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS sheds (
     UNIQUE(unit_id, shed_number)
 );
 
+-- 2b. EGG PRICES Table (Regional Market Prices, e.g. Kakinada NECC rate)
+CREATE TABLE IF NOT EXISTS egg_prices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    region VARCHAR(50) NOT NULL UNIQUE,
+    price NUMERIC(5,2) NOT NULL,       -- Price per single egg in INR (e.g. 6.86)
+    tray_price NUMERIC(7,2),           -- Price for 30 eggs (e.g. 205.80)
+    peti_price NUMERIC(7,2),           -- Price for 210 eggs / peti (e.g. 1440.60)
+    source VARCHAR(100) DEFAULT 'EggRateLab (NECC)',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Seed sheds for each unit based on configuration
 DO $$
 DECLARE

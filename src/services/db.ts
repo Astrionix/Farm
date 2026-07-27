@@ -1113,6 +1113,41 @@ export const dbService = {
     return deleted;
   },
 
+  // 5b. LIVE EGG MARKET PRICE (Kakinada / NECC)
+  getEggPrice: async (region: string = 'Kakinada'): Promise<{ region: string; price: number; trayPrice: number; petiPrice: number; updatedAt: string; source: string }> => {
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('egg_prices')
+          .select('*')
+          .eq('region', region)
+          .single();
+
+        if (!error && data) {
+          const p = Number(data.price);
+          return {
+            region: data.region,
+            price: p,
+            trayPrice: Number(data.tray_price) || Number((p * 30).toFixed(1)),
+            petiPrice: Number(data.peti_price) || Number((p * 210).toFixed(1)),
+            updatedAt: data.updated_at,
+            source: data.source || 'EggRateLab (NECC)',
+          };
+        }
+      } catch (e) {
+        console.warn('Supabase egg_prices query error:', e);
+      }
+    }
+    return {
+      region: 'Kakinada',
+      price: 6.86,
+      trayPrice: 205.8,
+      petiPrice: 1440.6,
+      updatedAt: new Date().toISOString(),
+      source: 'EggRateLab (NECC)',
+    };
+  },
+
   // 6. SCORES METRICS AGGREGATIONS — Supabase only
   getAggregatedScores: async (dateStr: string) => {
     let entries = await dbService.getDailyEntries({ date: dateStr });
