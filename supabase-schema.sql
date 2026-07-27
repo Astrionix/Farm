@@ -42,12 +42,25 @@ CREATE TABLE IF NOT EXISTS sheds (
 CREATE TABLE IF NOT EXISTS egg_prices (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     region VARCHAR(50) NOT NULL UNIQUE,
-    price NUMERIC(5,2) NOT NULL,       -- Price per single egg in INR (e.g. 6.86)
-    tray_price NUMERIC(7,2),           -- Price for 30 eggs (e.g. 205.80)
-    peti_price NUMERIC(7,2),           -- Price for 210 eggs / peti (e.g. 1440.60)
+    price NUMERIC(5,2) NOT NULL,           -- Price per single egg in INR (e.g. 6.86)
+    yesterday_price NUMERIC(5,2) DEFAULT 7.16, -- Yesterday price (e.g. 7.16)
+    tray_price NUMERIC(7,2),               -- Price for 30 eggs (e.g. 205.80)
+    peti_price NUMERIC(7,2),               -- Price for 210 eggs / peti (e.g. 1440.60)
     source VARCHAR(100) DEFAULT 'EggRateLab (NECC)',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Enable RLS and grant public read access for egg_prices
+ALTER TABLE egg_prices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on egg_prices" ON egg_prices;
+CREATE POLICY "Allow public read access on egg_prices" ON egg_prices FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "Allow public update access on egg_prices" ON egg_prices;
+CREATE POLICY "Allow public update access on egg_prices" ON egg_prices FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- Insert initial Kakinada row
+INSERT INTO egg_prices (region, price, yesterday_price, tray_price, peti_price, source, updated_at)
+VALUES ('Kakinada', 6.86, 7.16, 205.80, 1440.60, 'EggRateLab (NECC)', NOW())
+ON CONFLICT (region) DO NOTHING;
 
 -- Seed sheds for each unit based on configuration
 DO $$
