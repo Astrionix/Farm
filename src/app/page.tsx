@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
@@ -9,7 +8,7 @@ import UnitDashboard from '../components/UnitDashboard';
 import DailyEntry from '../components/DailyEntry';
 import AIChatPanel from '../components/AIChatPanel';
 import ReportsPanel from '../components/ReportsPanel';
-import { SkeletonDashboard } from '../components/SkeletonLoader';
+import HenLoadingScreen from '../components/HenLoadingScreen';
 import { dbService } from '../services/db';
 
 export default function Home() {
@@ -24,9 +23,20 @@ export default function Home() {
     return false;
   });
   const [dbReady, setDbReady] = useState<boolean>(false);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Initialize DB & Local state on first mount
   useEffect(() => {
+    // Animate progress bar while DB inits
+    setLoadingProgress(0);
+    progressRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 88) { clearInterval(progressRef.current!); return prev; }
+        return prev + (Math.random() * 6 + 3);
+      });
+    }, 220);
+
     dbService.init();
     setUserRole(dbService.getUserRole());
     setAssignedUnit(dbService.getAssignedUnit());
@@ -42,7 +52,13 @@ export default function Home() {
     } else {
       setCurrentTab('dashboard');
     }
-    setDbReady(true);
+
+    // Finish progress and reveal app
+    setTimeout(() => {
+      clearInterval(progressRef.current!);
+      setLoadingProgress(100);
+      setTimeout(() => setDbReady(true), 500);
+    }, 2800);
   }, []);
 
   // Listen for storage updates
@@ -110,12 +126,7 @@ export default function Home() {
   };
 
   if (!dbReady) {
-    return (
-      <div className="flex w-full min-h-screen bg-slate-50 dark:bg-slate-900">
-        <div className="w-60 bg-primary shrink-0" />
-        <SkeletonDashboard />
-      </div>
-    );
+    return <HenLoadingScreen progress={loadingProgress} />;
   }
 
   // Render Login screen if not authenticated
