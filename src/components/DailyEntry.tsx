@@ -521,9 +521,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <p className="text-[10px] text-red-500 font-bold mb-3">{weatherError}</p>
           )}
 
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
             {/* Date Pick */}
-            <div className="space-y-1.5 w-full sm:w-auto min-w-[150px] sm:max-w-[170px]">
+            <div className="space-y-1.5 w-full">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Log Date</label>
               <div className="relative">
                 <input
@@ -539,7 +539,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Weather Pick */}
-            <div className="space-y-1.5 w-full sm:w-auto min-w-[140px] sm:max-w-[160px]">
+            <div className="space-y-1.5 w-full">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Weather</label>
               <div className="relative">
                 <select
@@ -557,7 +557,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Temp */}
-            <div className="space-y-1.5 w-full sm:w-auto min-w-[150px] sm:max-w-[180px]">
+            <div className="space-y-1.5 w-full">
               <div className="flex items-center justify-between gap-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block whitespace-nowrap">Temperature (°C)</label>
                 {apparentTemperature && (
@@ -580,7 +580,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Humidity */}
-            <div className="space-y-1.5 w-full sm:w-auto min-w-[130px] sm:max-w-[150px]">
+            <div className="space-y-1.5 w-full">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Humidity (% RH)</label>
               <div className="relative">
                 <input
