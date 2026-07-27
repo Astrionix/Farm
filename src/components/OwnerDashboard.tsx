@@ -34,8 +34,8 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
   const [liveEggRate, setLiveEggRate] = useState<number>(6.86);
+  const [yesterdayEggRate, setYesterdayEggRate] = useState<number>(7.16);
 
   // Dynamic values for financial calculation based on Kakinada market price
   const EGG_SALE_PRICE = liveEggRate; // Dynamic Kakinada NECC egg price
@@ -43,7 +43,10 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
 
   useEffect(() => {
     dbService.getEggPrice('Kakinada').then(p => {
-      if (p && p.price > 0) setLiveEggRate(p.price);
+      if (p && p.price > 0) {
+        setLiveEggRate(p.price);
+        if (p.yesterdayPrice > 0) setYesterdayEggRate(p.yesterdayPrice);
+      }
     });
   }, []);
 
