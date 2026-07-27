@@ -594,20 +594,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
               </div>
             </div>
 
-            {/* General Remarks */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">General Remarks</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="e.g. Vaccinations done, clean unit..."
-                  value={generalRemarks}
-                  onChange={(e) => setGeneralRemarks(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                />
-                <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              </div>
-            </div>
           </div>
         </div>
         <div className="bg-gradient-to-r from-primary to-primary-light text-white p-5 rounded-2xl border border-primary-light/10 shadow-premium flex flex-col md:flex-row md:items-center justify-between gap-5 animate-slide-up">
