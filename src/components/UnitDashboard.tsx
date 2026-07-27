@@ -17,6 +17,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
+import { calculateBreedVariance, getBV300StandardForWeek } from '../utils/breedStandards';
 import {
   ResponsiveContainer,
   LineChart,
@@ -553,6 +554,84 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 </div>
               </div>
 
+              {/* BV300 Breed Standard Target Benchmark Box */}
+              {(() => {
+                const currentWeek = selectedShedDetails.birdAgeWeeks || 24;
+                const variance = calculateBreedVariance(
+                  currentWeek,
+                  selectedShedDetails.hdPct,
+                  selectedShedDetails.fcr,
+                  selectedShedDetails.bodyWeight
+                );
+
+                return (
+                  <div className="bg-gradient-to-r from-emerald-500/5 via-slate-50 to-emerald-500/10 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-emerald-950/30 p-4 rounded-2xl border border-emerald-500/20 dark:border-emerald-800/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📈</span>
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                            BV300 Breed Standard Comparison (Week {currentWeek})
+                          </h4>
+                          <p className="text-[10px] text-slate-400 font-semibold">
+                            Official Venky's / Babcock Commercial Layer Genetic Benchmark
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-xs ${
+                        variance.status === 'Peak Perform' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
+                        variance.status === 'On Target' ? 'bg-primary/10 text-primary border-primary/30' :
+                        variance.status === 'Minor Lag' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' :
+                        'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30'
+                      }`}>
+                        {variance.status === 'Peak Perform' ? '⚡ Peak Perform' :
+                         variance.status === 'On Target' ? '✓ On Target' :
+                         variance.status === 'Minor Lag' ? '⚠️ Minor Lag' : '🚨 Lagging Target'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      {/* Metric 1: HD% */}
+                      <div className="p-2.5 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">HD% Yield</span>
+                        <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                          <span className="text-sm font-black text-slate-800 dark:text-white">{selectedShedDetails.hdPct}%</span>
+                          <span className="text-[10px] font-bold text-slate-400">/ {variance.targetHdPct}%</span>
+                        </div>
+                        <span className={`text-[9.5px] font-black mt-0.5 block ${variance.hdVariance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          {variance.hdVariance >= 0 ? `+${variance.hdVariance}%` : `${variance.hdVariance}%`} vs Standard
+                        </span>
+                      </div>
+
+                      {/* Metric 2: FCR */}
+                      <div className="p-2.5 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Target FCR</span>
+                        <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                          <span className="text-sm font-black text-slate-800 dark:text-white">{selectedShedDetails.fcr}</span>
+                          <span className="text-[10px] font-bold text-slate-400">/ {variance.targetFcr}</span>
+                        </div>
+                        <span className={`text-[9.5px] font-black mt-0.5 block ${variance.fcrVariance <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          {variance.fcrVariance <= 0 ? `${variance.fcrVariance} (Better)` : `+${variance.fcrVariance} (Higher)`}
+                        </span>
+                      </div>
+
+                      {/* Metric 3: Body Weight */}
+                      <div className="p-2.5 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Body Weight</span>
+                        <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                          <span className="text-sm font-black text-slate-800 dark:text-white">{selectedShedDetails.bodyWeight || '—'}g</span>
+                          <span className="text-[10px] font-bold text-slate-400">/ {variance.targetBodyWeightG}g</span>
+                        </div>
+                        <span className="text-[9.5px] font-bold text-slate-400 mt-0.5 block">
+                          Standard Target
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Param tables */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left: Flock & Feed */}
@@ -665,13 +744,17 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                     <div className="h-48 text-[9px] font-bold">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart
-                          data={historyLogs.map(l => ({
-                            date: new Date(l.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
-                            'HD %': Number(l.hdPct || 0),
-                            'Mortality': Number(l.mortality || 0),
-                            medication: l.medication,
-                            remarks: l.remarks
-                          }))}
+                          data={historyLogs.map(l => {
+                            const std = getBV300StandardForWeek(l.birdAgeWeeks || 24);
+                            return {
+                              date: new Date(l.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+                              'Actual HD %': Number(l.hdPct || 0),
+                              'BV300 Target': std.targetHdPct,
+                              'Mortality': Number(l.mortality || 0),
+                              medication: l.medication,
+                              remarks: l.remarks
+                            };
+                          })}
                           margin={{ top: 10, right: 5, left: -20, bottom: 0 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
@@ -686,7 +769,8 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                                 return (
                                   <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-md text-[10px] space-y-1">
                                     <p className="font-extrabold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-1">{data.date}</p>
-                                    <p className="text-blue-500">Egg Yield: <span className="font-black">{data['HD %'].toFixed(1)}% HD</span></p>
+                                    <p className="text-blue-500">Actual Yield: <span className="font-black">{data['Actual HD %'].toFixed(1)}% HD</span></p>
+                                    <p className="text-emerald-500">BV300 Standard: <span className="font-black">{data['BV300 Target']}% HD</span></p>
                                     <p className="text-red-500">Mortality: <span className="font-black">{data.Mortality} birds</span></p>
                                     {data.medication && data.medication !== 'None' && (
                                       <p className="text-amber-500 mt-1 border-t border-slate-100 dark:border-slate-700 pt-1">
@@ -704,7 +788,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                           <Line
                             yAxisId="left"
                             type="monotone"
-                            dataKey="HD %"
+                            dataKey="Actual HD %"
                             stroke="#3b82f6"
                             strokeWidth={2.5}
                             dot={(props) => {
@@ -718,9 +802,17 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                                   </g>
                                 );
                               }
-                              return <circle key={props.key} cx={cx} cy={cy} r={2} fill="#3b82f6" />;
+                              return <circle cx={cx} cy={cy} r={2.5} fill="#3b82f6" />;
                             }}
-                            activeDot={{ r: 6 }}
+                          />
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="BV300 Target"
+                            stroke="#10b981"
+                            strokeWidth={2}
+                            strokeDasharray="4 4"
+                            dot={false}
                           />
                           <Line
                             yAxisId="right"
