@@ -224,9 +224,37 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-850 dark:text-white leading-none">
             Sri Mahalakshmi Poultry ERP
           </h2>
-          <p className="text-slate-550 dark:text-slate-400 text-xs mt-1.5 font-semibold">
-            Intelligent Poultry Management Powered by AI — <span className="font-extrabold text-primary dark:text-primary-light">{latestDate}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold">
+            <span className="text-slate-500 dark:text-slate-400 font-bold">
+              📅 {latestDate}
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-slate-700 dark:text-slate-200 font-extrabold">
+              Kakinada Egg Rate:
+            </span>
+            <span className="font-black text-emerald-700 dark:text-emerald-400 text-sm">
+              ₹{liveEggRate.toFixed(2)}
+            </span>
+            {(() => {
+              const diff = Number((liveEggRate - yesterdayEggRate).toFixed(2));
+              const isDown = diff < 0;
+              const isUp = diff > 0;
+              return (
+                <span
+                  title={`Yesterday's NECC Rate: ₹${yesterdayEggRate.toFixed(2)}`}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-black inline-flex items-center gap-1 border shadow-xs ${
+                    isDown
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                      : isUp
+                      ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {isDown ? '▼' : isUp ? '▲' : '▬'} {isUp ? `+₹${diff.toFixed(2)}` : isDown ? `-₹${Math.abs(diff).toFixed(2)}` : 'Same'} vs Yesterday (₹{yesterdayEggRate.toFixed(2)})
+                </span>
+              );
+            })()}
+          </div>
         </div>
 
         {/* Filters */}

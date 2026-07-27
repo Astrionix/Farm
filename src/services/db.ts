@@ -1114,7 +1114,7 @@ export const dbService = {
   },
 
   // 5b. LIVE EGG MARKET PRICE (Kakinada / NECC)
-  getEggPrice: async (region: string = 'Kakinada'): Promise<{ region: string; price: number; trayPrice: number; petiPrice: number; updatedAt: string; source: string }> => {
+  getEggPrice: async (region: string = 'Kakinada'): Promise<{ region: string; price: number; yesterdayPrice: number; trayPrice: number; petiPrice: number; updatedAt: string; source: string }> => {
     if (supabaseClient) {
       try {
         const { data, error } = await supabaseClient
@@ -1125,9 +1125,11 @@ export const dbService = {
 
         if (!error && data) {
           const p = Number(data.price);
+          const yP = Number(data.yesterday_price) || 7.16;
           return {
             region: data.region,
             price: p,
+            yesterdayPrice: yP,
             trayPrice: Number(data.tray_price) || Number((p * 30).toFixed(1)),
             petiPrice: Number(data.peti_price) || Number((p * 210).toFixed(1)),
             updatedAt: data.updated_at,
@@ -1141,6 +1143,7 @@ export const dbService = {
     return {
       region: 'Kakinada',
       price: 6.86,
+      yesterdayPrice: 7.16,
       trayPrice: 205.8,
       petiPrice: 1440.6,
       updatedAt: new Date().toISOString(),
