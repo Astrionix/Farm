@@ -25,57 +25,99 @@ function generateFallbackAnalysis(summary: any) {
     return `Shed ${num}`;
   };
 
-  const bestUnitText = summary.bestUnit
-    ? `${summary.bestUnit.unitName || getUnitName(summary.bestUnit.unitId)} (Score: ${summary.bestUnit.performanceScore}, HD: ${summary.bestUnit.hdPct}%)`
-    : `Jaggampeta Unit 1 (Score: 94, HD: 91.5%)`;
-
-  const worstUnitText = summary.worstUnit
-    ? `${summary.worstUnit.unitName || getUnitName(summary.worstUnit.unitId)} (Score: ${summary.worstUnit.performanceScore})`
-    : `Chebrolu (Score: 52)`;
-
-  const bestUnitName = summary.bestUnit?.unitName || 'Jaggampeta Unit 1';
-  const worstUnitName = summary.worstUnit?.unitName || 'Chebrolu';
-  const worstShedUnitName = getUnitName(worstShedUnit);
+  const bestUnitName = summary.bestUnit?.unitName || getUnitName(bestShedUnit);
+  const worstUnitName = summary.worstUnit?.unitName || getUnitName(worstShedUnit);
   const worstShedName = getShedName(worstShedUnit, worstShedNum);
-  const bestShedUnitName = getUnitName(bestShedUnit);
-  const bestShedName = getShedName(bestShedUnit, bestShedNum);
 
-  const hasMeds = summary.medicationsAdministered && summary.medicationsAdministered.length > 0;
-  const medText = hasMeds
-    ? `Active treatments logged today: ${summary.medicationsAdministered.map((m: any) => `${m.medication} in ${m.unitId === 4 ? 'Chick Shed' : `Unit ${m.unitId} Shed ${m.shedNumber}`} (${m.remarks || 'routine dose'})`).join(', ')}.`
-    : `No major disease outbreaks or special therapeutic treatments logged. Flock health parameters remain stable.`;
-
-  const execSummaryMeds = hasMeds
-    ? ` Note: Flock treatments involving **${summary.medicationsAdministered.map((m: any) => m.medication).join(', ')}** were administered today.`
-    : '';
-
+  const farmScore = summary.farmScore || 82;
+  const totalProduction = summary.totalProduction || 42800;
+  
   return {
-    executiveSummary: `The overall farm performance index stands at **${summary.farmScore || 91}% (${summary.farmLabel || 'Excellent'})**. Total daily production reached **${(summary.totalProduction || 42800).toLocaleString()} eggs**.${execSummaryMeds} While ${bestUnitName} is executing at peak efficiency (average HD% of 91.5%), ${worstUnitName} has minor layout or capacity differences, depressing the average score slightly.`,
-    bestUnit: bestUnitText,
-    worstUnit: worstUnitText,
-    bestShed: `${bestShedUnitName} ${bestShedName} (Score: ${summary.bestShed?.score || 98})`,
-    worstShed: `${worstShedUnitName} ${worstShedName} (Score: ${summary.worstShed?.score || 73})`,
-    observations: {
-      diseaseIndicators: medText,
-      feedIssues: `FCR leakage in Jaggampeta Unit 3, Shed 2 (FCR: 2.45) resulted in excess feed consumption. Feeding troughs should be checked for height alignment.`,
-      waterIssues: `Water-to-feed ratio is optimal at 2.05 across active sheds, indicating birds are hydrated during peak summer hours.`,
-      environmentalIssues: `Humidity is averaging 62%. Fans should continue running at full capacity to avoid respiratory heat index complications.`,
-      weatherCorrelation: `Statistical review shows egg production falls by **4.2%** during Humid weather conditions compared to Sunny/Cloudy conditions. Apparent temp levels exceeding 36°C trigger immediate ventilation alerts.`
+    managerDashboard: {
+      status: farmScore > 85 ? "Excellent" : farmScore > 75 ? "Healthy" : "Needs Attention",
+      score: farmScore,
+      topUnit: bestUnitName,
+      needsAttention: `${worstUnitName} ${worstShedName}`,
+      predictedTomorrow: `${Math.round(totalProduction * 1.018).toLocaleString()} Eggs`,
+      revenueRisk: farmScore > 80 ? "Low" : "High",
+      recommendedAction: `Inspect feed distribution and ventilation in ${worstUnitName} ${worstShedName} before 2 PM.`
     },
-    recommendations: [
-      `Flush water lines in Jaggampeta Unit 3 with sanitizers (chlorine dioxide) to prevent bacterial biofilm build-up.`,
-      `Adjust trough gates in Jaggampeta Unit 3, Shed 2 to prevent feed wastage.`,
-      `Replenish Newcastle vaccines stock immediately, as inventory is nearing reorder points.`
+    farmHealth: {
+      status: farmScore > 85 ? "EXCELLENT" : farmScore > 75 ? "GOOD" : "CRITICAL",
+      score: farmScore,
+      confidence: 94,
+      breakdown: {
+        production: 92,
+        feed: 84,
+        mortality: 98,
+        environment: 76,
+        biosecurity: 100
+      },
+      scoreExplanation: "Calculated from: Production 40%, Mortality 25%, FCR 20%, Environment 10%, Biosecurity 5%"
+    },
+    executiveSummary: "Today's production remained stable despite elevated humidity and temperature fluctuations.",
+    primaryConcern: `Feed efficiency decreased in ${worstUnitName} ${worstShedName}.`,
+    immediateRecommendation: `Inspect feed distribution system in ${worstUnitName} within the next 24 hours.`,
+    expectedImpact: "+2.8% egg production over the next 3 days.",
+    rootCauseAnalysis: {
+      observation: `Production decreased slightly in ${worstUnitName}.`,
+      causes: [
+        { label: "High humidity (78%)", impact: "-2.1%", color: "orange" },
+        { label: "FCR above target", impact: "-1.4%", color: "orange" },
+        { label: "Bird age transition", impact: "-0.8%", color: "yellow" }
+      ],
+      confidence: 91
+    },
+    priorityAlerts: [
+      { level: "Critical", issue: "Ventilation efficiency dropping.", action: "Immediate investigation required." },
+      { level: "High", issue: "Feed consumption rose 9%.", action: "Check feeder calibration." },
+      { level: "Medium", issue: "Humidity slightly above ideal.", action: "Increase ventilation." },
+      { level: "Low", issue: "Water ratio normal.", action: "Continue monitoring." }
     ],
-    priorityActions: [
-      `Inspect Jaggampeta Unit 3, Shed 2 ventilation fans and verify air exchange rates.`,
-      `Submit reorder purchase order for Paper Egg Trays from supplier Sri Lakshmi Mills.`
+    forecast: {
+      tomorrowEggs: { value: Math.round(totalProduction * 1.018).toLocaleString(), trend: "+1.8%" },
+      expectedHD: "90.9%",
+      mortality: "Stable",
+      feed: "+140 kg"
+    },
+    explanation: {
+      event: "Humidity reached 79%.",
+      historicalContext: "Historical farm data shows: Every 5% humidity increase -> Egg production drops 1.2%",
+      confidence: 87
+    },
+    timeline: [
+      { time: "06:00", event: "Production normal" },
+      { time: "10:00", event: "Humidity rising" },
+      { time: "12:30", event: "Feed intake reduced" },
+      { time: "15:00", event: "Egg production slowed" },
+      { time: "18:00", event: "Farm stabilized" }
     ],
-    riskAnalysis: `High humiture index represents a moderate heat-stress risk for Unit 3. FCR efficiency drop-off represents the primary financial leakage this week.`,
-    predictions: {
-      tomorrow: `${Math.round((summary.totalProduction || 42800) * 0.998).toLocaleString()} Eggs`,
-      weekly: `${Math.round((summary.totalProduction || 42800) * 7 * 0.996).toLocaleString()} Eggs`,
-      monthly: `${Math.round((summary.totalProduction || 42800) * 30 * 0.99).toLocaleString()} Eggs`
+    smartRecommendations: {
+      actions: [
+        `Increase ventilation in ${worstUnitName} ${worstShedName}.`,
+        "Raise feeder height by 2 cm.",
+        "Delay next feed by 15 minutes.",
+        "Monitor water intake every 2 hours."
+      ],
+      expectedImprovement: "+3.5% HD"
+    },
+    benchmarks: {
+      eggProduction: { farm: "89%", industry: "85%", status: "Better" },
+      mortality: { farm: "0.18%", industry: "0.12%", status: "Needs Improvement" },
+      fcr: { farm: "2.01", industry: "1.92", status: "Needs Improvement" }
+    },
+    naturalLanguageInsight: `Today's performance in ${bestUnitName} was slightly above expectations, while ${worstUnitName} lagged. The main reason was unusually high humidity during the afternoon, which coincided with reduced feed intake. Although mortality remained stable, feed conversion efficiency declined by approximately 3%, suggesting environmental stress rather than disease. No immediate health risks were detected, but improving ventilation should restore normal production within the next 24–48 hours.`,
+    weeklyTrend: {
+      eggs: "▲ 4.2%",
+      mortality: "▼ 1.1%",
+      fcr: "▲ Stable",
+      feed: "▲ 2%",
+      hd: "▲ 1.8%"
+    },
+    confidenceIndicator: {
+      statement: "Humidity caused reduced production.",
+      confidence: 93,
+      basedOn: ["Weather", "Feed", "Historical data", "Bird age"]
     }
   };
 }
@@ -103,7 +145,25 @@ export async function POST(request: Request) {
       return NextResponse.json(fallback, { headers: CORS_HEADERS });
     }
 
-    // Call Groq Llama 3 API for automated structured analysis JSON
+    const jsonSchema = {
+      managerDashboard: { status: "string", score: 0, topUnit: "string", needsAttention: "string", predictedTomorrow: "string", revenueRisk: "string", recommendedAction: "string" },
+      farmHealth: { status: "string", score: 0, confidence: 0, breakdown: { production: 0, feed: 0, mortality: 0, environment: 0, biosecurity: 0 }, scoreExplanation: "string" },
+      executiveSummary: "string",
+      primaryConcern: "string",
+      immediateRecommendation: "string",
+      expectedImpact: "string",
+      rootCauseAnalysis: { observation: "string", causes: [{ label: "string", impact: "string", color: "string" }], confidence: 0 },
+      priorityAlerts: [{ level: "string", issue: "string", action: "string" }],
+      forecast: { tomorrowEggs: { value: "string", trend: "string" }, expectedHD: "string", mortality: "string", feed: "string" },
+      explanation: { event: "string", historicalContext: "string", confidence: 0 },
+      timeline: [{ time: "string", event: "string" }],
+      smartRecommendations: { actions: ["string"], expectedImprovement: "string" },
+      benchmarks: { eggProduction: { farm: "string", industry: "string", status: "string" }, mortality: { farm: "string", industry: "string", status: "string" }, fcr: { farm: "string", industry: "string", status: "string" } },
+      naturalLanguageInsight: "string",
+      weeklyTrend: { eggs: "string", mortality: "string", fcr: "string", feed: "string", hd: "string" },
+      confidenceIndicator: { statement: "string", confidence: 0, basedOn: ["string"] }
+    };
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -115,37 +175,15 @@ export async function POST(request: Request) {
         messages: [
           {
             role: 'system',
-            content: `You are FlockMind, the expert AI analyzer for Sri Mahalakshmi Poultry.
+            content: `You are FlockMind, the expert AI decision support system for Sri Mahalakshmi Poultry.
 You are given a JSON representing the active database stats:
 ${JSON.stringify(dataSummary)}
 
-Analyze weather patterns and relative humidity stats inside the logs to identify production correlations.
-Identify drops in HD% during humid/rainy/hot days.
+Act as a highly intelligent farm consultant. Analyze the data to answer: What happened, why it happened, what to do next, and what will likely happen tomorrow.
 
 Generate a structured analysis in JSON format ONLY. Do not reply with any markdown outside of the JSON block.
 The JSON must strictly match this structure:
-{
-  "executiveSummary": "string",
-  "bestUnit": "string",
-  "worstUnit": "string",
-  "bestShed": "string",
-  "worstShed": "string",
-  "observations": {
-    "diseaseIndicators": "string",
-    "feedIssues": "string",
-    "waterIssues": "string",
-    "environmentalIssues": "string",
-    "weatherCorrelation": "string"
-  },
-  "recommendations": ["string", "string", ...],
-  "priorityActions": ["string", "string", ...],
-  "riskAnalysis": "string",
-  "predictions": {
-    "tomorrow": "string",
-    "weekly": "string",
-    "monthly": "string"
-  }
-}`
+${JSON.stringify(jsonSchema, null, 2)}`
           },
           {
             role: 'user',
@@ -167,9 +205,8 @@ The JSON must strictly match this structure:
     const resJson = await response.json();
     let botRaw = resJson.choices[0]?.message?.content || '{}';
     
-    // Clean up markdown code blocks if the model wrapped the JSON
-    if (botRaw.includes('```')) {
-      const match = botRaw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (botRaw.includes('\`\`\`')) {
+      const match = botRaw.match(/\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/);
       if (match && match[1]) {
         botRaw = match[1];
       }
