@@ -521,9 +521,9 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <p className="text-[10px] text-red-500 font-bold mb-3">{weatherError}</p>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          <div className="flex flex-wrap items-end gap-4">
             {/* Date Pick */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full sm:w-auto min-w-[150px] sm:max-w-[170px]">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Log Date</label>
               <div className="relative">
                 <input
@@ -539,7 +539,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Weather Pick */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full sm:w-auto min-w-[140px] sm:max-w-[160px]">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Weather</label>
               <div className="relative">
                 <select
@@ -557,12 +557,12 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Temp */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Temperature (°C)</label>
+            <div className="space-y-1.5 w-full sm:w-auto min-w-[150px] sm:max-w-[180px]">
+              <div className="flex items-center justify-between gap-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block whitespace-nowrap">Temperature (°C)</label>
                 {apparentTemperature && (
-                  <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
-                    Feels like {apparentTemperature}°C
+                  <span className="text-[8.5px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded-md whitespace-nowrap">
+                    Feels {apparentTemperature}°C
                   </span>
                 )}
               </div>
@@ -580,7 +580,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             </div>
 
             {/* Humidity */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full sm:w-auto min-w-[130px] sm:max-w-[150px]">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Humidity (% RH)</label>
               <div className="relative">
                 <input
@@ -593,7 +593,6 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                 <Droplet className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
             </div>
-
           </div>
         </div>
         <div className="bg-gradient-to-r from-primary to-primary-light text-white p-5 rounded-2xl border border-primary-light/10 shadow-premium flex flex-col md:flex-row md:items-center justify-between gap-5 animate-slide-up">
