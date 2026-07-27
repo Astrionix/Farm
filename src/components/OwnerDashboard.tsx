@@ -218,7 +218,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
     ? Number((rangeEntries.reduce((sum, e) => sum + e.humidity, 0) / rangeEntries.length).toFixed(1))
     : 62.5;
 
-  const latestDate = entries[0]?.date || new Date().toISOString().split('T')[0];
+  const presentDayDate = new Date().toISOString().split('T')[0];
 
   return (
     <div className="flex-1 p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/20">
@@ -230,7 +230,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
           </h2>
           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold">
             <span className="text-slate-500 dark:text-slate-400 font-bold">
-              📅 {latestDate}
+              📅 {presentDayDate}
             </span>
             <span className="text-slate-300 dark:text-slate-700">•</span>
             <span className="text-slate-700 dark:text-slate-200 font-extrabold">
