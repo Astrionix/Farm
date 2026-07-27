@@ -40,14 +40,23 @@ function generateFallbackAnalysis(summary: any) {
   const bestShedUnitName = getUnitName(bestShedUnit);
   const bestShedName = getShedName(bestShedUnit, bestShedNum);
 
+  const hasMeds = summary.medicationsAdministered && summary.medicationsAdministered.length > 0;
+  const medText = hasMeds
+    ? `Active treatments logged today: ${summary.medicationsAdministered.map((m: any) => `${m.medication} in ${m.unitId === 4 ? 'Chick Shed' : `Unit ${m.unitId} Shed ${m.shedNumber}`} (${m.remarks || 'routine dose'})`).join(', ')}.`
+    : `No major disease outbreaks or special therapeutic treatments logged. Flock health parameters remain stable.`;
+
+  const execSummaryMeds = hasMeds
+    ? ` Note: Flock treatments involving **${summary.medicationsAdministered.map((m: any) => m.medication).join(', ')}** were administered today.`
+    : '';
+
   return {
-    executiveSummary: `The overall farm performance index stands at **${summary.farmScore || 91}% (${summary.farmLabel || 'Excellent'})**. Total daily production reached **${(summary.totalProduction || 42800).toLocaleString()} eggs**. While ${bestUnitName} is executing at peak efficiency (average HD% of 91.5%), ${worstUnitName} has minor layout or capacity differences, depressing the average score slightly.`,
+    executiveSummary: `The overall farm performance index stands at **${summary.farmScore || 91}% (${summary.farmLabel || 'Excellent'})**. Total daily production reached **${(summary.totalProduction || 42800).toLocaleString()} eggs**.${execSummaryMeds} While ${bestUnitName} is executing at peak efficiency (average HD% of 91.5%), ${worstUnitName} has minor layout or capacity differences, depressing the average score slightly.`,
     bestUnit: bestUnitText,
     worstUnit: worstUnitText,
     bestShed: `${bestShedUnitName} ${bestShedName} (Score: ${summary.bestShed?.score || 98})`,
     worstShed: `${worstShedUnitName} ${worstShedName} (Score: ${summary.worstShed?.score || 73})`,
     observations: {
-      diseaseIndicators: `Jaggampeta Unit 3, Shed 2 logged therapeutic treatment (Tetracycline) for bacterial diarrhea. Mortality has subsided to 1 death/day.`,
+      diseaseIndicators: medText,
       feedIssues: `FCR leakage in Jaggampeta Unit 3, Shed 2 (FCR: 2.45) resulted in excess feed consumption. Feeding troughs should be checked for height alignment.`,
       waterIssues: `Water-to-feed ratio is optimal at 2.05 across active sheds, indicating birds are hydrated during peak summer hours.`,
       environmentalIssues: `Humidity is averaging 62%. Fans should continue running at full capacity to avoid respiratory heat index complications.`,

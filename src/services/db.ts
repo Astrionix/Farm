@@ -37,6 +37,13 @@ export interface DBShed {
   status: 'Active' | 'Not In Use';
 }
 
+export interface DBShedBatchDetails {
+  startDate: string;
+  breedType: string;
+  placementAgeWeeks: number;
+  capacity: number;
+}
+
 export interface DBDailyEntry extends ShedDataInput, CalculatedShedMetrics {
   id: string;
   date: string;
@@ -544,52 +551,104 @@ export const dbService = {
   },
 
   // ─── BATCH / FLOCK PLACEMENT DATE ───────────────────────────
-  // Key format: "unitId-shedNumber" → "YYYY-MM-DD"
+  // Key format: "unitId-shedNumber" → "YYYY-MM-DD" or DBShedBatchDetails object
   // Once set, birdAgeWeeks auto-calculates every day until changed.
+
+  /** Store batch details for a specific shed */
+  setBatchDetails: (unitId: number, shedNumber: number, details: Partial<DBShedBatchDetails>): void => {
+    if (typeof window === 'undefined') return;
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    const existing = all[`${unitId}-${shedNumber}`];
+    let current: DBShedBatchDetails = {
+      startDate: '',
+      breedType: 'BV300 Premium',
+      placementAgeWeeks: 0,
+      capacity: 5000
+    };
+    if (existing) {
+      if (typeof existing === 'string') {
+        current.startDate = existing;
+      } else {
+        current = { ...current, ...existing };
+      }
+    }
+    const updated = { ...current, ...details };
+    all[`${unitId}-${shedNumber}`] = updated;
+    localStorage.setItem(STORAGE_KEYS.BATCH_DATES, JSON.stringify(all));
+  },
+
+  /** Get batch details for a specific shed (returns null if not set) */
+  getBatchDetails: (unitId: number, shedNumber: number): DBShedBatchDetails | null => {
+    if (typeof window === 'undefined') return null;
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    const val = all[`${unitId}-${shedNumber}`];
+    if (!val) return null;
+    if (typeof val === 'string') {
+      return {
+        startDate: val,
+        breedType: 'BV300 Premium',
+        placementAgeWeeks: 0,
+        capacity: 5000
+      };
+    }
+    return {
+      startDate: val.startDate || '',
+      breedType: val.breedType || 'BV300 Premium',
+      placementAgeWeeks: typeof val.placementAgeWeeks === 'number' ? val.placementAgeWeeks : 0,
+      capacity: typeof val.capacity === 'number' ? val.capacity : 5000
+    };
+  },
 
   /** Store a batch placement date for a specific shed */
   setBatchDate: (unitId: number, shedNumber: number, dateISO: string): void => {
-    if (typeof window === 'undefined') return;
-    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
-    all[`${unitId}-${shedNumber}`] = dateISO;
-    localStorage.setItem(STORAGE_KEYS.BATCH_DATES, JSON.stringify(all));
+    dbService.setBatchDetails(unitId, shedNumber, { startDate: dateISO });
   },
 
   /** Get batch placement date for a specific shed (returns null if not set) */
   getBatchDate: (unitId: number, shedNumber: number): string | null => {
-    if (typeof window === 'undefined') return null;
-    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
-    return all[`${unitId}-${shedNumber}`] || null;
+    const details = dbService.getBatchDetails(unitId, shedNumber);
+    return details ? details.startDate : null;
   },
 
   /** Get all batch dates as a map */
   getAllBatchDates: (): Record<string, string> => {
     if (typeof window === 'undefined') return {};
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCH_DATES) || '{}');
+    const result: Record<string, string> = {};
+    Object.keys(all).forEach(key => {
+      const val = all[key];
+      if (typeof val === 'string') {
+        result[key] = val;
+      } else if (val && typeof val === 'object' && val.startDate) {
+        result[key] = val.startDate;
+      }
+    });
+    return result;
   },
 
   /** Auto-calculate bird age in weeks from placement date to a target date (defaults to today) */
   calculateBirdAge: (unitId: number, shedNumber: number, targetDateISO?: string): number | null => {
-    const placementDate = dbService.getBatchDate(unitId, shedNumber);
-    if (!placementDate) return null;
-    const start = new Date(placementDate);
+    const details = dbService.getBatchDetails(unitId, shedNumber);
+    if (!details || !details.startDate) return null;
+    const start = new Date(details.startDate);
     const end = targetDateISO ? new Date(targetDateISO) : new Date();
     // Set to midnight to avoid DST issues
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
     const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, Math.floor(diffDays / 7));
+    return Math.max(0, Math.floor(diffDays / 7) + details.placementAgeWeeks);
   },
 
   /** Returns bird age as { weeks, days, totalDays } for "7 wks 3 days" display */
   calculateBirdAgeFull: (unitId: number, shedNumber: number, targetDateISO?: string): { weeks: number; days: number; totalDays: number } | null => {
-    const placementDate = dbService.getBatchDate(unitId, shedNumber);
-    if (!placementDate) return null;
-    const start = new Date(placementDate);
+    const details = dbService.getBatchDetails(unitId, shedNumber);
+    if (!details || !details.startDate) return null;
+    const start = new Date(details.startDate);
     const end = targetDateISO ? new Date(targetDateISO) : new Date();
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    const totalDays = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const totalDays = diffDays + (details.placementAgeWeeks * 7);
     return {
       totalDays,
       weeks: Math.floor(totalDays / 7),

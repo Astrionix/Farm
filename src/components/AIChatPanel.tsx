@@ -22,44 +22,95 @@ export default function AIChatPanel() {
   const [chatLoading, setChatLoading] = useState(false);
   const [insights, setInsights] = useState<any>(null);
   const [activeMobileSubTab, setActiveMobileSubTab] = useState<'insights' | 'chat'>('insights');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [medsToday, setMedsToday] = useState<any[]>([]);
   
   // Chat state
-  const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string }>>([
-    { 
-      sender: 'bot', 
-      text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. 
-I have analyzed today's farm logs and performance metrics. 
-
-You can ask me questions like:
-* **Compare Unit 1 and Unit 2** performance today.
-* **Why did production decrease** in Unit 3?
-* **Forecast tomorrow's production** numbers.
-* **Find abnormal mortality spikes** in the logs.` 
-    }
-  ]);
+  const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string }>>([]);
   const [inputVal, setInputVal] = useState('');
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    generateFarmAnalysis();
-  }, []);
+    generateFarmAnalysis(selectedDate);
+    
+    const formattedDate = new Date(selectedDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+    setMessages([
+      { 
+        sender: 'bot', 
+        text: `Welcome! I am **FlockMind**, your AI Poultry ERP Consultant. 
+I have analyzed the farm logs and performance metrics for **${formattedDate}**. 
+
+You can ask me questions like:
+* **Compare Unit 1 and Unit 2** performance on this day.
+* **Why did production decrease** in Unit 3?
+* **Forecast tomorrow's production** numbers.
+* **Find abnormal mortality spikes** in the logs.` 
+      }
+    ]);
+  }, [selectedDate]);
 
   useEffect(() => {
     // Scroll chat to bottom
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, chatLoading]);
 
-  const generateFarmAnalysis = async () => {
+  const generateFarmAnalysis = async (targetDate?: string) => {
+    const dateToAnalyze = targetDate || selectedDate || new Date().toISOString().split('T')[0];
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const summary = await dbService.getAggregatedScores(today);
+      // Get all entries for the selected day to find medications
+      const dayEntries = await dbService.getDailyEntries({ date: dateToAnalyze });
+      const activeMeds = dayEntries.filter(e => e.medication && e.medication.trim() !== '' && e.medication.toLowerCase() !== 'none');
+      setMedsToday(activeMeds);
+
+      const summary = await dbService.getAggregatedScores(dateToAnalyze);
+      const allEntries = await dbService.getDailyEntries();
       
-      const response = await fetch('https://farm-lac-theta.vercel.app/api/ai/analyze', {
+      const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataSummary: summary })
+        body: JSON.stringify({ 
+          dataSummary: {
+            ...summary,
+            medicationsAdministered: activeMeds.map(m => ({
+              unitId: m.unitId,
+              shedNumber: m.shedNumber,
+              medication: m.medication,
+              remarks: m.remarks
+            })),
+            dailyEntries: dayEntries.map(e => ({
+              unitId: e.unitId,
+              shedNumber: e.shedNumber,
+              openingBirds: e.openingBirds,
+              mortality: e.mortality,
+              culls: e.culls,
+              closingBirds: e.closingBirds,
+              feedKg: e.feedKg,
+              waterLiters: e.waterLiters,
+              eggsCount: e.eggsCount,
+              eggWeightG: e.eggWeightG,
+              uniformity: e.uniformity,
+              bodyWeight: e.bodyWeight,
+              birdAgeWeeks: e.birdAgeWeeks,
+              medication: e.medication,
+              remarks: e.remarks,
+              fcr: e.fcr,
+              hdPct: e.hdPct,
+              performanceScore: e.performanceScore,
+              performanceLabel: e.performanceLabel
+            })),
+            historicalLogs: allEntries.slice(0, 300).map(e => ({
+              date: e.date,
+              unitId: e.unitId,
+              shedNumber: e.shedNumber,
+              mortality: e.mortality,
+              eggsCount: e.eggsCount,
+              medication: e.medication || '',
+              remarks: e.remarks || ''
+            }))
+          }
+        })
       });
       
       if (response.ok) {
@@ -83,15 +134,57 @@ You can ask me questions like:
     setChatLoading(true);
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const summary = await dbService.getAggregatedScores(today);
+      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      const dayEntries = await dbService.getDailyEntries({ date: targetDate });
+      const activeMeds = dayEntries.filter(e => e.medication && e.medication.trim() !== '' && e.medication.toLowerCase() !== 'none');
 
-      const response = await fetch('https://farm-lac-theta.vercel.app/api/ai/chat', {
+      const summary = await dbService.getAggregatedScores(targetDate);
+      const allEntries = await dbService.getDailyEntries();
+
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: userMsg,
-          dataSummary: summary 
+          dataSummary: {
+            ...summary,
+            medicationsAdministered: activeMeds.map(m => ({
+              unitId: m.unitId,
+              shedNumber: m.shedNumber,
+              medication: m.medication,
+              remarks: m.remarks
+            })),
+            dailyEntries: dayEntries.map(e => ({
+              unitId: e.unitId,
+              shedNumber: e.shedNumber,
+              openingBirds: e.openingBirds,
+              mortality: e.mortality,
+              culls: e.culls,
+              closingBirds: e.closingBirds,
+              feedKg: e.feedKg,
+              waterLiters: e.waterLiters,
+              eggsCount: e.eggsCount,
+              eggWeightG: e.eggWeightG,
+              uniformity: e.uniformity,
+              bodyWeight: e.bodyWeight,
+              birdAgeWeeks: e.birdAgeWeeks,
+              medication: e.medication,
+              remarks: e.remarks,
+              fcr: e.fcr,
+              hdPct: e.hdPct,
+              performanceScore: e.performanceScore,
+              performanceLabel: e.performanceLabel
+            })),
+            historicalLogs: allEntries.slice(0, 300).map(e => ({
+              date: e.date,
+              unitId: e.unitId,
+              shedNumber: e.shedNumber,
+              mortality: e.mortality,
+              eggsCount: e.eggsCount,
+              medication: e.medication || '',
+              remarks: e.remarks || ''
+            }))
+          }
         })
       });
 
@@ -143,20 +236,34 @@ You can ask me questions like:
         activeMobileSubTab === 'insights' ? 'flex' : 'hidden lg:flex'
       }`}>
         {/* Title */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <BrainCircuit className="w-5.5 h-5.5 text-primary" />
             <h3 className="text-lg font-black text-slate-800 dark:text-white">AI Consulting Board</h3>
           </div>
-          <button
-            onClick={generateFarmAnalysis}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 hover:text-primary transition flex items-center gap-1.5 text-xs font-bold uppercase border border-slate-200/50 dark:border-slate-700/50"
-            title="Recalculate analysis metrics"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>{loading ? 'Analyzing...' : 'Refresh'}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Calendar Date Picker */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700/80">
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide shrink-0">📅 Date:</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer w-28 border-none"
+              />
+            </div>
+            
+            <button
+              onClick={() => generateFarmAnalysis(selectedDate)}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 hover:text-primary transition flex items-center gap-1.5 text-xs font-bold uppercase border border-slate-200/50 dark:border-slate-700/50"
+              title="Recalculate analysis metrics"
+              disabled={loading}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>{loading ? 'Analyzing...' : 'Refresh'}</span>
+            </button>
+          </div>
         </div>
 
         {loading || !insights ? (
@@ -167,6 +274,25 @@ You can ask me questions like:
           </div>
         ) : (
           <div className="space-y-5 animate-fade-in">
+            {/* Medications Administered Card */}
+            {medsToday.length > 0 && (
+              <div className="bg-amber-500/10 dark:bg-amber-500/5 p-4 rounded-2xl border border-amber-500/25 shadow-premium space-y-2">
+                <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-black text-[10px] uppercase tracking-wider">
+                  <span>💊 Treatments Administered on {new Date(selectedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                </div>
+                <div className="space-y-1.5 mt-1">
+                  {medsToday.map((m, idx) => (
+                    <div key={idx} className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div>
+                        <span className="font-extrabold text-primary">{m.unitId === 4 ? 'Chick Shed' : `Unit ${m.unitId} Shed ${m.shedNumber}`}</span>: <span className="font-black text-amber-600 dark:text-amber-400">{m.medication}</span>
+                        {m.remarks && <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Note: {m.remarks}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Executive Summary Card */}
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-premium">
               <span className="text-[10px] text-primary font-black uppercase tracking-wider block">Executive Summary</span>

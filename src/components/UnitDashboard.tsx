@@ -30,6 +30,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
   const [loading, setLoading] = useState(true);
   const [selectedShedDetails, setSelectedShedDetails] = useState<DBDailyEntry | null>(null);
   const [unitsList, setUnitsList] = useState<{ id: number; name: string }[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   useEffect(() => {
     async function loadUnits() {
@@ -62,6 +63,11 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
         // Fetch latest entries for this unit
         const unitEntries = await dbService.getDailyEntries({ unitId: selectedUnit });
         setEntries(unitEntries);
+        if (unitEntries.length > 0) {
+          setSelectedDate(unitEntries[0].date);
+        } else {
+          setSelectedDate(new Date().toISOString().split('T')[0]);
+        }
       } catch (err) {
         console.error('Error loading unit dashboard:', err);
       } finally {
@@ -102,9 +108,9 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
     );
   }
 
-  // Get most recent record per shed
-  const latestDate = entries[0]?.date || '';
-  const latestEntries = entries.filter(e => e.date === latestDate);
+  // Get records for the selected date
+  const activeDate = selectedDate || entries[0]?.date || new Date().toISOString().split('T')[0];
+  const latestEntries = entries.filter(e => e.date === activeDate);
 
   // Aggregate unit stats
   const activeShedsCount = Object.values(shedStatusMap).filter(s => s === 'Active').length;
@@ -130,16 +136,16 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
     ? latestEntries.reduce((sum, e) => sum + e.performanceScore, 0) / latestEntries.length
     : 0;
 
-  const scorePerformance = Math.round(averageShedScore || 85);
+  const scorePerformance = latestEntries.length > 0 ? Math.round(averageShedScore) : 0;
   // Health Score: 100 - (mortality rate scaled)
-  const scoreHealth = Math.round(Math.max(0, 100 - (unitMortPct * 100 * 10)));
+  const scoreHealth = latestEntries.length > 0 ? Math.round(Math.max(0, 100 - (unitMortPct * 100 * 10))) : 0;
   // Efficiency Score: based on FCR target (2.0 gives 100, 3.0 gives 50)
   const unitFCR = totalEggs > 0 && latestEntries[0] 
     ? totalFeed / ((totalEggs * latestEntries[0].eggWeightG) / 1000)
     : 2.15;
-  const scoreEfficiency = Math.round(Math.max(0, 100 - Math.max(0, unitFCR - 2.0) * 45));
+  const scoreEfficiency = latestEntries.length > 0 ? Math.round(Math.max(0, 100 - Math.max(0, unitFCR - 2.0) * 45)) : 0;
   // Risk Score: low is good. High is bad.
-  const scoreRisk = Math.round(Math.min(100, (unitMortPct * 200) + (100 - scorePerformance) * 0.5));
+  const scoreRisk = latestEntries.length > 0 ? Math.round(Math.min(100, (unitMortPct * 200) + (100 - scorePerformance) * 0.5)) : 0;
 
   // Circular gauge renderer helper
   const renderGauge = (score: number, title: string, icon: any, colorClass: string, trackColor: string) => {
@@ -187,7 +193,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
 
       {/* ── Sticky Page Header ─────────────────────── */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 pt-4 pb-0 md:px-6 md:pt-6 shrink-0">
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
             <h2 className="text-lg md:text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white leading-tight">
               Unit &amp; Shed Dashboard
@@ -196,11 +202,26 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
               Real-time shed performance metrics, status configurations, and score breakdowns
             </p>
           </div>
-          {userRole === 'Supervisor' && (
-            <span className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-extrabold uppercase tracking-wide shrink-0">
-              {unitsList.find(u => u.id === selectedUnit)?.name?.replace('Jaggampeta ', 'J. ') || `Unit ${selectedUnit}`}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {/* Calendar Date Picker */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Date:
+              </span>
+              <input
+                type="date"
+                value={activeDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer w-28 border-none"
+              />
+            </div>
+            {userRole === 'Supervisor' && (
+              <span className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-extrabold uppercase tracking-wide shrink-0">
+                {unitsList.find(u => u.id === selectedUnit)?.name?.replace('Jaggampeta ', 'J. ') || `Unit ${selectedUnit}`}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Scrollable Unit Tabs */}
@@ -425,7 +446,7 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                     </div>
                   ) : (
                     <div className="mt-4 text-center py-4 text-xs text-slate-400 font-semibold italic">
-                      No entry submitted today.
+                      No entry submitted on {new Date(activeDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}.
                     </div>
                   )
                 ) : (
@@ -601,15 +622,15 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                 </h4>
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] font-semibold space-y-2">
                   {(() => {
-                    const batchDate = dbService.getBatchDate(selectedShedDetails.unitId, selectedShedDetails.shedNumber);
-                    if (!batchDate) {
+                    const batchDetails = dbService.getBatchDetails(selectedShedDetails.unitId, selectedShedDetails.shedNumber);
+                    if (!batchDetails || !batchDetails.startDate) {
                       return (
                         <div className="text-slate-400 italic py-1">
-                          No active placement record exists for this shed slot. Use the Daily Entry panel to set a batch date.
+                          No active placement record exists for this shed slot. Use the Daily Entry panel to configure batch settings.
                         </div>
                       );
                     }
-                    const d = new Date(batchDate);
+                    const d = new Date(batchDetails.startDate);
                     const label = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
                     return (
                       <div className="space-y-2">
@@ -618,10 +639,13 @@ export default function UnitDashboard({ userRole, assignedUnit }: UnitDashboardP
                           <span className="bg-emerald-500/10 text-emerald-500 font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase">Running</span>
                         </div>
                         <div className="grid grid-cols-2 gap-y-1 text-slate-700 dark:text-slate-300">
-                          <div><span className="text-slate-400">Breed Type:</span> BV300 Premium</div>
+                          <div><span className="text-slate-400">Breed Type:</span> {batchDetails.breedType}</div>
                           <div><span className="text-slate-400">Start Date:</span> {label}</div>
-                          <div><span className="text-slate-400">Placement Wk Age:</span> Week 0 (Day 1 chicks)</div>
-                          <div><span className="text-slate-400">Capacity Limit:</span> 5,000 birds</div>
+                          <div>
+                            <span className="text-slate-400">Placement Wk Age:</span> Week {batchDetails.placementAgeWeeks}{' '}
+                            {batchDetails.placementAgeWeeks === 0 ? '(Day 1 chicks)' : ''}
+                          </div>
+                          <div><span className="text-slate-400">Capacity Limit:</span> {batchDetails.capacity.toLocaleString()} birds</div>
                         </div>
                       </div>
                     );

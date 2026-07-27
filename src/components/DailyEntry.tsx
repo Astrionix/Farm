@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Search,
   X,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dbService, DBDailyEntry, DBShed, isChickShed } from '../services/db';
@@ -46,6 +47,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
 
   const [fetchingWeather, setFetchingWeather] = useState(false);
   const [weatherError, setWeatherError] = useState('');
+  const [medsOnlyFilter, setMedsOnlyFilter] = useState(false);
 
   const [shedsList, setShedsList] = useState<DBShed[]>([]);
   const [shedInputs, setShedInputs] = useState<Record<number, Partial<ShedDataInput>>>({});
@@ -55,6 +57,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
+  const [activeBatchEditShed, setActiveBatchEditShed] = useState<number | null>(null);
 
   // History search/filter state
   const [historyEntries, setHistoryEntries] = useState<DBDailyEntry[]>([]);
@@ -217,6 +220,14 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
         const mort = Number(updated.mortality || 0);
         const culls = Number(updated.culls || 0);
         updated.closingBirds = Math.max(0, opening - mort - culls);
+      }
+
+      // Sync capacity if editing openingBirds on the batch start date
+      if (field === 'openingBirds') {
+        const batchDetails = dbService.getBatchDetails(selectedUnit, shedNum);
+        if (batchDetails && batchDetails.startDate === selectedDate) {
+          dbService.setBatchDetails(selectedUnit, shedNum, { capacity: Number(value) });
+        }
       }
 
       inputs[shedNum] = updated;
@@ -425,9 +436,12 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
     const matchesSearch = historySearch === '' ||
       e.date.includes(historySearch) ||
       String(e.shedNumber).includes(historySearch) ||
-      String(e.eggsCount).includes(historySearch);
+      String(e.eggsCount).includes(historySearch) ||
+      (e.medication && e.medication.toLowerCase().includes(historySearch.toLowerCase())) ||
+      (e.remarks && e.remarks.toLowerCase().includes(historySearch.toLowerCase()));
     const matchesUnit = historyFilterUnit === 'all' || e.unitId === historyFilterUnit;
-    return matchesSearch && matchesUnit;
+    const matchesMedsOnly = !medsOnlyFilter || (e.medication && e.medication.trim() !== '' && e.medication.toLowerCase() !== 'none');
+    return matchesSearch && matchesUnit && matchesMedsOnly;
   });
 
   if (loading) {
@@ -553,7 +567,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <p className="text-[10px] text-red-500 font-bold mb-3">{weatherError}</p>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* Date Pick */}
             <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Log Date</label>
@@ -562,6 +576,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                   required
                 />
@@ -622,6 +637,21 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                   required
                 />
                 <Droplet className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              </div>
+            </div>
+
+            {/* General Remarks */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">General Remarks</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. Vaccinations done, clean unit..."
+                  value={generalRemarks}
+                  onChange={(e) => setGeneralRemarks(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                />
+                <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
             </div>
           </div>
@@ -731,120 +761,338 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                       {/* Set Batch Date Calendar Picker */}
                       <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-800">
                         <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide shrink-0">🐣 Batch:</span>
-                        <input
-                          type="date"
-                          value={dbService.getBatchDate(selectedUnit, sNum) || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val) {
-                              dbService.setBatchDate(selectedUnit, sNum, val);
-                              setShedInputs(prev => ({ ...prev }));
-                              window.dispatchEvent(new Event('batch-date-changed'));
-                            }
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveBatchEditShed(activeBatchEditShed === sNum ? null : sNum);
                           }}
-                          className="bg-transparent text-[10px] font-bold text-amber-700 dark:text-amber-300 focus:outline-none cursor-pointer w-24 p-0 border-none"
-                        />
+                          className="bg-amber-200 dark:bg-amber-800/80 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-100 text-[10px] font-black px-2 py-1 rounded-lg transition"
+                        >
+                          {activeBatchEditShed === sNum ? 'Hide Config' : 'Configure'}
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Input Grid (Rendered only if Active) */}
-                  {isActive ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-                      {/* Opening Birds */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Opening Birds</label>
-                        <input
-                          type="number"
-                          value={input.openingBirds ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'openingBirds', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
+                  {isActive && activeBatchEditShed === sNum && (
+                    <div className="mb-5 p-4 bg-amber-500/5 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-4">
+                      <div className="flex items-center justify-between border-b border-amber-200 dark:border-amber-800/80 pb-2">
+                        <span className="text-[11px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                          🐣 Shed {sNum} Batch Configuration
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveBatchEditShed(null)}
+                          className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline font-bold"
+                        >
+                          Close
+                        </button>
                       </div>
-
-                      {/* Mortality */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Mortality</label>
-                        <input
-                          type="number"
-                          value={input.mortality ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'mortality', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Culls */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Culls</label>
-                        <input
-                          type="number"
-                          value={input.culls ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'culls', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Closing Birds (Calculated Indicator) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
-                        <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {input.closingBirds ?? 0}
-                        </div>
-                      </div>
-
-                      {/* Bird Age (Weeks + Days) - Auto from batch date */}
+                      
                       {(() => {
-                        const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
-                        const hasAuto = ageFull !== null;
+                        const batchDetails = dbService.getBatchDetails(selectedUnit, sNum) || {
+                          startDate: '',
+                          breedType: 'BV300 Premium',
+                          placementAgeWeeks: 0,
+                          capacity: 5000
+                        };
+                        const standardBreeds = ['BV300 Premium', 'Hy-Line Brown', 'Lohmann Sandy', 'Dekalb White'];
+                        const isCustomBreed = batchDetails.breedType && !standardBreeds.includes(batchDetails.breedType);
+                        const selectValue = isCustomBreed ? 'Other' : (batchDetails.breedType || 'BV300 Premium');
+
                         return (
-                          <div className="space-y-1">
-                            <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                              Bird Age
-                              {hasAuto && <span className="text-[8px] bg-primary/15 text-primary px-1.5 rounded-full font-black normal-case">Auto</span>}
-                            </label>
-                            {hasAuto && ageFull ? (
-                              <div className="w-full px-2.5 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg text-xs font-black text-primary flex items-center gap-1">
-                                {ageFull.weeks}w {ageFull.days}d
-                                <span className="text-[8px] text-primary/60 font-semibold">auto</span>
-                              </div>
-                            ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Start Date */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Start Date</label>
                               <input
-                                type="number"
-                                value={input.birdAgeWeeks ?? 0}
-                                onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
-                                className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                type="date"
+                                value={batchDetails.startDate || ''}
+                                onChange={(e) => {
+                                  const dateVal = e.target.value;
+                                  dbService.setBatchDetails(selectedUnit, sNum, { startDate: dateVal });
+                                  
+                                  // Sync capacity if the start date is set to the current logging date
+                                  if (dateVal === selectedDate) {
+                                    const currentOpening = Number(shedInputs[sNum]?.openingBirds || 0);
+                                    if (currentOpening > 0) {
+                                      dbService.setBatchDetails(selectedUnit, sNum, { capacity: currentOpening });
+                                    }
+                                  }
+                                  setShedInputs(prev => ({ ...prev }));
+                                  window.dispatchEvent(new Event('batch-date-changed'));
+                                }}
+                                onClick={(e) => e.currentTarget.showPicker?.()}
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                                 required
                               />
-                            )}
+                            </div>
+
+                            {/* Breed Type Dropdown */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Breed Type</label>
+                              <select
+                                value={selectValue}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'Other') {
+                                    dbService.setBatchDetails(selectedUnit, sNum, { breedType: 'Custom Breed' });
+                                  } else {
+                                    dbService.setBatchDetails(selectedUnit, sNum, { breedType: val });
+                                  }
+                                  setShedInputs(prev => ({ ...prev }));
+                                }}
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                              >
+                                {standardBreeds.map(b => (
+                                  <option key={b} value={b}>{b}</option>
+                                ))}
+                                <option value="Other">Other (Custom)...</option>
+                              </select>
+
+                              {/* Custom Breed Type input field, shown if Other is selected */}
+                              {isCustomBreed && (
+                                <input
+                                  type="text"
+                                  placeholder="Type Breed Name..."
+                                  value={batchDetails.breedType === 'Custom Breed' ? '' : batchDetails.breedType}
+                                  onChange={(e) => {
+                                    dbService.setBatchDetails(selectedUnit, sNum, { breedType: e.target.value || 'Custom Breed' });
+                                    setShedInputs(prev => ({ ...prev }));
+                                  }}
+                                  className="w-full px-2.5 py-1.5 mt-1.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                />
+                              )}
+                            </div>
+
+                            {/* Placement Age Weeks */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Placement Age (Weeks)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                placeholder="0"
+                                value={batchDetails.placementAgeWeeks}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  dbService.setBatchDetails(selectedUnit, sNum, { placementAgeWeeks: isNaN(val) ? 0 : val });
+                                  setShedInputs(prev => ({ ...prev }));
+                                  window.dispatchEvent(new Event('batch-date-changed'));
+                                }}
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                              />
+                            </div>
+
+                            {/* Capacity Limit */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Capacity (Birds)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="100000"
+                                placeholder="e.g. 5000"
+                                value={batchDetails.capacity}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  const parsedVal = isNaN(val) ? 5000 : val;
+                                  dbService.setBatchDetails(selectedUnit, sNum, { capacity: parsedVal });
+                                  
+                                  // Sync opening birds input if we are on the start date
+                                  if (batchDetails.startDate === selectedDate) {
+                                    handleInputChange(sNum, 'openingBirds', parsedVal);
+                                  } else {
+                                    setShedInputs(prev => ({ ...prev }));
+                                  }
+                                }}
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                              />
+                            </div>
                           </div>
                         );
                       })()}
-
-                      {/* Feed Consumed (kg) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Feed (kg)</label>
-                        <input
-                          type="number"
-                          value={input.feedKg ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
-                      </div>
-
-                      {/* Eggs Collected */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>
-                        <input
-                          type="number"
-                          value={input.eggsCount ?? 0}
-                          onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
-                          required
-                        />
-                      </div>
                     </div>
+                  )}
+
+                  {/* Input Grid (Rendered only if Active) */}
+                  {isActive ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                        {/* Opening Birds */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Opening Birds</label>
+                          <input
+                            type="number"
+                            value={input.openingBirds ?? 0}
+                            onChange={(e) => handleInputChange(sNum, 'openingBirds', Number(e.target.value))}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            required
+                          />
+                        </div>
+
+                        {/* Mortality */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Mortality</label>
+                          <input
+                            type="number"
+                            value={input.mortality ?? 0}
+                            onChange={(e) => handleInputChange(sNum, 'mortality', Number(e.target.value))}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        {/* Culls */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Culls</label>
+                          <input
+                            type="number"
+                            value={input.culls ?? 0}
+                            onChange={(e) => handleInputChange(sNum, 'culls', Number(e.target.value))}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        {/* Closing Birds (Calculated Indicator) */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Closing Birds</label>
+                          <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400">
+                            {input.closingBirds ?? 0}
+                          </div>
+                        </div>
+
+                        {/* Bird Age (Weeks + Days) - Auto from batch date */}
+                        {(() => {
+                          const ageFull = dbService.calculateBirdAgeFull(selectedUnit, sNum, selectedDate);
+                          const hasAuto = ageFull !== null;
+                          return (
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                Bird Age
+                                {hasAuto && <span className="text-[8px] bg-primary/15 text-primary px-1.5 rounded-full font-black normal-case">Auto</span>}
+                              </label>
+                              {hasAuto && ageFull ? (
+                                <div className="w-full px-2.5 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg text-xs font-black text-primary flex items-center gap-1">
+                                  {ageFull.weeks}w {ageFull.days}d
+                                  <span className="text-[8px] text-primary/60 font-semibold">auto</span>
+                                </div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  value={input.birdAgeWeeks ?? 0}
+                                  onChange={(e) => handleInputChange(sNum, 'birdAgeWeeks', Number(e.target.value))}
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                  required
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Feed Consumed (kg) */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Feed (kg)</label>
+                          <input
+                            type="number"
+                            value={input.feedKg ?? 0}
+                            onChange={(e) => handleInputChange(sNum, 'feedKg', Number(e.target.value))}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            required
+                          />
+                        </div>
+
+                        {/* Eggs Collected */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Eggs Collected</label>
+                          <input
+                            type="number"
+                            value={input.eggsCount ?? 0}
+                            onChange={(e) => handleInputChange(sNum, 'eggsCount', Number(e.target.value))}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                       {/* Remarks & Treatment Row */}
+                       {(() => {
+                         const standardMeds = ['None', 'Newcastle ND LaSota Vaccine', 'Infectious Bronchitis (IB) Vaccine', 'Soluble Tetracycline', 'Dewormer (Piperazine)', 'B-Complex Vitamins', 'Electrolytes (Summer Heat Stress)', 'Calcium & Vitamin D3'];
+                         const standardRemarksOptions = ['No remarks recorded for this day.', 'Flock behavior and activity normal.', 'Slight feed wastage observed near troughs.', 'Water lines flushed and sanitized.', 'Heat stress observed - increased ventilation fans.', 'Mild diarrhea symptoms - treatment started.', 'Egg shell quality optimal.'];
+                         
+                         const currentMed = input.medication || 'None';
+                         const isCustomMed = currentMed !== '' && currentMed !== 'None' && !standardMeds.includes(currentMed);
+                         const selectMedVal = isCustomMed ? 'Other' : currentMed;
+
+                         const currentRemark = input.remarks || 'No remarks recorded for this day.';
+                         const isCustomRemark = currentRemark !== '' && currentRemark !== 'No remarks recorded for this day.' && !standardRemarksOptions.includes(currentRemark);
+                         const selectRemarkVal = isCustomRemark ? 'Other' : currentRemark;
+
+                         return (
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-700/60 pt-3">
+                             {/* Medication Select */}
+                             <div className="space-y-1">
+                               <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Medication Administered</label>
+                               <select
+                                 value={selectMedVal}
+                                 onChange={(e) => {
+                                   const val = e.target.value;
+                                   if (val === 'Other') {
+                                     handleInputChange(sNum, 'medication', 'Custom Medication');
+                                   } else {
+                                     handleInputChange(sNum, 'medication', val === 'None' ? '' : val);
+                                   }
+                                 }}
+                                 className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
+                               >
+                                 {standardMeds.map(m => (
+                                   <option key={m} value={m}>{m}</option>
+                                 ))}
+                                 <option value="Other">Other (Custom)...</option>
+                               </select>
+                               {isCustomMed && (
+                                 <input
+                                   type="text"
+                                   placeholder="Type Custom Medication..."
+                                   value={currentMed === 'Custom Medication' ? '' : currentMed}
+                                   onChange={(e) => handleInputChange(sNum, 'medication', e.target.value || 'Custom Medication')}
+                                   className="w-full px-2.5 py-1.5 mt-1.5 bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-850 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                 />
+                               )}
+                             </div>
+
+                             {/* Shed Remarks Select */}
+                             <div className="space-y-1">
+                               <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Shed Remarks</label>
+                               <select
+                                 value={selectRemarkVal}
+                                 onChange={(e) => {
+                                   const val = e.target.value;
+                                   if (val === 'Other') {
+                                     handleInputChange(sNum, 'remarks', 'Custom Remark');
+                                   } else {
+                                     handleInputChange(sNum, 'remarks', val === 'No remarks recorded for this day.' ? '' : val);
+                                   }
+                                 }}
+                                 className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary cursor-pointer"
+                               >
+                                 {standardRemarksOptions.map(r => (
+                                   <option key={r} value={r}>{r}</option>
+                                 ))}
+                                 <option value="Other">Other (Custom)...</option>
+                               </select>
+                               {isCustomRemark && (
+                                 <input
+                                   type="text"
+                                   placeholder="Type Custom Remarks..."
+                                   value={currentRemark === 'Custom Remark' ? '' : currentRemark}
+                                   onChange={(e) => handleInputChange(sNum, 'remarks', e.target.value || 'Custom Remark')}
+                                   className="w-full px-2.5 py-1.5 mt-1.5 bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-850 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
+                                 />
+                               )}
+                             </div>
+                           </div>
+                         );
+                       })()}
+                     </div>
                   ) : (
                     <div className="py-6 text-center text-xs font-bold italic text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-900/10 rounded-xl">
                       Shed slot currently inactive. Enable status to permit daily log entries.
@@ -889,7 +1137,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search date, shed, eggs…"
+                placeholder="Search date, shed, meds…"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}
                 className="pl-8 pr-8 py-1.5 text-[11px] font-semibold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary text-slate-700 dark:text-slate-200 w-48"
@@ -901,6 +1149,18 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                 </button>
               )}
             </div>
+            {/* Meds Only Toggle */}
+            <button
+              type="button"
+              onClick={() => setMedsOnlyFilter(!medsOnlyFilter)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition border shrink-0 flex items-center gap-1 ${
+                medsOnlyFilter
+                  ? 'bg-amber-100 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900/60'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              💊 {medsOnlyFilter ? 'All Logs' : 'Meds Only'}
+            </button>
             {/* Unit filter (owner only) */}
             {userRole === 'Owner' && (
               <select
@@ -924,7 +1184,7 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/50">
-                  {['Date', 'Unit', 'Shed', 'Birds', 'Eggs', 'HD%', 'FCR', 'Mortality', 'Score'].map(h => (
+                  {['Date', 'Unit', 'Shed', 'Birds', 'Eggs', 'HD%', 'FCR', 'Mortality', 'Medication', 'Score'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -940,6 +1200,15 @@ export default function DailyEntry({ userRole, assignedUnit }: DailyEntryProps) 
                     <td className="px-4 py-2.5 font-semibold text-primary">{e.hdPct?.toFixed(1)}%</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{e.fcr?.toFixed(2)}</td>
                     <td className={`px-4 py-2.5 font-bold ${e.mortality > 5 ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>{e.mortality}</td>
+                    <td className="px-4 py-2.5">
+                      {e.medication ? (
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20 max-w-[120px] truncate block text-center">
+                          {e.medication}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-normal italic text-[10px]">None</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${e.performanceScore >= 90 ? 'bg-emerald-100 text-emerald-700' :
                           e.performanceScore >= 70 ? 'bg-blue-100 text-blue-700' :
