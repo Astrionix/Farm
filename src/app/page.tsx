@@ -175,75 +175,80 @@ export default function Home() {
     setIsAuthenticated(false);
   };
 
-  if (!dbReady) {
-    return <HenLoadingScreen progress={loadingProgress} />;
-  }
-
-  // Render Login screen if not authenticated
-  if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
   return (
-    <div className="flex w-full min-h-screen bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
-      <Sidebar
-        currentTab={currentTab}
-        setCurrentTab={handleTabChange}
-        userRole={userRole}
-        setUserRole={handleRoleToggle}
-        assignedUnit={assignedUnit}
-        setAssignedUnit={handleUnitSelect}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-        onLogout={handleLogout}
-      />
-      
-      {/* Main content: safe-area aware padding for fixed mobile header + bottom nav */}
-      <main
-        className="flex-1 flex flex-col min-w-0 overflow-x-hidden bg-slate-50 dark:bg-slate-900 md:pt-0 md:pb-0"
-        style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 62px)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 58px)',
-        }}
-      >
-        <style>{`@media (min-width: 768px) { main { padding-top: 0 !important; padding-bottom: 0 !important; } }`}</style>
-
-        {/* Active Page View Container with smooth instant mount fade animation */}
-        <div key={currentTab} className="flex-1 flex flex-col min-h-0 animate-fade-in">
-          {currentTab === 'dashboard' && userRole === 'Owner' && (
-            <OwnerDashboard 
-              darkMode={darkMode} 
-              onNavigateToUnit={handleNavigateToUnit}
-            />
-          )}
-          
-          {currentTab === 'unit-dashboard' && (
-            <UnitDashboard
-              userRole={userRole}
-              assignedUnit={assignedUnit}
-            />
-          )}
-          
-          {currentTab === 'daily-entry' && (
-            <DailyEntry
-              userRole={userRole}
-              assignedUnit={assignedUnit}
-            />
-          )}
-          
-          {currentTab === 'ai-chat' && userRole === 'Owner' && (
-            <AIChatPanel />
-          )}
-          
-          {currentTab === 'reports' && (
-            <ReportsPanel
-              userRole={userRole}
-              assignedUnit={assignedUnit}
-            />
-          )}
+    <>
+      {/* Loading Overlay */}
+      {!dbReady && (
+        <div className="fixed inset-0 z-[9999]">
+          <HenLoadingScreen progress={loadingProgress} />
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* Render Login screen if not authenticated */}
+      {!isAuthenticated ? (
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      ) : (
+        <div className="flex w-full min-h-screen bg-neutral-bg text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans transition-colors duration-200">
+          <Sidebar
+            currentTab={currentTab}
+            setCurrentTab={handleTabChange}
+            userRole={userRole}
+            setUserRole={handleRoleToggle}
+            assignedUnit={assignedUnit}
+            setAssignedUnit={handleUnitSelect}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+            onLogout={handleLogout}
+          />
+          
+          {/* Main content: safe-area aware padding for fixed mobile header + bottom nav */}
+          <main
+            className="flex-1 flex flex-col min-w-0 overflow-x-hidden bg-slate-50 dark:bg-slate-900 md:pt-0 md:pb-0"
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top) + 62px)',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 58px)',
+            }}
+          >
+            <style>{`@media (min-width: 768px) { main { padding-top: 0 !important; padding-bottom: 0 !important; } }`}</style>
+
+            {/* Active Page View Container with smooth instant mount fade animation */}
+            <div key={currentTab} className="flex-1 flex flex-col min-h-0 animate-fade-in">
+              {currentTab === 'dashboard' && userRole === 'Owner' && (
+                <OwnerDashboard 
+                  darkMode={darkMode} 
+                  onNavigateToUnit={handleNavigateToUnit}
+                />
+              )}
+              
+              {currentTab === 'unit-dashboard' && (
+                <UnitDashboard
+                  userRole={userRole}
+                  assignedUnit={assignedUnit}
+                />
+              )}
+              
+              {currentTab === 'daily-entry' && (
+                <DailyEntry
+                  userRole={userRole}
+                  assignedUnit={assignedUnit}
+                />
+              )}
+              
+              {currentTab === 'ai-chat' && userRole === 'Owner' && (
+                <AIChatPanel />
+              )}
+              
+              {currentTab === 'reports' && (
+                <ReportsPanel
+                  userRole={userRole}
+                  assignedUnit={assignedUnit}
+                />
+              )}
+            </div>
+          </main>
+        </div>
+      )}
+    </>
   );
 }
 
