@@ -60,9 +60,10 @@ const STATS = [
 
 interface HenLoadingScreenProps {
   progress?: number;
+  fadeOut?: boolean;
 }
 
-export default function HenLoadingScreen({ progress = 0 }: HenLoadingScreenProps) {
+export default function HenLoadingScreen({ progress = 0, fadeOut = false }: HenLoadingScreenProps) {
   const tod = getTimeOfDay();
   const theme = SKY_THEMES[tod];
   const night = theme.nightMode;
@@ -137,7 +138,12 @@ export default function HenLoadingScreen({ progress = 0 }: HenLoadingScreenProps
       position: 'fixed', inset: 0, zIndex: 9999,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden', fontFamily: "'Outfit','Inter',sans-serif",
-      opacity: mounted ? 1 : 0, transition: 'opacity 0.6s ease',
+      opacity: fadeOut ? 0 : (mounted ? 1 : 0),
+      transform: fadeOut ? 'scale(1.03)' : 'scale(1)',
+      filter: fadeOut ? 'blur(10px)' : 'blur(0px)',
+      pointerEvents: fadeOut ? 'none' : 'auto',
+      willChange: 'opacity, transform, filter',
+      transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap');

@@ -25,9 +25,10 @@ import { dbService, DBDailyEntry, DBInventoryItem, DBNotification } from '../ser
 interface OwnerDashboardProps {
   darkMode: boolean;
   onNavigateToUnit: (unitId: number) => void;
+  onDataLoaded?: () => void;
 }
 
-export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDashboardProps) {
+export default function OwnerDashboard({ darkMode, onNavigateToUnit, onDataLoaded }: OwnerDashboardProps) {
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('7d');
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<DBDailyEntry[]>([]);
@@ -35,15 +36,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
   const [aggMetrics, setAggMetrics] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
-  const [liveEggRate, setLiveEggRate] = useState<number>(6.86);
-  const [yesterdayEggRate, setYesterdayEggRate] = useState<number>(7.16);
+  const [liveEggRate, setLiveEggRate] = useState<number>(6.05);
+  const [yesterdayEggRate, setYesterdayEggRate] = useState<number>(6.05);
 
-  // Dynamic values for financial calculation based on Kakinada market price
-  const EGG_SALE_PRICE = liveEggRate; // Dynamic Kakinada NECC egg price
+  // Dynamic values for financial calculation based on East Godavari NECC market price
+  const EGG_SALE_PRICE = liveEggRate; // Dynamic East Godavari NECC egg price
   const FEED_COST_PER_KG = 36.0; // Rs. 36.00 per kg
 
   useEffect(() => {
-    dbService.getEggPrice('Kakinada').then(p => {
+    dbService.getEggPrice('East Godavari').then(p => {
       if (p && p.price > 0) {
         setLiveEggRate(p.price);
         if (p.yesterdayPrice > 0) setYesterdayEggRate(p.yesterdayPrice);
@@ -127,6 +128,11 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
       } finally {
         if (active) {
           setLoading(false);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (active) onDataLoaded?.();
+            });
+          });
         }
       }
     }
@@ -234,7 +240,7 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit }: OwnerDash
             </span>
             <span className="text-slate-300 dark:text-slate-700">•</span>
             <span className="text-slate-700 dark:text-slate-200 font-extrabold">
-              Kakinada Egg Rate:
+              East Godavari Egg Rate:
             </span>
             <span className="font-black text-emerald-700 dark:text-emerald-400 text-sm">
               ₹{liveEggRate.toFixed(2)}

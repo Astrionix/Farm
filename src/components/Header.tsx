@@ -12,15 +12,38 @@ interface HeaderProps {
 
 export default function Header({ userRole, darkMode, setDarkMode, onLogout, setMobileDrawerOpen }: HeaderProps) {
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  const [eggPrice, setEggPrice] = useState<{ region: string; price: number; trayPrice: number; petiPrice: number; source: string } | null>(null);
+  const [eggPrice, setEggPrice] = useState<{ region: string; price: number; trayPrice: number; petiPrice: number; source: string }>({
+    region: 'East Godavari',
+    price: 6.05,
+    trayPrice: 181.5,
+    petiPrice: 1270.5,
+    source: 'NECC Official (E.Godavari)'
+  });
 
   const [liveWeather, setLiveWeather] = useState<{ temp: string; condition: string; icon: string }>({ temp: '31', condition: 'Sunny', icon: '☀️' });
+
+  const [syncingRate, setSyncingRate] = useState(false);
+
+  const fetchEggPrice = async () => {
+    try {
+      const p = await dbService.getEggPrice('East Godavari');
+      setEggPrice(p);
+    } catch (e) {
+      console.warn('Egg price fetch error:', e);
+    }
+  };
+
+  const handleSyncRate = async () => {
+    setSyncingRate(true);
+    await dbService.syncEggPriceFromNECC();
+    await fetchEggPrice();
+    setSyncingRate(false);
+  };
 
   useEffect(() => {
     async function loadData() {
       try {
-        const p = await dbService.getEggPrice('Kakinada');
-        setEggPrice(p);
+        await fetchEggPrice();
 
         const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=17.1706&longitude=82.0163&current=temperature_2m,relative_humidity_2m,weather_code');
         if (res.ok) {
@@ -55,22 +78,31 @@ export default function Header({ userRole, darkMode, setDarkMode, onLogout, setM
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Live Kakinada Egg Price Badge */}
+        {/* Live East Godavari NECC Egg Price Badge */}
         {eggPrice && (
           <div
-            title={`Tray (30 eggs): ₹${eggPrice.trayPrice} | Peti: ₹${eggPrice.petiPrice} (Source: ${eggPrice.source})`}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-500/30 rounded-xl text-xs font-bold text-amber-900 dark:text-amber-300 shadow-sm cursor-help transition hover:border-amber-500"
+            title={`Tray (30 eggs): ₹${eggPrice.trayPrice} | Peti (210 eggs): ₹${eggPrice.petiPrice} (Updated daily at 6:00 AM IST)`}
+            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-500/30 rounded-xl text-xs font-bold text-amber-900 dark:text-amber-300 shadow-sm transition hover:border-amber-500"
           >
             <span className="text-sm">🥚</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Kakinada</span>
+              <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">E. Godavari NECC</span>
               <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">₹{eggPrice.price.toFixed(2)}</span>
               <span className="text-[9px] font-bold text-slate-400">/ egg</span>
               <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0 ml-0.5" />
             </div>
+            <button
+              onClick={handleSyncRate}
+              disabled={syncingRate}
+              title="Sync latest NECC rate from e2necc.com"
+              className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-200 rounded hover:bg-amber-500/30 transition flex items-center gap-1 disabled:opacity-50"
+            >
+              {syncingRate ? 'Syncing...' : 'Sync Rate'}
+            </button>
           </div>
         )}
       </div>
+
 
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Date & Weather Indicator */}

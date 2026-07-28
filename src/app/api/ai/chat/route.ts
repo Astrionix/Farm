@@ -250,52 +250,129 @@ export async function POST(request: Request) {
       return NextResponse.json({ response: responseText }, { headers: CORS_HEADERS });
     }
 
-    // Call Groq Llama 3 API
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: `You are FlockMind, the Senior AI Poultry Consultant for Sri Mahalakshmi Poultry AI ERP.
-You are communicating with the Farm Owner.
-You are given a JSON summary of the active farm statistics:
-${JSON.stringify(dataSummary)}
+    // Compact data summary for token optimization
+    const compactSummary = {
+      farmScore: dataSummary.farmScore,
+      totalProduction: dataSummary.totalProduction,
+      totalBirds: dataSummary.totalBirds,
+      bestUnit: dataSummary.bestUnit,
+      worstUnit: dataSummary.worstUnit,
+      bestShed: dataSummary.bestShed,
+      worstShed: dataSummary.worstShed,
+      unitSummaries: dataSummary.unitSummaries?.map((u: any) => ({
+        unitId: u.unitId,
+        unitName: u.unitName,
+        totalEggs: u.totalEggs,
+        avgHD: u.avgHD,
+        totalMortality: u.totalMortality,
+      })),
+      recentLogs: dataSummary.historicalLogs?.slice(0, 10).map((l: any) => ({
+        date: l.date,
+        unitId: l.unitId,
+        shedNumber: l.shedNumber,
+        eggs: l.eggsCount,
+        mortality: l.mortality,
+        feed: l.feedKg,
+        remarks: l.remarks,
+      })),
+    };
+
+    const promptMessages = [
+      {
+        role: 'system',
+        content: `You are FlockMind, the Senior AI Poultry Consultant for Sri Mahalakshmi Poultry AI ERP.
+Active farm stats: ${JSON.stringify(compactSummary)}
 
 Rules:
 1. Speak in a highly professional, expert, agriculture-consultant tone.
 2. Focus on actionable insights, FCR targets, disease indicators, mortality spikes, and egg quality.
 3. Keep responses structured using markdown tables, bullet points, and headers.
-4. DO NOT compute complicated math manually — use the numbers provided in the summary directly.
-5. Provide specific recommendations (e.g. antibiotic treatments, ventilation checks, calcium updates).
-6. BE EXTREMELY CONCISE. Keep responses direct, short, and to the point. Avoid generic text and conversational filler. Do not repeat tables if not asked. Keep explanations short.`
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000
-      })
-    });
+4. BE EXTREMELY CONCISE, direct, and to the point.`
+      },
+      {
+        role: 'user',
+        content: message
+      }
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Groq API Error:', errText);
-      const fallback = generateFallbackChatResponse(message, dataSummary);
-      return NextResponse.json({ response: fallback, warning: 'Groq API error. Used analytical fallback engine.' }, { headers: CORS_HEADERS });
+    // 1. Try Groq Models First
+    const groqModelsToTry = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b',
+      'qwen/qwen3.6-27b',
+      'openai/gpt-oss-20b',
+      'groq/compound',
+      'groq/compound-mini',
+      'canopylabs/orpheus-v1-english'
+    ];
+
+    if (GROQ_API_KEY) {
+      for (const model of groqModelsToTry) {
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: promptMessages,
+              temperature: 0.3,
+              max_tokens: 1000
+            })
+          });
+
+          if (res.ok) {
+            const resJson = await res.json();
+            const responseText = resJson.choices[0]?.message?.content || '';
+            if (responseText) {
+              return NextResponse.json({ response: responseText }, { headers: CORS_HEADERS });
+            }
+          } else {
+            const errText = await res.text();
+            console.warn(`Groq Chat Model ${model} returned HTTP ${res.status}:`, errText);
+          }
+        } catch (netErr) {
+          console.warn(`Network error calling Groq model ${model}:`, netErr);
+        }
+      }
     }
 
-    const resJson = await response.json();
-    const botResponse = resJson.choices[0]?.message?.content || '';
+    // 2. Try Gemini API Models Fallback if Groq models rate-limit or fail
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+    if (GEMINI_API_KEY) {
+      const geminiModels = ['gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
+      const systemPrompt = `You are FlockMind, Senior AI Poultry Consultant for Sri Mahalakshmi Poultry.\nActive farm stats: ${JSON.stringify(compactSummary)}\n\nRules:\n1. Speak in a highly professional, expert tone.\n2. Focus on actionable insights, FCR, mortality, and egg quality.\n3. BE EXTREMELY CONCISE, direct, and to the point.`;
 
-    return NextResponse.json({ response: botResponse }, { headers: CORS_HEADERS });
+      for (const model of geminiModels) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\nUser Question: ${message}` }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+            })
+          });
+
+          if (res.ok) {
+            const gemJson = await res.json();
+            const responseText = gemJson.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (responseText) {
+              return NextResponse.json({ response: responseText }, { headers: CORS_HEADERS });
+            }
+          }
+        } catch (gemErr) {
+          console.warn(`Gemini chat model ${model} fetch failed:`, gemErr);
+        }
+      }
+    }
+
+    // 3. Fallback to Local Engine if all Groq and Gemini models fail or rate-limit
+    const responseText = generateFallbackChatResponse(message, dataSummary);
+    return NextResponse.json({ response: responseText }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.warn('AI chat endpoint exception, triggering fallback:', error);
     try {

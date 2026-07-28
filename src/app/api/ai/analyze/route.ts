@@ -31,7 +31,7 @@ function generateFallbackAnalysis(summary: any) {
 
   const farmScore = summary.farmScore || 82;
   const totalProduction = summary.totalProduction || 42800;
-  
+
   return {
     managerDashboard: {
       status: farmScore > 85 ? "Excellent" : farmScore > 75 ? "Healthy" : "Needs Attention",
@@ -129,14 +129,41 @@ export async function OPTIONS() {
   });
 }
 
+// High-Performance In-Memory Cache (1 Hour TTL)
+interface CacheEntry {
+  timestamp: number;
+  data: any;
+}
+const aiAnalysisCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 Hour Cache TTL
+
 export async function POST(request: Request) {
   let dataSummary: any = {};
+  let forceRefresh = false;
   
   try {
+    const { searchParams } = new URL(request.url);
+    forceRefresh = searchParams.get('refresh') === 'true' || searchParams.get('force') === 'true';
+
     const body = await request.json().catch(() => ({}));
     dataSummary = body.dataSummary || {};
   } catch (parseErr) {
     console.warn('Failed parsing request JSON body:', parseErr);
+  }
+
+  // Cache Key based on date & core farm stats
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cacheKey = `${todayStr}_${dataSummary.farmScore || 0}_${dataSummary.totalProduction || 0}_${dataSummary.worstUnit?.unitName || ''}`;
+
+  if (!forceRefresh && aiAnalysisCache.has(cacheKey)) {
+    const cached = aiAnalysisCache.get(cacheKey)!;
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      console.info(`[AI Cache Hit] Returning instant analysis for key: ${cacheKey}`);
+      return NextResponse.json(
+        { ...cached.data, _cached: true, _cachedAt: new Date(cached.timestamp).toISOString() },
+        { headers: CORS_HEADERS }
+      );
+    }
   }
 
   try {
@@ -164,63 +191,134 @@ export async function POST(request: Request) {
       confidenceIndicator: { statement: "string", confidence: 0, basedOn: ["string"] }
     };
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
+    // Compact data summary to save tokens (prevent TPM rate limit)
+    const compactSummary = {
+      farmScore: dataSummary.farmScore,
+      totalProduction: dataSummary.totalProduction,
+      totalBirds: dataSummary.totalBirds,
+      bestUnit: dataSummary.bestUnit,
+      worstUnit: dataSummary.worstUnit,
+      bestShed: dataSummary.bestShed,
+      worstShed: dataSummary.worstShed,
+      unitSummaries: dataSummary.unitSummaries?.map((u: any) => ({
+        unitId: u.unitId,
+        unitName: u.unitName,
+        totalEggs: u.totalEggs,
+        avgHD: u.avgHD,
+        totalMortality: u.totalMortality,
+      })),
+      recentLogs: dataSummary.historicalLogs?.slice(0, 10).map((l: any) => ({
+        date: l.date,
+        unitId: l.unitId,
+        shedNumber: l.shedNumber,
+        eggs: l.eggsCount,
+        mortality: l.mortality,
+        feed: l.feedKg,
+        remarks: l.remarks,
+      })),
+    };
+
+    const promptMessages = [
+      {
+        role: 'system',
+        content: `You are FlockMind, the expert AI decision support system for Sri Mahalakshmi Poultry.
+Given database stats: ${JSON.stringify(compactSummary)}
+
+Generate a structured analysis in JSON format ONLY matching this schema:
+${JSON.stringify(jsonSchema)}`
       },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: `You are FlockMind, the expert AI decision support system for Sri Mahalakshmi Poultry.
-You are given a JSON representing the active database stats:
-${JSON.stringify(dataSummary)}
+      {
+        role: 'user',
+        content: 'Generate the structured farm analysis report.'
+      }
+    ];
 
-Act as a highly intelligent farm consultant. Analyze the data to answer: What happened, why it happened, what to do next, and what will likely happen tomorrow.
+    // 1. Try Groq Models First
+    const groqModelsToTry = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b',
+      'qwen/qwen3.6-27b',
+      'openai/gpt-oss-20b',
+      'groq/compound',
+      'groq/compound-mini',
+      'canopylabs/orpheus-v1-english'
+    ];
 
-Generate a structured analysis in JSON format ONLY. Do not reply with any markdown outside of the JSON block.
-The JSON must strictly match this structure:
-${JSON.stringify(jsonSchema, null, 2)}`
-          },
-          {
-            role: 'user',
-            content: 'Generate the structured farm analysis report.'
+    if (GROQ_API_KEY) {
+      for (const model of groqModelsToTry) {
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: promptMessages,
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (res.ok) {
+            const resJson = await res.json();
+            let botRaw = resJson.choices[0]?.message?.content || '{}';
+            if (botRaw.includes('```')) {
+              const match = botRaw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+              if (match && match[1]) botRaw = match[1];
+            }
+            const structuredResult = JSON.parse(botRaw.trim());
+            aiAnalysisCache.set(cacheKey, { timestamp: Date.now(), data: structuredResult });
+            return NextResponse.json(structuredResult, { headers: CORS_HEADERS });
+          } else {
+            const errText = await res.text();
+            console.warn(`Groq Model ${model} returned HTTP ${res.status}:`, errText);
           }
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Groq Analysis API Error:', errText);
-      const fallback = generateFallbackAnalysis(dataSummary);
-      return NextResponse.json(fallback, { headers: CORS_HEADERS });
-    }
-
-    const resJson = await response.json();
-    let botRaw = resJson.choices[0]?.message?.content || '{}';
-    
-    if (botRaw.includes('\`\`\`')) {
-      const match = botRaw.match(/\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/);
-      if (match && match[1]) {
-        botRaw = match[1];
+        } catch (netErr) {
+          console.warn(`Network error calling Groq model ${model}:`, netErr);
+        }
       }
     }
 
-    let structuredResult;
-    try {
-      structuredResult = JSON.parse(botRaw.trim());
-    } catch (parseError) {
-      console.warn('Failed parsing Groq response JSON, falling back to local analysis:', parseError, botRaw);
-      structuredResult = generateFallbackAnalysis(dataSummary);
+    // 2. Try Gemini API Models Fallback if Groq models rate-limit or fail
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+    if (GEMINI_API_KEY) {
+      const geminiModels = ['gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
+      const systemPrompt = `You are FlockMind, expert AI decision support for Sri Mahalakshmi Poultry.\nDatabase stats: ${JSON.stringify(compactSummary)}\n\nGenerate structured analysis JSON strictly matching schema:\n${JSON.stringify(jsonSchema)}`;
+
+      for (const model of geminiModels) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\nGenerate structured farm analysis JSON.` }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
+            })
+          });
+
+          if (res.ok) {
+            const gemJson = await res.json();
+            const rawText = gemJson.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const parsed = JSON.parse(rawText.trim());
+              aiAnalysisCache.set(cacheKey, { timestamp: Date.now(), data: parsed });
+              return NextResponse.json(parsed, { headers: CORS_HEADERS });
+            }
+          }
+        } catch (gemErr) {
+          console.warn(`Gemini model ${model} fetch failed:`, gemErr);
+        }
+      }
     }
 
-    return NextResponse.json(structuredResult, { headers: CORS_HEADERS });
+    // 3. Fallback to Local Rule-Based Engine if all Groq and Gemini models fail or rate-limit
+    console.warn('All Groq and Gemini AI models unavailable or rate-limited. Serving instant local analysis fallback.');
+    const fallback = generateFallbackAnalysis(dataSummary);
+    return NextResponse.json(fallback, { headers: CORS_HEADERS });
+
   } catch (error: any) {
     console.warn('Analysis endpoint exception, triggering fallback:', error);
     try {

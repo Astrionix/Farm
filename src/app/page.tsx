@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
 import LoginPage from '../components/LoginPage';
 import OwnerDashboard from '../components/OwnerDashboard';
@@ -12,7 +12,7 @@ import HenLoadingScreen from '../components/HenLoadingScreen';
 import { dbService } from '../services/db';
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [userRole, setUserRole] = useState<'Owner' | 'Supervisor'>('Owner');
   const [assignedUnit, setAssignedUnit] = useState<number>(1);
@@ -22,31 +22,51 @@ export default function Home() {
     }
     return false;
   });
-  const [dbReady, setDbReady] = useState<boolean>(false);
-  const [loadingProgress, setLoadingProgress] = useState<number>(0);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initialize DB & Local state on first mount
+  // Seamless Loader State
+  const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
+  const [showLoaderOverlay, setShowLoaderOverlay] = useState<boolean>(true);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Trigger ultra-smooth glass dissolve loader dismissal (600ms fade out)
+  const dismissLoader = useCallback(() => {
+    setIsFadingOut(true);
+    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    fadeTimeoutRef.current = setTimeout(() => {
+      setShowLoaderOverlay(false);
+      setIsFadingOut(false);
+    }, 600);
+  }, []);
+
+  // Callback when dashboard receives data and finishes rendering
+  const handleDataLoaded = useCallback(() => {
+    setDataLoaded(true);
+  }, []);
+
+  // Initialize App
   useEffect(() => {
-    // Animate progress bar while DB inits
     setLoadingProgress(0);
+    setDataLoaded(false);
+    setShowLoaderOverlay(true);
+    setIsFadingOut(false);
+
+    // Animate progress up to 90% while DB initializes
     progressRef.current = setInterval(() => {
       setLoadingProgress(prev => {
-        if (prev >= 88) { clearInterval(progressRef.current!); return prev; }
-        return prev + (Math.random() * 6 + 3);
+        if (prev >= 90) return prev;
+        return prev + (Math.random() * 5 + 3);
       });
-    }, 220);
+    }, 150);
 
     dbService.init();
     setUserRole(dbService.getUserRole());
     setAssignedUnit(dbService.getAssignedUnit());
-    
-    // Always require fresh login on application startup
-    localStorage.removeItem('smp_auth_active');
-    setIsAuthenticated(false);
 
-    // Sync tab when mounting/role updates
     const initialRole = dbService.getUserRole();
     if (initialRole === 'Supervisor') {
       setCurrentTab('unit-dashboard');
@@ -54,35 +74,122 @@ export default function Home() {
       setCurrentTab('dashboard');
     }
 
-    // Finish progress and reveal app
-    setTimeout(() => {
-      clearInterval(progressRef.current!);
-      setLoadingProgress(100);
-      setTimeout(() => setDbReady(true), 500);
-    }, 2800);
-  }, []);
+    // Safety timer for initial splash screen
+    const fallbackTimer = setTimeout(() => {
+      setDataLoaded(true);
+    }, 2000);
 
-  // Listen for storage updates
-  useEffect(() => {
-    const handleRoleChange = () => {
-      setUserRole(dbService.getUserRole());
-      setAssignedUnit(dbService.getAssignedUnit());
+    return () => {
+      if (progressRef.current) clearInterval(progressRef.current);
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      clearTimeout(fallbackTimer);
     };
-    window.addEventListener('storage-role-change', handleRoleChange);
-    return () => window.removeEventListener('storage-role-change', handleRoleChange);
   }, []);
 
-  const handleRoleToggle = (role: 'Owner' | 'Supervisor') => {
+  // When data is loaded, fast forward Hen animation to 100% and fade loader out
+  useEffect(() => {
+    if (dataLoaded) {
+      if (progressRef.current) clearInterval(progressRef.current);
+
+      const speedInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(speedInterval);
+            dismissLoader();
+            return 100;
+          }
+          return prev + 12;
+        });
+      }, 30);
+      return () => clearInterval(speedInterval);
+    }
+  }, [dataLoaded, dismissLoader]);
+
+  // Handle Login Event: Mount Dashboard immediately underneath, fetch all APIs, then fade loader
+  const handleLoginSuccess = (role: 'Owner' | 'Supervisor', unit: number) => {
+    localStorage.setItem('smp_auth_active', 'true');
     dbService.setUserRole(role);
+    dbService.setAssignedUnit(unit);
+
+    // 1. Show Hen Loader on top
+    setIsFadingOut(false);
+    setShowLoaderOverlay(true);
+    setLoadingProgress(0);
+    setDataLoaded(false);
+
+    // 2. Mount Dashboard underneath immediately so it starts fetching API data
     setUserRole(role);
+    setAssignedUnit(unit);
+    setIsAuthenticated(true);
+
+    if (role === 'Supervisor') {
+      setCurrentTab('unit-dashboard');
+      setTimeout(() => setDataLoaded(true), 350);
+    } else {
+      setCurrentTab('dashboard');
+    }
+
+    // Animate progress up to 90% while Dashboard fetches
+    if (progressRef.current) clearInterval(progressRef.current);
+    progressRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + (Math.random() * 8 + 4);
+      });
+    }, 120);
   };
 
-  const handleUnitSelect = (unitId: number) => {
+  // Tab transitions
+  const handleTabChange = (tab: string) => {
+    if (tab === currentTab) return;
+    
+    setIsFadingOut(false);
+    setShowLoaderOverlay(true);
+    setLoadingProgress(30);
+    setDataLoaded(false);
+
+    setCurrentTab(tab);
+
+    if (progressRef.current) clearInterval(progressRef.current);
+    progressRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 15;
+      });
+    }, 70);
+
+    setTimeout(() => setDataLoaded(true), 300);
+  };
+
+  const handleNavigateToUnit = (unitId: number) => {
+    if (userRole === 'Supervisor' && assignedUnit !== unitId) return;
+    
+    setIsFadingOut(false);
+    setShowLoaderOverlay(true);
+    setLoadingProgress(30);
+    setDataLoaded(false);
+
     dbService.setAssignedUnit(unitId);
     setAssignedUnit(unitId);
+    setCurrentTab('unit-dashboard');
+
+    if (progressRef.current) clearInterval(progressRef.current);
+    progressRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 15;
+      });
+    }, 70);
+
+    setTimeout(() => setDataLoaded(true), 300);
   };
 
-  // Toggle Dark Mode & persist preference
+  const handleLogout = () => {
+    localStorage.removeItem('smp_auth_active');
+    setIsAuthenticated(false);
+  };
+
+  // Toggle Dark Mode
   useEffect(() => {
     const root = window.document.documentElement;
     if (darkMode) {
@@ -94,98 +201,14 @@ export default function Home() {
     }
   }, [darkMode]);
 
-  const handleTabChange = (tab: string) => {
-    if (tab === currentTab) return;
-    
-    // Trigger quick transition loading animation
-    setDbReady(false);
-    setLoadingProgress(0);
-    
-    let prog = 0;
-    const quickInterval = setInterval(() => {
-      prog += 20;
-      setLoadingProgress(prog > 100 ? 100 : prog);
-      if (prog >= 100) clearInterval(quickInterval);
-    }, 60);
-
-    setCurrentTab(tab);
-    
-    // Hide loading screen after 400ms
-    setTimeout(() => {
-      setDbReady(true);
-    }, 400);
-  };
-
-  const handleNavigateToUnit = (unitId: number) => {
-    if (userRole === 'Supervisor' && assignedUnit !== unitId) return; // Prevent supervisor routing leak
-    
-    // Trigger quick transition loading animation
-    setDbReady(false);
-    setLoadingProgress(0);
-    
-    let prog = 0;
-    const quickInterval = setInterval(() => {
-      prog += 20;
-      setLoadingProgress(prog > 100 ? 100 : prog);
-      if (prog >= 100) clearInterval(quickInterval);
-    }, 60);
-
-    handleUnitSelect(unitId);
-    setCurrentTab('unit-dashboard');
-    
-    // Hide loading screen after 400ms
-    setTimeout(() => {
-      setDbReady(true);
-    }, 400);
-  };
-
-  const handleLoginSuccess = (role: 'Owner' | 'Supervisor', unit: number) => {
-    localStorage.setItem('smp_auth_active', 'true');
-    dbService.setUserRole(role);
-    dbService.setAssignedUnit(unit);
-    
-    // Trigger quick transition loading animation
-    setDbReady(false);
-    setLoadingProgress(0);
-    
-    let prog = 0;
-    const quickInterval = setInterval(() => {
-      prog += 20;
-      setLoadingProgress(prog > 100 ? 100 : prog);
-      if (prog >= 100) clearInterval(quickInterval);
-    }, 60);
-
-    setUserRole(role);
-    setAssignedUnit(unit);
-    setIsAuthenticated(true);
-    
-    if (role === 'Supervisor') {
-      setCurrentTab('unit-dashboard');
-    } else {
-      setCurrentTab('dashboard');
-    }
-    
-    // Hide loading screen after 400ms
-    setTimeout(() => {
-      setDbReady(true);
-    }, 400);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('smp_auth_active');
-    setIsAuthenticated(false);
-  };
-
   return (
     <>
-      {/* Loading Overlay */}
-      {!dbReady && (
-        <div className="fixed inset-0 z-[9999]">
-          <HenLoadingScreen progress={loadingProgress} />
-        </div>
+      {/* Hen Loader Overlay - Fixed on top (z-index: 9999) */}
+      {showLoaderOverlay && (
+        <HenLoadingScreen progress={loadingProgress} fadeOut={isFadingOut} />
       )}
 
-      {/* Render Login screen if not authenticated */}
+      {/* Main Application Interface - MOUNTED UNDERNEATH AT ALL TIMES */}
       {!isAuthenticated ? (
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       ) : (
@@ -194,9 +217,9 @@ export default function Home() {
             currentTab={currentTab}
             setCurrentTab={handleTabChange}
             userRole={userRole}
-            setUserRole={handleRoleToggle}
+            setUserRole={(r) => { dbService.setUserRole(r); setUserRole(r); }}
             assignedUnit={assignedUnit}
-            setAssignedUnit={handleUnitSelect}
+            setAssignedUnit={(u) => { dbService.setAssignedUnit(u); setAssignedUnit(u); }}
             darkMode={darkMode}
             setDarkMode={setDarkMode}
             onLogout={handleLogout}
@@ -208,36 +231,37 @@ export default function Home() {
             <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
               <div key={currentTab} className="animate-fade-in flex-1 flex flex-col min-h-0">
                 {currentTab === 'dashboard' && userRole === 'Owner' && (
-                <OwnerDashboard 
-                  darkMode={darkMode} 
-                  onNavigateToUnit={handleNavigateToUnit}
-                />
-              )}
-              
-              {currentTab === 'unit-dashboard' && (
-                <UnitDashboard
-                  userRole={userRole}
-                  assignedUnit={assignedUnit}
-                />
-              )}
-              
-              {currentTab === 'daily-entry' && (
-                <DailyEntry
-                  userRole={userRole}
-                  assignedUnit={assignedUnit}
-                />
-              )}
-              
-              {currentTab === 'ai-chat' && userRole === 'Owner' && (
-                <AIChatPanel />
-              )}
-              
-              {currentTab === 'reports' && (
-                <ReportsPanel
-                  userRole={userRole}
-                  assignedUnit={assignedUnit}
-                />
-              )}
+                  <OwnerDashboard 
+                    darkMode={darkMode} 
+                    onNavigateToUnit={handleNavigateToUnit}
+                    onDataLoaded={handleDataLoaded}
+                  />
+                )}
+                
+                {currentTab === 'unit-dashboard' && (
+                  <UnitDashboard
+                    userRole={userRole}
+                    assignedUnit={assignedUnit}
+                  />
+                )}
+                
+                {currentTab === 'daily-entry' && (
+                  <DailyEntry
+                    userRole={userRole}
+                    assignedUnit={assignedUnit}
+                  />
+                )}
+                
+                {currentTab === 'ai-chat' && userRole === 'Owner' && (
+                  <AIChatPanel />
+                )}
+                
+                {currentTab === 'reports' && (
+                  <ReportsPanel
+                    userRole={userRole}
+                    assignedUnit={assignedUnit}
+                  />
+                )}
               </div>
             </main>
           </div>
@@ -246,4 +270,3 @@ export default function Home() {
     </>
   );
 }
-
