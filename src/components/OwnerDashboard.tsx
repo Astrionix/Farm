@@ -14,7 +14,8 @@ import {
   Sparkles,
   CloudSun,
   Award,
-  CircleAlert
+  CircleAlert,
+  RefreshCw
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -38,6 +39,18 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit, onDataLoade
   const [chartTab, setChartTab] = useState<'trend' | 'comparison'>('trend');
   const [liveEggRate, setLiveEggRate] = useState<number>(6.05);
   const [yesterdayEggRate, setYesterdayEggRate] = useState<number>(6.05);
+  const [syncingRate, setSyncingRate] = useState(false);
+
+  const handleSyncRate = async () => {
+    setSyncingRate(true);
+    await dbService.syncEggPriceFromNECC();
+    const p = await dbService.getEggPrice('East Godavari');
+    if (p && p.price > 0) {
+      setLiveEggRate(p.price);
+      if (p.yesterdayPrice > 0) setYesterdayEggRate(p.yesterdayPrice);
+    }
+    setSyncingRate(false);
+  };
 
   // Dynamic values for financial calculation based on East Godavari NECC market price
   const EGG_SALE_PRICE = liveEggRate; // Dynamic East Godavari NECC egg price
@@ -273,6 +286,15 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit, onDataLoade
                 </span>
               );
             })()}
+            <button
+              onClick={handleSyncRate}
+              disabled={syncingRate}
+              title="Sync latest NECC egg price from e2necc.com"
+              className="ml-1.5 px-2.5 py-1 text-xs font-extrabold bg-gradient-to-r from-amber-500/20 to-amber-500/10 hover:from-amber-500/30 hover:to-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 active:scale-95 cursor-pointer shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncingRate ? 'animate-spin text-amber-600 dark:text-amber-400' : 'text-amber-700 dark:text-amber-300'}`} />
+              <span>{syncingRate ? 'Syncing...' : 'Sync Rate'}</span>
+            </button>
           </div>
         </div>
 
