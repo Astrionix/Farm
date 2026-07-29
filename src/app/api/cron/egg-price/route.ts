@@ -22,14 +22,17 @@ function parseZoneRate(html: string, targetZone: string = 'E.Godavari'): Scraped
   const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let match;
 
+  // Flexible zone regex to match E.Godavari, E. Godavari, East Godavari, etc.
+  const zonePattern = new RegExp(targetZone.replace(/\./g, '\\.?\\s*').replace(/East/i, '(?:East|E\\.?)'), 'i');
+
   while ((match = trRegex.exec(html)) !== null) {
     const rowContent = match[1];
-    if (rowContent.includes(targetZone)) {
+    if (zonePattern.test(rowContent) || rowContent.toLowerCase().includes('godavari')) {
       const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
       const cells: string[] = [];
       let tdMatch;
       while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
-        const text = tdMatch[1].replace(/<[^>]+>/g, '').trim();
+        const text = tdMatch[1].replace(/&nbsp;/gi, ' ').replace(/<[^>]+>/g, '').trim();
         cells.push(text);
       }
 

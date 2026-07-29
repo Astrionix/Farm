@@ -44,12 +44,21 @@ export default function OwnerDashboard({ darkMode, onNavigateToUnit, onDataLoade
   const FEED_COST_PER_KG = 36.0; // Rs. 36.00 per kg
 
   useEffect(() => {
-    dbService.getEggPrice('East Godavari').then(p => {
-      if (p && p.price > 0) {
-        setLiveEggRate(p.price);
-        if (p.yesterdayPrice > 0) setYesterdayEggRate(p.yesterdayPrice);
-      }
-    });
+    const updatePrices = () => {
+      dbService.getEggPrice('East Godavari').then(p => {
+        if (p && p.price > 0) {
+          setLiveEggRate(p.price);
+          if (p.yesterdayPrice > 0) setYesterdayEggRate(p.yesterdayPrice);
+        }
+      });
+    };
+
+    updatePrices();
+
+    window.addEventListener('egg-price-updated', updatePrices);
+    return () => {
+      window.removeEventListener('egg-price-updated', updatePrices);
+    };
   }, []);
 
   useEffect(() => {

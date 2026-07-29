@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/egg-price",
-      "schedule": "30 0 * * *"
+      "schedule": "30 2 * * *"
     }
   ]
 }

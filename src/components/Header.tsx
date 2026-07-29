@@ -45,6 +45,9 @@ export default function Header({ userRole, darkMode, setDarkMode, onLogout, setM
       try {
         await fetchEggPrice();
 
+        // Auto sync latest rate in background on load
+        dbService.syncEggPriceFromNECC().catch(() => {});
+
         const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=17.1706&longitude=82.0163&current=temperature_2m,relative_humidity_2m,weather_code');
         if (res.ok) {
           const data = await res.json();
@@ -65,6 +68,21 @@ export default function Header({ userRole, darkMode, setDarkMode, onLogout, setM
       }
     }
     loadData();
+
+    const handleUpdate = () => {
+      fetchEggPrice();
+    };
+    window.addEventListener('egg-price-updated', handleUpdate);
+
+    // Auto-check for fresh NECC price every 15 mins (ensures instant update at 8:00 AM IST)
+    const intervalId = setInterval(() => {
+      dbService.syncEggPriceFromNECC().catch(() => {});
+    }, 15 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('egg-price-updated', handleUpdate);
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (

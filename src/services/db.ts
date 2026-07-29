@@ -1157,76 +1157,15 @@ export const dbService = {
       const res = await fetch('/api/cron/egg-price', { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        if (json.success) return true;
-      }
-    } catch (e) {
-      console.warn('Error calling /api/cron/egg-price route, falling back to direct fetch:', e);
-    }
-
-    // Direct Browser / Client Scraper Fallback
-    try {
-      const res = await fetch('https://www.e2necc.com/home/eggprice', { cache: 'no-store' });
-      if (!res.ok) return false;
-      const html = await res.text();
-
-      const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-      let match;
-      while ((match = trRegex.exec(html)) !== null) {
-        const rowContent = match[1];
-        if (rowContent.includes('E.Godavari')) {
-          const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-          const cells: string[] = [];
-          let tdMatch;
-          while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
-            const text = tdMatch[1].replace(/<[^>]+>/g, '').trim();
-            cells.push(text);
-          }
-
-          const now = new Date();
-          const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-          const currentDay = istTime.getUTCDate();
-
-          const dailyPrices: { day: number; ratePer100: number }[] = [];
-          for (let day = 1; day <= 31; day++) {
-            const valStr = cells[day];
-            if (valStr && valStr !== '-' && valStr !== '') {
-              const val = parseFloat(valStr);
-              if (!isNaN(val)) dailyPrices.push({ day, ratePer100: val });
-            }
-          }
-
-          if (dailyPrices.length === 0) return false;
-
-          const availableUpToToday = dailyPrices.filter(p => p.day <= currentDay);
-          const target = availableUpToToday.length > 0
-            ? availableUpToToday[availableUpToToday.length - 1]
-            : dailyPrices[dailyPrices.length - 1];
-
-          const latestPricePer100 = target.ratePer100;
-          const targetIdx = dailyPrices.findIndex(p => p.day === target.day);
-          const previousPricePer100 = targetIdx > 0 ? dailyPrices[targetIdx - 1].ratePer100 : latestPricePer100;
-
-          const pricePerEgg = Number((latestPricePer100 / 100).toFixed(2));
-          const yesterdayPricePerEgg = Number((previousPricePer100 / 100).toFixed(2));
-          const trayPrice = Number((pricePerEgg * 30).toFixed(2));
-          const petiPrice = Number((pricePerEgg * 210).toFixed(2));
-
-          if (supabaseClient) {
-            await supabaseClient.from('egg_prices').upsert({
-              region: 'East Godavari',
-              price: pricePerEgg,
-              yesterday_price: yesterdayPricePerEgg,
-              tray_price: trayPrice,
-              peti_price: petiPrice,
-              source: 'NECC Official (E.Godavari)',
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'region' });
+        if (json.success) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('egg-price-updated'));
           }
           return true;
         }
       }
     } catch (e) {
-      console.error('Direct NECC scrape error:', e);
+      console.warn('Error calling /api/cron/egg-price route:', e);
     }
     return false;
   },
